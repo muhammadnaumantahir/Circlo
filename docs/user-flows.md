@@ -1,0 +1,30 @@
+# User Flows
+
+```mermaid
+flowchart TD
+  A[Open app] --> B{Logged in?}
+  B -- No --> C[Sign up / Log in] --> D[Profile setup] --> E[Consent + permissions]
+  B -- Yes --> F[Main map]
+  E --> F
+  F --> G[My Circles]
+  G --> H[Create circle] --> I[Share join code]
+  G --> J[Join with code] --> K{Approval required?}
+  K -- Yes --> L[Pending → owner accepts] --> F
+  K -- No --> F
+  F --> M[Tap member] --> N[Directions / History]
+  F --> O[Pause sharing]
+```
+
+```mermaid
+flowchart LR
+  P[Places tab] --> Q[Search place] --> R[Pin + name + radius] --> S[Choose members + alerts] --> T[Save]
+  T --> U((Member enters radius)) --> V[Server detects arrival] --> W[Push to selected members]
+```
+
+```mermaid
+flowchart TD
+  X[Settings] --> Y[Delete history] 
+  X --> Z[Delete account] --> AA{Owns circles?}
+  AA -- Yes --> AB[Transfer or delete circles] --> AC[Confirm + delete]
+  AA -- No --> AC
+```
