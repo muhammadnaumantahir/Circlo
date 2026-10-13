@@ -24,7 +24,7 @@ Private, consent-based location sharing with useful place alerts and history, an
 5. Pause sharing / leave circle / delete data / delete account.
 
 ## Platforms
-Web, Android and iOS via one Flutter codebase (owner decision). Web can view and manage but cannot track in the background; iOS/Play distribution depends on paid developer accounts (see [requirements.md](requirements.md) Q1b).
+Web, Android and iOS via one Flutter codebase (owner decision). Native Android/iOS aim for Life360-style background location while permitted, including with the screen locked; behavior is subject to OS/OEM restrictions and real-device testing. Web cannot track after its tab closes. iOS/Play distribution depends on paid developer accounts (see [requirements.md](requirements.md) Q1b).
 
 ## First release (MVP) goal
 A reliable core on a $0 stack: accounts, circles with join codes, live map with consent controls, saved places with arrival/departure alerts, and basic travel history with deletion/retention controls. Detailed scope: [requirements.md](requirements.md) §2 and §13.
