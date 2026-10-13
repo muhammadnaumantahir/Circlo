@@ -240,3 +240,102 @@ describe('join code management', () => {
     await assertSucceeds(updateDoc(doc(db('alice'), 'circles/c1'), { name: 'Family 2' }));
   });
 });
+
+describe('live location sharing (circle-scoped)', () => {
+  const loc = (uid, over = {}) => ({ uid, lat: 31.5204, lng: 74.3587, accuracy: 12, updatedAt: serverTimestamp(), ...over });
+  const locRef = (f, cid, uid) => doc(f, `circles/${cid}/locations/${uid}`);
+  const setSharing = (uid, cid, over) => env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), `circles/${cid}/members/${uid}`), over);
+  });
+
+  it('cannot publish a location until sharing is switched on for that circle', async () => {
+    await seed({ bob: true });
+    await assertFails(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+  });
+  it('cannot publish while paused', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: true });
+    await assertFails(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+  });
+  it('sharing in circle A does not allow publishing into circle B', async () => {
+    await seed({ bob: true });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles/c2/members/bob'), { uid: 'bob', role: 'member', displayName: 'Bob', joinedAt: Timestamp.now(), joinCode: CODE_B });
+    });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+    await assertFails(setDoc(locRef(db('bob'), 'c2', 'bob'), loc('bob'))); // c2 sharing still off
+  });
+  it('cannot write for another user, for a non-member circle, or with invalid data', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertFails(setDoc(locRef(db('mallory'), 'c1', 'bob'), loc('bob')));
+    await assertFails(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob', { lat: 123 })));
+    await assertFails(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob', { lng: -200 })));
+    await assertFails(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob', { accuracy: -1 })));
+    await assertFails(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob', { extra: 'x' })));
+    await assertFails(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob', { updatedAt: Timestamp.fromMillis(1) })));
+    await assertFails(setDoc(locRef(db('mallory'), 'c1', 'mallory'), loc('mallory')));
+  });
+  it('only members of that circle can read its locations', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+    await assertSucceeds(getDoc(locRef(db('alice'), 'c1', 'bob')));
+    await assertSucceeds(getDocs(collection(db('alice'), 'circles/c1/locations')));
+    await assertFails(getDoc(locRef(db('carol'), 'c1', 'bob')));              // member of c2 only
+    await assertFails(getDocs(collection(db('carol'), 'circles/c1/locations')));
+    await assertFails(getDoc(locRef(db('mallory'), 'c1', 'bob')));
+  });
+  it('stopping sharing (member flag + delete in one batch) removes the location', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+    const f = db('bob'); const b = writeBatch(f);
+    b.update(doc(f, 'circles/c1/members/bob'), { sharesLocation: false, paused: false });
+    b.delete(locRef(f, 'c1', 'bob'));
+    await assertSucceeds(b.commit());
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const snap = await getDoc(locRef(ctx.firestore(), 'c1', 'bob'));
+      if (snap.exists()) throw new Error('location should be gone');
+    });
+    await assertFails(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+  });
+  it('members can toggle only their own sharing flags, and only with booleans', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { sharesLocation: true }));
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { sharesLocation: 'yes' }));
+    await assertFails(updateDoc(doc(db('alice'), 'circles/c1/members/bob'), { sharesLocation: true })); // even the owner
+    await assertFails(updateDoc(doc(db('mallory'), 'circles/c1/members/bob'), { sharesLocation: true }));
+  });
+  it('new members cannot be created already sharing', async () => {
+    await seed();
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob', CODE_A, { sharesLocation: true })));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob', CODE_A, { sharesLocation: false, paused: false })));
+  });
+  it('leaving (batch) and owner removal can delete the departing member\'s location', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+    const f = db('bob'); const b = writeBatch(f);
+    b.delete(doc(f, 'circles/c1/members/bob'));
+    b.delete(locRef(f, 'c1', 'bob'));
+    await assertSucceeds(b.commit());
+    // owner cleanup path
+    await env.clearFirestore(); await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+    await assertFails(deleteDoc(locRef(db('mallory'), 'c1', 'bob')));
+    await assertSucceeds(deleteDoc(locRef(db('alice'), 'c1', 'bob')));
+  });
+  it('a removed member can no longer read locations', async () => {
+    await seed({ bob: true });
+    await setSharing('alice', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('alice'), 'c1', 'alice'), loc('alice')));
+    await assertSucceeds(getDoc(locRef(db('bob'), 'c1', 'alice')));
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
+    await assertFails(getDoc(locRef(db('bob'), 'c1', 'alice')));
+  });
+});

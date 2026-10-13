@@ -77,6 +77,8 @@ class CirclesRepository {
         'role': 'owner',
         'displayName': displayName,
         'joinedAt': FieldValue.serverTimestamp(),
+        'sharesLocation': false, // sharing is always opt-in
+        'paused': false,
       });
       batch.set(_codes.doc(code), {
         'circleId': circleRef.id,
@@ -129,6 +131,8 @@ class CirclesRepository {
         'displayName': displayName,
         'joinedAt': FieldValue.serverTimestamp(),
         'joinCode': code,
+        'sharesLocation': false, // sharing is always opt-in
+        'paused': false,
       });
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
@@ -139,12 +143,23 @@ class CirclesRepository {
     return circleId;
   }
 
-  Future<void> leaveCircle({required String circleId, required String uid}) =>
-      _circles.doc(circleId).collection('members').doc(uid).delete();
+  /// Leaving also deletes the member's location projection in the same atomic batch.
+  Future<void> leaveCircle({required String circleId, required String uid}) {
+    final circle = _circles.doc(circleId);
+    final batch = _db.batch();
+    batch.delete(circle.collection('members').doc(uid));
+    batch.delete(circle.collection('locations').doc(uid));
+    return batch.commit();
+  }
 
-  /// Owner only (enforced by rules).
-  Future<void> removeMember({required String circleId, required String memberUid}) =>
-      _circles.doc(circleId).collection('members').doc(memberUid).delete();
+  /// Owner only (enforced by rules). Also removes the member's location projection.
+  Future<void> removeMember({required String circleId, required String memberUid}) {
+    final circle = _circles.doc(circleId);
+    final batch = _db.batch();
+    batch.delete(circle.collection('members').doc(memberUid));
+    batch.delete(circle.collection('locations').doc(memberUid));
+    return batch.commit();
+  }
 
   /// Owner only: revokes the current code and issues a new one atomically.
   Future<void> rotateJoinCode({

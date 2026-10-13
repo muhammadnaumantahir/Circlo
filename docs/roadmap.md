@@ -1,5 +1,5 @@
 # Roadmap (DRAFT v0.3 — Firebase-only)
-## MVP (v1.0)
+## MVP (v1.0) — reduced scope (owner decision 2026-10-13: no server-dependent features)
 0. **Blocking spikes before full implementation:** Firestore Rules for circle-scoped location access; safe circle/join-code operations without trusted functions; secure zero-cost server path for remote FCM and cleanup (or explicitly defer those features); Android/iOS background tracking on real devices (ADR-0003); free maps/geocoder (ADR-0004); Firestore quota model.
 1. **Foundation + core:** repo/CI, auth, profiles + age gate, circles, join codes, member management.
 2. **Live locations:** map, sharing controls, statuses, permissions, web view.
@@ -8,3 +8,6 @@
 5. **Hardening & release:** Firestore Security Rules Emulator tests, battery tuning, accessibility, privacy policy review, Android APK + web release.
 ## Later (not approved)
 iOS/Play distribution (needs paid accounts), driving/trip detection, low-battery alerts, SOS, check-in, speed alerts, data export, report/block tooling, localization, paid scale-up plan.
+
+## Deferred until a trusted no-cost server exists
+Remote cross-user push (arrival/departure and membership alerts), scheduled retention cleanup, complete recursive account/circle deletion guarantee, server-validated place events.

@@ -19,6 +19,8 @@ git checkout -- pubspec.yaml analysis_options.yaml lib test   # keep our files
 rm -f test/widget_test.dart                                   # generated sample test, not ours
 flutter pub get
 
+python3 ../tools/apply_platform_config.py                      # location permissions (see docs/platform-setup.md; best effort, unverified)
+
 # 2. Configure Firebase at build time (see .env.example; copy values to a git-ignored env.json)
 flutter run -d chrome --dart-define-from-file=env.json
 

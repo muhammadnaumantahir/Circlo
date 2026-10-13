@@ -1,6 +1,6 @@
 # ADR-0001: Firebase-only architecture under a strict $0 budget
 
-**Status:** Selected by owner on 2026-10-13; trusted server-side automation remains unresolved.
+**Status:** Accepted by owner on 2026-10-13 **with reduced scope**: remote push, scheduled cleanup, complete recursive deletion and server-validated events are deferred (no trusted server under Spark/no billing).
 **Context:** Circlo targets Flutter web, Android and iOS. The monthly budget is $0 and no billing account may be linked. The owner selected Firebase Authentication, Cloud Firestore and Firebase Cloud Messaging. Native mobile background location should continue when the screen is locked, subject to platform permissions and restrictions.
 **Options considered:** (A) Firebase Authentication + Cloud Firestore + FCM on Spark; (B) Firebase with Cloud Functions on Blaze; (C) Firebase plus a separate hosted backend; (D) self-hosted backend.
 **Decision:** A for identity, app data and push delivery. This replaces the previous separate-database design.

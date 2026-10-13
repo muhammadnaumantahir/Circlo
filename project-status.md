@@ -3,6 +3,7 @@
 - **Current phase:** Phase 6 — Development, Increment 1 (accounts + circles).
 - **Approved baseline:** v0.3 (Firebase-only). **Approval date: 2026-10-13** — owner instruction "I have updated the documents, read them and start the development".
 - **Approval scope/interpretation:** start development with work that does not depend on the P0 trusted-server blocker. Remote cross-user push, scheduled cleanup, complete account deletion and server-dependent flows stay **deferred** until the owner chooses a no-cost trusted mechanism or formally accepts the reduced scope.
+- **Scope decision (2026-10-13, owner):** accept a **smaller scope without the P0 server-dependent features**: no remote cross-user push notifications, no scheduled/automatic cleanup, no complete recursive account deletion guarantee, no server-side validation of events. Alerts and notices are therefore **in-app only** (visible when the app is open/synced) until a trusted no-cost mechanism is approved. Increment 2 (location sharing) proceeds on this basis.
 - **Implementation code:** Increment 1 written (see below); not yet executed in the authoring environment.
 - **Last updated:** 2026-10-13.
 
@@ -28,6 +29,11 @@ Owner selected Firebase-only: Authentication + Cloud Firestore + FCM; the prior 
 **Verified:** Nothing executed yet. Flutter SDK and the Firestore emulator download were unavailable in the authoring sandbox, so `flutter analyze/test`, the app build, and `npm test` are **Not run/Blocked**; the CI workflow (docs/ci/ci.yml; must be copied to .github/workflows/ to run) will run them. Expect to fix compile/lint/rule issues on first CI run.
 **Deferred from Increment 1:** approval flow (FR-014), ownership transfer/circle deletion (FR-018), account deletion (FR-006), member cap (FR-021), email verification (FR-007), profile photos, location permission screen (FR-005).
 **Needs owner:** create a free Firebase (Spark) project, enable Email/Password + Firestore, provide config via `--dart-define`; run `flutter create` (README) for platform folders.
+
+## Increment 2 (2026-10-13) — status
+**Written:** circle-scoped live location (rules + 9 new rule tests), Map tab with member list/details, Location sharing screen (consent dialog, per-circle opt-in, pause-all, permission states), sharing engine (geolocator; throttle + heartbeat), log-out stops sharing, platform setup doc + script, Dart unit tests for status/throttle.
+**Verified:** nothing executed (same sandbox limits as Increment 1). Background reliability, battery, and the platform script are **Not run**; real-device matrix is in docs/platform-setup.md.
+**Not built (by scope):** directions link (FR-072), timed pause (FR-038), in-app "you were added/sharing started" notices (FR-094 remote deferred), email verification, profile photos.
 
 ## Planning artifacts
 PROJECT_BRIEF.md, requirements.md, architecture.md, design/{design-system,screen-specification,design-prompts}.md, docs/{user-flows,data-model,security-privacy,traceability,risks,roadmap,review-findings}.md, docs/decisions/ADR-0001..0004.

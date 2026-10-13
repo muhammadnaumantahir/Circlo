@@ -20,11 +20,19 @@ class Circle {
 }
 
 class Member {
-  const Member({required this.uid, required this.displayName, required this.role});
+  const Member({
+    required this.uid,
+    required this.displayName,
+    required this.role,
+    this.sharesLocation = false,
+    this.paused = false,
+  });
 
   final String uid;
   final String displayName;
   final String role;
+  final bool sharesLocation;
+  final bool paused;
 
   bool get isOwner => role == 'owner';
 
@@ -32,6 +40,8 @@ class Member {
         uid: uid,
         displayName: (data['displayName'] as String?) ?? 'Member',
         role: (data['role'] as String?) ?? 'member',
+        sharesLocation: data['sharesLocation'] == true,
+        paused: data['paused'] == true,
       );
 }
 

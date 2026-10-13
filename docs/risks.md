@@ -19,3 +19,9 @@
 | R-15 | Forged place events from modified clients | High | Treat client events as untrusted; do not trigger remote alerts until trusted validation exists | — |
 | R-16 | No trusted server-side FCM sender on Spark/no billing | High / launch blocker | Never embed FCM server credentials; prove an approved secure server option or explicitly defer remote push | Owner approval required |
 | R-17 | Firestore Rules cannot safely express intended cross-circle reads | High | Prototype rules in Emulator; use circle-scoped projections or revise data model if authorization cannot be proven | Security spike |
+
+
+## Increment 2 additions
+- Circle-scoped location copies cost N writes per update against the Firestore free quota (verify limits); throttled to ≥30 s plus a 5-minute heartbeat. Revocation deletes the copy atomically; if the device is offline at that moment the copy remains until the next successful write and is shown as "Location unavailable" after 10 minutes.
+- Background sharing is unverified on real devices (ADR-0003).
+- Default OSM tile server is for development only (ADR-0004).

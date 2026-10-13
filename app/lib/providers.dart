@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/auth/auth_repository.dart';
 import 'features/circles/circle_models.dart';
 import 'features/circles/circles_repository.dart';
+import 'features/location/location_models.dart';
+import 'features/location/location_repository.dart';
 import 'features/profile/profile_models.dart';
 import 'features/profile/profile_repository.dart';
 
@@ -42,3 +44,19 @@ final membersProvider = StreamProvider.family<List<Member>, String>(
 
 /// Birth year typed at sign-up, used to pre-fill profile setup.
 final signupBirthYearProvider = StateProvider<int?>((ref) => null);
+
+final locationRepositoryProvider = Provider<LocationRepository>(
+    (ref) => LocationRepository(FirebaseFirestore.instance));
+
+/// The user's own sharing switches per circle.
+final myMembershipsProvider = StreamProvider<List<MyMembership>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return Stream.value(const <MyMembership>[]);
+  return ref.watch(locationRepositoryProvider).watchMyMemberships(uid);
+});
+
+final locationsProvider = StreamProvider.family<Map<String, MemberLocation>, String>(
+    (ref, circleId) => ref.watch(locationRepositoryProvider).watchLocations(circleId));
+
+/// Circle currently shown on the map (null = first circle).
+final selectedCircleIdProvider = StateProvider<String?>((ref) => null);

@@ -12,6 +12,10 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-010, FR-011 | Create circle batch rules | same | same | Blocked here; CI |
 | FR-013, FR-020 | Join with valid/invalid/revoked/expired code; rotate code | same | same | Blocked here; CI |
 | FR-017, FR-019, FR-090, FR-092 | Membership-scoped reads; leave/remove revokes access | same | same | Blocked here; CI |
+| FR-030–035, FR-090 | Location rules: write only when sharing on & not paused for that circle; no cross-circle writes; member-only reads; stop-sharing batch removes data; removed member loses read | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
+| FR-031, FR-032, NFR-016 | Status derivation, "ago" text, upload throttle | `app/test/sharing_status_test.dart` | `flutter test` | Not run (CI) |
+| FR-033, FR-037, NFR-004 | Background sharing, notification/indicator, battery | real devices (docs/platform-setup.md) | manual | **Not run — required** |
+| FR-036, FR-034, FR-035 | Consent dialog, pause, per-circle switches, permission states | manual with emulator/real device | manual | Not run |
 | Static | `flutter analyze`, `flutter build web` | CI (not enabled yet: copy docs/ci/ci.yml to .github/workflows/) | CI job `flutter` | Not run |
 | Security | Secret scan | CI | gitleaks | Not run |
 

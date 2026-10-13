@@ -13,6 +13,8 @@ Priority: **Must / Should / Could / Not in this release**.
 - **Success metrics:** see [PROJECT_BRIEF.md](PROJECT_BRIEF.md) (proposed targets, need approval).
 
 ## 2. Scope
+> **Scope decision 2026-10-13 (owner):** Under the $0/no-billing constraint the MVP is reduced. **Deferred until a trusted no-cost server exists:** remote push to other members (FR-045/046 delivery, FR-080 remote parts, FR-083, FR-094), automatic retention cleanup (FR-067 enforcement beyond best-effort client cleanup), guaranteed complete deletion (FR-006, NFR-012), server-side event validation (FR-048 beyond client-side dedup). Where these appear below they are **in-app only** (shown when the app is open) or deferred.
+
 **In scope (MVP):** Accounts, circles, join codes, live map, sharing controls, saved places & alerts, travel history, notifications, privacy controls (source phases 1–5).
 **Out of scope / Not in this release [C]:** driving/trip detection, low-battery alerts, SOS button, check-in button, speed alerts. **[R]** also out: in-app chat, payments/subscriptions, social login, analytics/ad SDKs, sharing with non-app users, any paid cloud service.
 

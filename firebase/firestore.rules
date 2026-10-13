@@ -85,21 +85,48 @@ service cloud.firestore {
         return d.uid == memberUid
           && nameOk(d.displayName, 50)
           && d.joinedAt == request.time
+          && d.get('sharesLocation', false) == false   // sharing is always opt-in, off at creation
+          && d.get('paused', false) == false
           && (
             // Owner membership: only together with creating the circle in the same batch.
             (d.role == 'owner'
-              && d.keys().hasOnly(['uid', 'role', 'displayName', 'joinedAt'])
+              && d.keys().hasOnly(['uid', 'role', 'displayName', 'joinedAt', 'sharesLocation', 'paused'])
               && d.keys().hasAll(['uid', 'role', 'displayName', 'joinedAt'])
               && !exists(circlePath(circleId))
               && getAfter(circlePath(circleId)).data.ownerUid == memberUid)
             ||
             // Regular membership: requires a valid, unrevoked, unexpired join code for THIS circle.
             (d.role == 'member'
-              && d.keys().hasOnly(['uid', 'role', 'displayName', 'joinedAt', 'joinCode'])
+              && d.keys().hasOnly(['uid', 'role', 'displayName', 'joinedAt', 'joinCode', 'sharesLocation', 'paused'])
               && d.keys().hasAll(['uid', 'role', 'displayName', 'joinedAt', 'joinCode'])
               && exists(circlePath(circleId))
               && validJoinCode(d.joinCode, circleId))
           );
+      }
+
+      // ---- Circle-scoped live location projection (Increment 2) ----
+      // One document per (circle, sharing member). The owner of the location writes it only while
+      // sharing is ON and NOT paused for that exact circle; the app deletes it atomically when sharing
+      // is switched off/paused/left, so viewers never keep seeing stale data after revocation.
+      function validLocation(d, memberUid) {
+        return d.keys().hasOnly(['uid', 'lat', 'lng', 'accuracy', 'updatedAt'])
+          && d.keys().hasAll(['uid', 'lat', 'lng', 'accuracy', 'updatedAt'])
+          && d.uid == memberUid
+          && d.lat is number && d.lat >= -90 && d.lat <= 90
+          && d.lng is number && d.lng >= -180 && d.lng <= 180
+          && d.accuracy is number && d.accuracy >= 0 && d.accuracy <= 100000
+          && d.updatedAt == request.time;
+      }
+
+      match /locations/{uid} {
+        allow get, list: if isMember(cid);
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && isMember(cid)
+          && get(memberPath(cid, uid)).data.get('sharesLocation', false) == true
+          && get(memberPath(cid, uid)).data.get('paused', false) == false
+          && validLocation(request.resource.data, uid);
+        // The sharer can always stop; the owner can clean up after removing a member.
+        allow delete: if signedIn() && (request.auth.uid == uid || isOwner(cid));
       }
 
       match /members/{uid} {
@@ -107,10 +134,12 @@ service cloud.firestore {
         allow list: if isMember(cid);
         allow create: if signedIn() && request.auth.uid == uid
           && validMemberCreate(request.resource.data, cid, uid);
-        // A member may only change their own display name.
+        // A member may only change their own display name and their own sharing switches.
         allow update: if signedIn() && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
-          && nameOk(request.resource.data.displayName, 50);
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'sharesLocation', 'paused'])
+          && nameOk(request.resource.data.displayName, 50)
+          && request.resource.data.get('sharesLocation', false) is bool
+          && request.resource.data.get('paused', false) is bool;
         // Leave (non-owner) or owner removes someone else. The owner cannot leave until transfer/delete exists.
         allow delete: if signedIn()
           && ((request.auth.uid == uid && resource.data.role != 'owner')

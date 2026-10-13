@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/validators.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
+import '../location/sign_out.dart';
 
 /// Shown after sign-up (or whenever a signed-in user has no profile yet).
 class ProfileSetupScreen extends ConsumerStatefulWidget {
@@ -201,8 +203,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   : const Text('Save changes'),
             ),
             const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => context.push('/sharing'),
+              icon: const Icon(Icons.share_location),
+              label: const Text('Location sharing'),
+            ),
+            const SizedBox(height: 12),
             OutlinedButton(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
+              onPressed: () => signOutStoppingSharing(ref),
               child: const Text('Log out'),
             ),
           ]);

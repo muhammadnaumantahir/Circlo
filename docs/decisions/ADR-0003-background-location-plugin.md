@@ -1,4 +1,5 @@
 # ADR-0003: Native background location approach
+**Increment 2 note (2026-10-13):** implemented with `geolocator` (free) using an Android foreground-service notification and iOS background updates + indicator; **not verified on devices**, so this ADR stays open until the real-device matrix in docs/platform-setup.md passes.
 **Status:** Owner preference confirmed — Life360-style background tracking on Android/iOS, including with screen locked, subject to platform restrictions. Implementation/plugin remains open until a 1–2 week spike on real Android (including Samsung/Xiaomi) and iOS devices.
 **Candidates:** geolocator + compliant Android foreground service/workmanager (free, more custom work; preferred under $0); flutter_background_geolocation (robust, but licence cost must be checked).
 **Criteria:** reliability when screen locked and app backgrounded/killed, battery ≤5%/day target, store-policy compliance, licence cost, maintenance, persistent Android foreground notification. These are targets, not guarantees. Web tracking stops when the tab closes.

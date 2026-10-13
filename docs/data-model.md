@@ -20,6 +20,7 @@ Firebase Authentication UID is the stable user key. Use Firestore documents and 
 
 ## Implemented in Increment 1 (see `firebase/firestore.rules`)
 `users/{uid}` (displayName, phone?, birthYear, createdAt, updatedAt) · `circles/{id}` (name, ownerUid, requiresApproval=false, joinCode, createdAt) · `circles/{id}/members/{uid}` (uid, role, displayName, joinedAt, joinCode for members) · `joinCodes/{code}` (circleId, createdBy, revoked, createdAt, expiresAt?).
+**Increment 2 additions:** `circles/{id}/members/{uid}` gains `sharesLocation` (bool, default false) and `paused` (bool, default false); new `circles/{id}/locations/{uid}` (uid, lat, lng, accuracy, updatedAt=server time) = a **circle-scoped projection** written by the sharing member only while sharing is on and not paused for that exact circle (rules check the member doc), readable only by members of that circle; deleted atomically (same batch) when sharing is switched off/paused, on leaving, on owner removal and on log-out. The same position is written once per active circle (cost: N writes per update).
 Deviations from the logical model above: `member_count` is derived on the client (no trusted counter); member docs carry a denormalized `displayName` and a `uid` field so users can find their circles with a collection-group query; approval flow, `joinRequests`, deletion and everything location-related are not implemented yet.
 
 ## Query and security rules

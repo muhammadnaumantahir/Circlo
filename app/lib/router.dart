@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'core/widgets.dart';
 import 'features/auth/auth_screens.dart';
 import 'features/circles/circles_screens.dart';
+import 'features/location/map_screen.dart';
+import 'features/location/sharing_screen.dart';
 import 'features/profile/profile_screens.dart';
 import 'providers.dart';
 
@@ -33,7 +35,7 @@ class _RouterNotifier extends ChangeNotifier {
       return loc == '/profile-setup' ? null : '/profile-setup';
     }
     if (_publicRoutes.contains(loc) || loc == '/splash' || loc == '/profile-setup') {
-      return '/circles';
+      return '/map';
     }
     return null;
   }
@@ -55,10 +57,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => HomeShell(location: state.matchedLocation, child: child),
         routes: [
+          GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
           GoRoute(path: '/circles', builder: (_, __) => const CirclesScreen()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
         ],
       ),
+      GoRoute(path: '/sharing', builder: (_, __) => const SharingScreen()),
       GoRoute(path: '/circles/create', builder: (_, __) => const CreateCircleScreen()),
       GoRoute(path: '/circles/join', builder: (_, __) => const JoinCircleScreen()),
       GoRoute(
@@ -91,8 +95,8 @@ class SplashScreen extends ConsumerWidget {
   }
 }
 
-/// Bottom navigation for the screens that exist so far (Circles, Profile).
-/// Map, Places and History tabs are added with their features.
+/// Bottom navigation for the screens that exist so far (Map, Circles, Profile).
+/// Places and History tabs are added with their features.
 class HomeShell extends StatelessWidget {
   const HomeShell({super.key, required this.location, required this.child});
   final String location;
@@ -100,13 +104,14 @@ class HomeShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final index = location.startsWith('/profile') ? 1 : 0;
+    final index = location.startsWith('/profile') ? 2 : (location.startsWith('/circles') ? 1 : 0);
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (i) => context.go(i == 0 ? '/circles' : '/profile'),
+        onDestinationSelected: (i) => context.go(const ['/map', '/circles', '/profile'][i]),
         destinations: const [
+          NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Map'),
           NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Circles'),
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
