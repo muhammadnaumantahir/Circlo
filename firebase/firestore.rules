@@ -1,0 +1,143 @@
+rules_version = '2';
+
+// Circlo Firestore Rules — Increment 1 (accounts + circles).
+// Default deny. Any path not matched below is inaccessible.
+// Scope notes (see docs/review-findings.md):
+//  - Join codes are validated here; there is no trusted server, so codes are long (10 chars, ~49 bits)
+//    and never listable. Approval flow, ownership transfer and circle deletion are NOT enabled yet.
+//  - Minimum age is 13 (open question Q2b); keep in sync with app/lib/core/validators.dart.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function circlePath(cid) { return /databases/$(database)/documents/circles/$(cid); }
+    function memberPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/members/$(uid); }
+    function codePath(code) { return /databases/$(database)/documents/joinCodes/$(code); }
+
+    function isMember(cid) { return signedIn() && exists(memberPath(cid, request.auth.uid)); }
+    function isOwner(cid) { return isMember(cid) && get(circlePath(cid)).data.ownerUid == request.auth.uid; }
+
+    function validCodeFormat(code) {
+      return code is string && code.matches('[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{10}');
+    }
+    function nameOk(v, maxLen) { return v is string && v.size() >= 1 && v.size() <= maxLen; }
+
+    // ---------- users (private profile) ----------
+    function validProfile(d) {
+      return d.keys().hasOnly(['displayName', 'phone', 'birthYear', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['displayName', 'birthYear', 'createdAt', 'updatedAt'])
+        && nameOk(d.displayName, 50)
+        && d.birthYear is int && d.birthYear >= 1900
+        && request.time.year() - d.birthYear >= 13
+        && (!('phone' in d) || (d.phone is string && d.phone.matches('[+][1-9][0-9]{6,14}')))
+        && d.updatedAt == request.time;
+    }
+
+    match /users/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn() && request.auth.uid == uid
+        && validProfile(request.resource.data)
+        && request.resource.data.birthYear == resource.data.birthYear
+        && request.resource.data.createdAt == resource.data.createdAt;
+      // No list, no delete (account deletion is a later increment).
+    }
+
+    // ---------- circles ----------
+    function validCircleCreate(d, circleId) {
+      return d.keys().hasOnly(['name', 'ownerUid', 'requiresApproval', 'joinCode', 'createdAt'])
+        && d.keys().hasAll(['name', 'ownerUid', 'requiresApproval', 'joinCode', 'createdAt'])
+        && nameOk(d.name, 40)
+        && d.ownerUid == request.auth.uid
+        && d.requiresApproval == false
+        && d.createdAt == request.time
+        && validCodeFormat(d.joinCode)
+        && getAfter(memberPath(circleId, request.auth.uid)).data.role == 'owner'
+        && getAfter(codePath(d.joinCode)).data.circleId == circleId;
+    }
+
+    function validCircleUpdate(circleId) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'joinCode'])
+        && nameOk(request.resource.data.name, 40)
+        && (request.resource.data.joinCode == resource.data.joinCode
+            || (validCodeFormat(request.resource.data.joinCode)
+                && getAfter(codePath(request.resource.data.joinCode)).data.circleId == circleId
+                && getAfter(codePath(request.resource.data.joinCode)).data.revoked == false));
+    }
+
+    match /circles/{cid} {
+      allow get: if isMember(cid);
+      allow create: if signedIn() && validCircleCreate(request.resource.data, cid);
+      allow update: if isOwner(cid) && validCircleUpdate(cid);
+      // No list (members find circles via the members collection group), no delete yet.
+
+      function validJoinCode(code, circleId) {
+        let c = get(codePath(code)).data;
+        return validCodeFormat(code)
+          && c.circleId == circleId
+          && c.revoked == false
+          && (!('expiresAt' in c) || c.expiresAt > request.time);
+      }
+
+      function validMemberCreate(d, circleId, memberUid) {
+        return d.uid == memberUid
+          && nameOk(d.displayName, 50)
+          && d.joinedAt == request.time
+          && (
+            // Owner membership: only together with creating the circle in the same batch.
+            (d.role == 'owner'
+              && d.keys().hasOnly(['uid', 'role', 'displayName', 'joinedAt'])
+              && d.keys().hasAll(['uid', 'role', 'displayName', 'joinedAt'])
+              && !exists(circlePath(circleId))
+              && getAfter(circlePath(circleId)).data.ownerUid == memberUid)
+            ||
+            // Regular membership: requires a valid, unrevoked, unexpired join code for THIS circle.
+            (d.role == 'member'
+              && d.keys().hasOnly(['uid', 'role', 'displayName', 'joinedAt', 'joinCode'])
+              && d.keys().hasAll(['uid', 'role', 'displayName', 'joinedAt', 'joinCode'])
+              && exists(circlePath(circleId))
+              && validJoinCode(d.joinCode, circleId))
+          );
+      }
+
+      match /members/{uid} {
+        allow get: if signedIn() && (request.auth.uid == uid || isMember(cid));
+        allow list: if isMember(cid);
+        allow create: if signedIn() && request.auth.uid == uid
+          && validMemberCreate(request.resource.data, cid, uid);
+        // A member may only change their own display name.
+        allow update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
+          && nameOk(request.resource.data.displayName, 50);
+        // Leave (non-owner) or owner removes someone else. The owner cannot leave until transfer/delete exists.
+        allow delete: if signedIn()
+          && ((request.auth.uid == uid && resource.data.role != 'owner')
+              || (request.auth.uid != uid && isOwner(cid)));
+      }
+    }
+
+    // Collection-group query: "which circles am I in?" — a user may list only their own membership docs.
+    match /{path=**}/members/{uid} {
+      allow list: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ---------- join codes ----------
+    match /joinCodes/{code} {
+      allow get: if signedIn() && validCodeFormat(code);
+      allow list: if false;
+      allow create: if signedIn() && validCodeFormat(code)
+        && request.resource.data.keys().hasOnly(['circleId', 'createdBy', 'revoked', 'createdAt', 'expiresAt'])
+        && request.resource.data.keys().hasAll(['circleId', 'createdBy', 'revoked', 'createdAt'])
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.revoked == false
+        && request.resource.data.createdAt == request.time
+        && getAfter(circlePath(request.resource.data.circleId)).data.ownerUid == request.auth.uid;
+      // Owner may only revoke (never re-point or un-revoke).
+      allow update: if signedIn() && isOwner(resource.data.circleId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revoked'])
+        && request.resource.data.revoked == true;
+    }
+  }
+}

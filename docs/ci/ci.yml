@@ -1,0 +1,61 @@
+# NOTE: kept in docs/ci/ because the push token lacked GitHub's 'workflow' scope.
+# To enable CI: copy this file to .github/workflows/ci.yml (GitHub web UI or a token with workflow scope).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  firestore-rules:
+    name: Firestore rules tests (emulator)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: firebase/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm test
+
+  flutter:
+    name: Flutter analyze + test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      # Platform folders (android/ios/web) are generated, not committed yet.
+      - run: flutter create --org com.circlo --project-name circlo --platforms=android,ios,web .
+      - run: git checkout -- pubspec.yaml analysis_options.yaml lib test && rm -f test/widget_test.dart
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - name: Build web (smoke test, no Firebase config)
+        run: flutter build web
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

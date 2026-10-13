@@ -1,0 +1,25 @@
+# Secrets and local config
+env.json
+.env
+*.pem
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# Node / Firebase
+node_modules/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+app/.metadata
+app/ios/Pods/
+*.iml
+.idea/
+.DS_Store

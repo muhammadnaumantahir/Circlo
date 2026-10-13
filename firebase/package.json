@@ -1,0 +1,14 @@
+{
+  "name": "circlo-firebase",
+  "private": true,
+  "type": "module",
+  "description": "Firestore rules, indexes and security-rule tests for Circlo",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-circlo \"node --test tests/\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.0.0",
+    "firebase-tools": "^15.33.0"
+  }
+}

@@ -18,6 +18,10 @@ Firebase Authentication UID is the stable user key. Use Firestore documents and 
 | placeEvents/{eventId} | circle_id, place_id, member_uid, type, visit_id, occurred_at, idempotency_key | Treat client-created events as untrusted; validate membership/subscription/timestamp/rate server-side before sending remote alerts |
 | users/{uid}/notifications/{notificationId} | type, circle_id, payload, read, created_at | Recipient only; remote creation needs trusted sender. Local notifications may be generated on-device for that device only |
 
+## Implemented in Increment 1 (see `firebase/firestore.rules`)
+`users/{uid}` (displayName, phone?, birthYear, createdAt, updatedAt) · `circles/{id}` (name, ownerUid, requiresApproval=false, joinCode, createdAt) · `circles/{id}/members/{uid}` (uid, role, displayName, joinedAt, joinCode for members) · `joinCodes/{code}` (circleId, createdBy, revoked, createdAt, expiresAt?).
+Deviations from the logical model above: `member_count` is derived on the client (no trusted counter); member docs carry a denormalized `displayName` and a `uid` field so users can find their circles with a collection-group query; approval flow, `joinRequests`, deletion and everything location-related are not implemented yet.
+
 ## Query and security rules
 
 - Use circle-scoped paths for shared data; do not rely on matching membership in any circle.

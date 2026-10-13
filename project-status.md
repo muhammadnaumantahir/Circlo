@@ -1,8 +1,9 @@
 # Project Status
 
-- **Current phase:** Phase 5 — Firebase-only baseline revised (v0.3), **awaiting owner approval**.
-- **Approved baseline:** None yet. Approval date: _pending_.
-- **Implementation code:** None. No application coding until explicit approval.
+- **Current phase:** Phase 6 — Development, Increment 1 (accounts + circles).
+- **Approved baseline:** v0.3 (Firebase-only). **Approval date: 2026-10-13** — owner instruction "I have updated the documents, read them and start the development".
+- **Approval scope/interpretation:** start development with work that does not depend on the P0 trusted-server blocker. Remote cross-user push, scheduled cleanup, complete account deletion and server-dependent flows stay **deferred** until the owner chooses a no-cost trusted mechanism or formally accepts the reduced scope.
+- **Implementation code:** Increment 1 written (see below); not yet executed in the authoring environment.
 - **Last updated:** 2026-10-13.
 
 ## Owner decisions (2026-10-12/13)
@@ -22,6 +23,12 @@ Owner selected Firebase-only: Authentication + Cloud Firestore + FCM; the prior 
 - Additional pre-build checks: circle-scoped Firestore Rules, safe join-code/membership flows, real-device background-location tests, and map/geocoder policy compliance.
 - No application code was implemented and no build/test run was possible because the repository currently contains planning documents only.
 
+## Increment 1 (2026-10-13) — status
+**Written:** Flutter app (auth, age gate, profile, create/join/leave circles, member list, owner remove, rotate code), Firestore rules + indexes, rules tests, unit/widget tests, CI workflow (docs/ci/ci.yml), AGENTS.md, .env.example, test plan.
+**Verified:** Nothing executed yet. Flutter SDK and the Firestore emulator download were unavailable in the authoring sandbox, so `flutter analyze/test`, the app build, and `npm test` are **Not run/Blocked**; the CI workflow (docs/ci/ci.yml; must be copied to .github/workflows/ to run) will run them. Expect to fix compile/lint/rule issues on first CI run.
+**Deferred from Increment 1:** approval flow (FR-014), ownership transfer/circle deletion (FR-018), account deletion (FR-006), member cap (FR-021), email verification (FR-007), profile photos, location permission screen (FR-005).
+**Needs owner:** create a free Firebase (Spark) project, enable Email/Password + Firestore, provide config via `--dart-define`; run `flutter create` (README) for platform folders.
+
 ## Planning artifacts
 PROJECT_BRIEF.md, requirements.md, architecture.md, design/{design-system,screen-specification,design-prompts}.md, docs/{user-flows,data-model,security-privacy,traceability,risks,roadmap,review-findings}.md, docs/decisions/ADR-0001..0004.
 
@@ -37,8 +44,9 @@ Current Firestore quotas and Rules behavior, trusted no-cost server option for r
 requirements.md §13 (Q1b, Q2b, Q3, Q7, Q8, Q9, Q11, Q12), plus the security, trusted-server, background tracking and map-provider spikes listed in docs/review-findings.md.
 
 ## Next steps
-1. Resolve the trusted server-side push/privileged-operations blocker without enabling billing, or explicitly defer those features.
-2. Prototype Firestore Rules in the Emulator and test circle-scoped access.
+1. Push Increment 1 and read the first CI results; fix failures.
+2. Owner decision on the P0 blocker (trusted no-cost server for push/cleanup, or reduced scope).
+3. Run the rules tests in the Emulator and review results.
 3. Verify current provider quotas and map/geocoder terms.
 4. Owner approves baseline → date recorded here.
 5. Phase 6: repo setup, then the security, background-location, and provider spikes.
