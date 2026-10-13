@@ -21,7 +21,7 @@ Consent-based, transparent, revocable, least data, default deny. Extra care beca
 - Store policies (Google Play Families/Data safety, Apple privacy labels) must be reviewed before store release.
 
 ## Threats considered
-Stalking/coercive control (transparency + notifications + easy exit); join-code brute force; Firestore Rules gaps/IDOR (tests); forged place events by a modified client (impact limited to that member's own events; server validates membership and rate-limits); leaked keys; stale data after removal; backend auto-pause or quota exhaustion (availability).
+Stalking/coercive control (transparency + notifications + easy exit); join-code brute force; Firestore Rules gaps/IDOR (tests); forged place events from modified clients (remote alerts must remain disabled until trusted validation exists); leaked keys; stale data after removal; quota exhaustion (availability).
 
 ## Legal
 Privacy policy, terms, and regional compliance (e.g. GDPR, COPPA) need review by a qualified professional; **no legal text is generated in this baseline** and nothing here is legal advice.
