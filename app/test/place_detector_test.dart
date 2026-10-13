@@ -1,0 +1,106 @@
+import 'package:circlo/core/geo.dart';
+import 'package:circlo/features/places/place_detector.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  const school = PlacePoint(id: 'school', lat: 31.5204, lng: 74.3587, radiusM: 150);
+  final t0 = DateTime(2026, 10, 13, 8, 0);
+
+  // ~0.001 degrees latitude is ~111 m.
+  Fix at(double metersNorth, int seconds, {double acc = 10}) => Fix(
+        lat: school.lat + metersNorth / 111000.0,
+        lng: school.lng,
+        accuracy: acc,
+        time: t0.add(Duration(seconds: seconds)),
+      );
+
+  test('distanceMeters is roughly right', () {
+    expect(distanceMeters(0, 0, 0, 0), 0);
+    expect(distanceMeters(31.5204, 74.3587, 31.5214, 74.3587), closeTo(111, 3));
+  });
+
+  test('one fix inside is not enough; second consecutive fix produces exactly one arrival', () {
+    final d = PlaceDetector();
+    expect(d.process(at(400, 0), [school]), isEmpty);
+    expect(d.process(at(100, 30), [school]), isEmpty);
+    final out = d.process(at(80, 60), [school]);
+    expect(out.length, 1);
+    expect(out.first.type, TransitionType.arrive);
+    expect(d.process(at(50, 90), [school]), isEmpty); // still inside: no repeat
+    expect(d.process(at(20, 120), [school]), isEmpty);
+  });
+
+  test('two inside fixes far apart in time (stationary heartbeat) still confirm one arrival', () {
+    final d = PlaceDetector();
+    expect(d.process(at(100, 0), [school]), isEmpty);
+    // fix goes back outside would reset; here the next fix is again inside after 2 min but count==2 anyway
+    final out = d.process(at(100, 130), [school]);
+    expect(out.single.type, TransitionType.arrive);
+  });
+
+  test('GPS jitter around the boundary does not create repeated events', () {
+    final d = PlaceDetector();
+    d.process(at(100, 0), [school]);
+    d.process(at(100, 20), [school]); // arrived
+    var count = 0;
+    // wobble between 140 m and 170 m: inside the exit threshold (150 * 1.2 = 180)
+    for (var i = 0; i < 20; i++) {
+      count += d.process(at(i.isEven ? 140 : 170, 40 + i * 10), [school]).length;
+    }
+    expect(count, 0);
+  });
+
+  test('leaving needs two consecutive fixes beyond 1.2 x radius; produces one departure with the same visit id', () {
+    final d = PlaceDetector();
+    d.process(at(50, 0), [school]);
+    final arrive = d.process(at(50, 20), [school]).single;
+    expect(d.process(at(300, 60), [school]), isEmpty);
+    final leave = d.process(at(320, 90), [school]).single;
+    expect(leave.type, TransitionType.leave);
+    expect(leave.visitId, arrive.visitId);
+    expect(d.process(at(400, 120), [school]), isEmpty);
+  });
+
+  test('a brief excursion (one outside fix) does not end the visit', () {
+    final d = PlaceDetector();
+    d.process(at(50, 0), [school]);
+    d.process(at(50, 20), [school]);
+    expect(d.process(at(300, 40), [school]), isEmpty);
+    expect(d.process(at(60, 60), [school]), isEmpty); // back inside resets the pending departure
+    expect(d.process(at(300, 80), [school]), isEmpty);
+  });
+
+  test('inaccurate fixes are ignored', () {
+    final d = PlaceDetector();
+    expect(d.process(at(10, 0, acc: 500), [school]), isEmpty);
+    expect(d.process(at(10, 20, acc: 500), [school]), isEmpty);
+    expect(d.isInside('school'), isFalse);
+  });
+
+  test('restoreInside prevents a duplicate arrival after restart', () {
+    final d = PlaceDetector()..restoreInside('school', '123');
+    expect(d.process(at(10, 0), [school]), isEmpty);
+    expect(d.process(at(10, 20), [school]), isEmpty);
+    d.process(at(400, 60), [school]);
+    final leave = d.process(at(400, 90), [school]).single;
+    expect(leave.visitId, '123');
+  });
+
+  test('a second visit gets a new visit id', () {
+    final d = PlaceDetector();
+    d.process(at(10, 0), [school]);
+    final a1 = d.process(at(10, 20), [school]).single;
+    d.process(at(500, 60), [school]);
+    d.process(at(500, 80), [school]);
+    d.process(at(10, 3600), [school]);
+    final a2 = d.process(at(10, 3620), [school]).single;
+    expect(a2.type, TransitionType.arrive);
+    expect(a2.visitId, isNot(a1.visitId));
+  });
+
+  test('retainOnly drops state of deleted places', () {
+    final d = PlaceDetector()..restoreInside('school', '1');
+    d.retainOnly({});
+    expect(d.isInside('school'), isFalse);
+  });
+}

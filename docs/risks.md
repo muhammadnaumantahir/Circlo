@@ -21,6 +21,14 @@
 | R-17 | Firestore Rules cannot safely express intended cross-circle reads | High | Prototype rules in Emulator; use circle-scoped projections or revise data model if authorization cannot be proven | Security spike |
 
 
+## Increment 3 additions
+- Alerts are **in-app only** (owner-accepted scope): a viewer sees an arrival/departure only while their app is open and syncing; nothing reaches a closed app.
+- Events are client-created and untrusted; rules bind them to the actor, sharing state, place and names, but cannot prove the position was real. Impact is limited to that member's own events.
+- Event documents are never cleaned up automatically (no server); members may delete only their own. Growth is bounded by small groups; revisit if quota is a problem.
+- Free geocoder (Nominatim) policy: ≤1 request/s, no autocomplete, attribution; not for heavy use (ADR-0004). Tap-to-pin always works as a fallback.
+- Place limit (20 per circle) is a client-side check only.
+- Each place event restore query and each feed listener consumes free-tier reads; watch quota.
+
 ## Increment 2 additions
 - Circle-scoped location copies cost N writes per update against the Firestore free quota (verify limits); throttled to ≥30 s plus a 5-minute heartbeat. Revocation deletes the copy atomically; if the device is offline at that moment the copy remains until the next successful write and is shown as "Location unavailable" after 10 minutes.
 - Background sharing is unverified on real devices (ADR-0003).

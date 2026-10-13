@@ -8,6 +8,7 @@ import '../../core/map_config.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
 import '../circles/circle_models.dart';
+import '../places/place_models.dart';
 import 'location_models.dart';
 import 'sharing_controller.dart';
 import 'sharing_status.dart';
@@ -89,7 +90,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final circlesAsync = ref.watch(myCirclesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Map')),
+      appBar: AppBar(
+        title: const Text('Map'),
+        actions: [
+          IconButton(
+            tooltip: 'Notifications',
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () => context.push('/notifications'),
+          ),
+        ],
+      ),
       body: circlesAsync.when(
         loading: () => const LoadingView(),
         error: (_, __) => MessageView(
@@ -148,6 +158,7 @@ class _MapBody extends ConsumerWidget {
     final uid = ref.watch(currentUidProvider);
     final membersAsync = ref.watch(membersProvider(circle.id));
     final locationsAsync = ref.watch(locationsProvider(circle.id));
+    final places = ref.watch(placesProvider(circle.id)).valueOrNull ?? const <Place>[];
     final now = DateTime.now();
 
     final members = membersAsync.valueOrNull ?? const <Member>[];
@@ -162,7 +173,7 @@ class _MapBody extends ConsumerWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) => onFit(points));
     }
 
-    final mapWidget = _buildMap(context, located, uid);
+    final mapWidget = _buildMap(context, located, uid, places);
     final list = _buildList(context, ref, views, uid, now, membersAsync.isLoading, membersAsync.hasError);
 
     return Column(
@@ -188,7 +199,7 @@ class _MapBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildMap(BuildContext context, List<_MemberView> located, String? uid) {
+  Widget _buildMap(BuildContext context, List<_MemberView> located, String? uid, List<Place> places) {
     return Stack(
       children: [
         FlutterMap(
@@ -200,6 +211,32 @@ class _MapBody extends ConsumerWidget {
           ),
           children: [
             TileLayer(urlTemplate: kMapTileUrl, userAgentPackageName: 'com.circlo.circlo'),
+            CircleLayer(circles: [
+              for (final p in places)
+                CircleMarker(
+                  point: LatLng(p.lat, p.lng),
+                  radius: p.radiusM,
+                  useRadiusInMeter: true,
+                  color: const Color(0x260D9488),
+                  borderColor: const Color(0xFF0D9488),
+                  borderStrokeWidth: 2,
+                ),
+            ]),
+            MarkerLayer(markers: [
+              for (final p in places)
+                Marker(
+                  point: LatLng(p.lat, p.lng),
+                  width: 110,
+                  height: 44,
+                  child: Semantics(
+                    label: 'Saved place ${p.name}',
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.place, size: 22, color: Color(0xFF0D9488)),
+                      Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                ),
+            ]),
             MarkerLayer(markers: [
               for (final v in located)
                 Marker(

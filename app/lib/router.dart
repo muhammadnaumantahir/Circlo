@@ -7,6 +7,9 @@ import 'features/auth/auth_screens.dart';
 import 'features/circles/circles_screens.dart';
 import 'features/location/map_screen.dart';
 import 'features/location/sharing_screen.dart';
+import 'features/places/notifications_screen.dart';
+import 'features/places/place_models.dart';
+import 'features/places/places_screens.dart';
 import 'features/profile/profile_screens.dart';
 import 'providers.dart';
 
@@ -58,11 +61,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => HomeShell(location: state.matchedLocation, child: child),
         routes: [
           GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
+          GoRoute(path: '/places', builder: (_, __) => const PlacesScreen()),
           GoRoute(path: '/circles', builder: (_, __) => const CirclesScreen()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
         ],
       ),
       GoRoute(path: '/sharing', builder: (_, __) => const SharingScreen()),
+      GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      GoRoute(
+        path: '/places/new',
+        builder: (_, state) => PlaceFormScreen(circleId: state.uri.queryParameters['circle'] ?? ''),
+      ),
+      GoRoute(
+        path: '/places/:circleId/:placeId',
+        builder: (_, state) => PlaceFormScreen(
+          circleId: state.pathParameters['circleId']!,
+          placeId: state.pathParameters['placeId'],
+        ),
+      ),
       GoRoute(path: '/circles/create', builder: (_, __) => const CreateCircleScreen()),
       GoRoute(path: '/circles/join', builder: (_, __) => const JoinCircleScreen()),
       GoRoute(
@@ -95,23 +111,44 @@ class SplashScreen extends ConsumerWidget {
   }
 }
 
-/// Bottom navigation for the screens that exist so far (Map, Circles, Profile).
-/// Places and History tabs are added with their features.
-class HomeShell extends StatelessWidget {
+/// Bottom navigation (Map, Places, Circles, Profile). The History tab arrives with that feature.
+/// Also announces new matching arrival/departure alerts with a snackbar while the app is open.
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key, required this.location, required this.child});
   final String location;
   final Widget child;
 
   @override
+  ConsumerState<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends ConsumerState<HomeShell> {
+  final DateTime _startedAt = DateTime.now();
+  final Set<String> _announced = {};
+
+  @override
   Widget build(BuildContext context) {
-    final index = location.startsWith('/profile') ? 2 : (location.startsWith('/circles') ? 1 : 0);
+    ref.listen<AsyncValue<List<FeedItem>>>(notificationFeedProvider, (_, next) {
+      final items = next.valueOrNull;
+      if (items == null) return;
+      for (final item in items) {
+        if (item.at.isAfter(_startedAt) && _announced.add(item.id)) {
+          showSnack(context, item.text);
+        }
+      }
+    });
+
+    const paths = ['/map', '/places', '/circles', '/profile'];
+    var index = paths.indexWhere((p) => widget.location.startsWith(p));
+    if (index < 0) index = 0;
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (i) => context.go(const ['/map', '/circles', '/profile'][i]),
+        onDestinationSelected: (i) => context.go(paths[i]),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Map'),
+          NavigationDestination(icon: Icon(Icons.place_outlined), selectedIcon: Icon(Icons.place), label: 'Places'),
           NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Circles'),
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],

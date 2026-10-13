@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../providers.dart';
+import '../places/place_alert_engine.dart';
+import '../places/place_detector.dart';
 import 'location_access.dart';
 import 'location_models.dart';
 import 'sharing_status.dart';
@@ -49,6 +51,7 @@ class SharingController extends Notifier<SharingState> {
   Timer? _heartbeat;
   Position? _last;
   final UploadThrottle _throttle = UploadThrottle();
+  PlaceAlertEngine? _engine;
   static const Duration _heartbeatEvery = Duration(minutes: 5);
 
   @override
@@ -80,6 +83,7 @@ class SharingController extends Notifier<SharingState> {
     }
     state = state.copyWith(activeCircleIds: active, clearError: true);
     await _start();
+    await _engine?.setCircles(active.toSet());
   }
 
   LocationSettings _settings() {
@@ -118,9 +122,14 @@ class SharingController extends Notifier<SharingState> {
   Future<void> _start() async {
     if (_sub != null) return;
     _throttle.reset();
+    final uid = ref.read(currentUidProvider);
+    if (uid != null) {
+      _engine = PlaceAlertEngine(repository: ref.read(placesRepositoryProvider), uid: uid);
+    }
     _sub = Geolocator.getPositionStream(locationSettings: _settings()).listen(
       (p) {
         _last = p;
+        _feedEngine(p);
         _publish(p);
       },
       onError: (Object e) {
@@ -129,7 +138,10 @@ class SharingController extends Notifier<SharingState> {
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) {
       final p = _last;
-      if (p != null) _publish(p, force: true); // keeps "last updated" fresh while stationary
+      if (p != null) {
+        _feedEngine(p, now: true); // a stationary phone still confirms arrivals by elapsed time
+        _publish(p, force: true); // keeps "last updated" fresh while stationary
+      }
     });
     state = state.copyWith(tracking: true, clearError: true);
     try {
@@ -143,7 +155,18 @@ class SharingController extends Notifier<SharingState> {
     }
   }
 
+  void _feedEngine(Position p, {bool now = false}) {
+    _engine?.onFix(Fix(
+      lat: p.latitude,
+      lng: p.longitude,
+      accuracy: p.accuracy,
+      time: now ? DateTime.now() : p.timestamp,
+    ));
+  }
+
   Future<void> _stop() async {
+    await _engine?.dispose();
+    _engine = null;
     await _sub?.cancel();
     _sub = null;
     _heartbeat?.cancel();

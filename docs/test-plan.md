@@ -16,6 +16,10 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-031, FR-032, NFR-016 | Status derivation, "ago" text, upload throttle | `app/test/sharing_status_test.dart` | `flutter test` | Not run (CI) |
 | FR-033, FR-037, NFR-004 | Background sharing, notification/indicator, battery | real devices (docs/platform-setup.md) | manual | **Not run — required** |
 | FR-036, FR-034, FR-035 | Consent dialog, pause, per-circle switches, permission states | manual with emulator/real device | manual | Not run |
+| FR-040–051, FR-090 | Place/subscription/event rules: member-only reads, creator/owner edits, own-only subscriptions, forged/duplicate/paused/not-sharing events rejected, immutable events | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
+| FR-048, FR-050 | Detector: arrival/departure confirmation, boundary jitter, one event per visit, restore after restart, inaccurate fixes | `app/test/place_detector_test.dart` | `flutter test` | Not run (CI) |
+| FR-040 | Geocoder parsing, short-query guard | `app/test/geocoder_test.dart` | `flutter test` | Not run (CI) |
+| FR-045/046/047/044 | End-to-end alert flow (two devices, real GPS movement), in-app feed filtering by member/arrive/leave | manual, 2 devices + emulator | manual | **Not run — required** |
 | Static | `flutter analyze`, `flutter build web` | CI (not enabled yet: copy docs/ci/ci.yml to .github/workflows/) | CI job `flutter` | Not run |
 | Security | Secret scan | CI | gitleaks | Not run |
 

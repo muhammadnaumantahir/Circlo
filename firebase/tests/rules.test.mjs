@@ -339,3 +339,101 @@ describe('live location sharing (circle-scoped)', () => {
     await assertFails(getDoc(locRef(db('bob'), 'c1', 'alice')));
   });
 });
+
+describe('saved places, subscriptions and events (Increment 3)', () => {
+  const placeData = (uid, over = {}) => ({ name: 'School', lat: 31.5, lng: 74.3, radiusM: 150, createdBy: uid, createdAt: serverTimestamp(), ...over });
+  const sub = (uid, pid, over = {}) => ({ subscriberUid: uid, placeId: pid, arrive: true, leave: true, allMembers: true, memberUids: [], updatedAt: serverTimestamp(), ...over });
+  const evt = (uid, pid, over = {}) => ({ placeId: pid, placeName: 'School', memberUid: uid, memberName: uid === 'bob' ? 'Bob' : 'Alice', type: 'arrive', visitId: '1760000000000', occurredAt: serverTimestamp(), ...over });
+  const evtId = (uid, pid, visit = '1760000000000', type = 'arrive') => `${uid}_${pid}_${visit}_${type}`;
+
+  async function seedPlace(cid = 'c1', pid = 'p1', creator = 'alice') {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `circles/${cid}/places/${pid}`), { name: 'School', lat: 31.5, lng: 74.3, radiusM: 150, createdBy: creator, createdAt: Timestamp.now() });
+    });
+  }
+  const shareOn = (uid, over = {}) => env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), `circles/c1/members/${uid}`), { sharesLocation: true, paused: false, ...over });
+  });
+
+  it('members can create valid places; non-members and invalid data are rejected', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/places/p1'), placeData('bob')));
+    await assertFails(setDoc(doc(db('mallory'), 'circles/c1/places/p2'), placeData('mallory')));
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/places/p3'), placeData('alice')));            // createdBy spoof
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/places/p4'), placeData('bob', { radiusM: 50 })));
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/places/p5'), placeData('bob', { radiusM: 5000 })));
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/places/p6'), placeData('bob', { lat: 95 })));
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/places/p7'), placeData('bob', { name: '' })));
+  });
+  it('places are readable only by members of that circle', async () => {
+    await seed({ bob: true }); await seedPlace();
+    await assertSucceeds(getDoc(doc(db('bob'), 'circles/c1/places/p1')));
+    await assertSucceeds(getDocs(collection(db('bob'), 'circles/c1/places')));
+    await assertFails(getDoc(doc(db('carol'), 'circles/c1/places/p1')));
+    await assertFails(getDocs(collection(db('mallory'), 'circles/c1/places')));
+  });
+  it('only the creator or the circle owner can edit/delete a place', async () => {
+    await seed({ bob: true }); await seedPlace('c1', 'p1', 'bob');
+    await assertSucceeds(updateDoc(doc(db('bob'), 'circles/c1/places/p1'), { name: 'School 2' }));
+    await assertSucceeds(updateDoc(doc(db('alice'), 'circles/c1/places/p1'), { radiusM: 200 })); // owner
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/places/p1'), { createdBy: 'alice' }));
+    await env.clearFirestore(); await seed({ bob: true }); await seedPlace('c1', 'p1', 'alice');
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/places/p1'), { name: 'X' }));
+    await assertFails(deleteDoc(doc(db('bob'), 'circles/c1/places/p1')));
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/places/p1')));
+  });
+  it('subscriptions are private to the subscriber and well-formed', async () => {
+    await seed({ bob: true }); await seedPlace();
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/placeSubscriptions/bob_p1'), sub('bob', 'p1')));
+    await assertFails(getDoc(doc(db('alice'), 'circles/c1/placeSubscriptions/bob_p1')));
+    await assertSucceeds(getDoc(doc(db('bob'), 'circles/c1/placeSubscriptions/bob_p1')));
+    await assertFails(setDoc(doc(db('alice'), 'circles/c1/placeSubscriptions/bob_p1'), sub('bob', 'p1')));   // for someone else
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/placeSubscriptions/wrongid'), sub('bob', 'p1')));
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/placeSubscriptions/bob_p1'), sub('bob', 'p1', { arrive: 'yes' })));
+    await assertFails(setDoc(doc(db('mallory'), 'circles/c1/placeSubscriptions/mallory_p1'), sub('mallory', 'p1')));
+  });
+  it('a user can list only their own subscriptions via the collection group', async () => {
+    await seed({ bob: true }); await seedPlace();
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/placeSubscriptions/bob_p1'), sub('bob', 'p1')));
+    await assertSucceeds(getDocs(query(collectionGroup(db('bob'), 'placeSubscriptions'), where('subscriberUid', '==', 'bob'))));
+    await assertFails(getDocs(query(collectionGroup(db('bob'), 'placeSubscriptions'), where('subscriberUid', '==', 'alice'))));
+  });
+  it('a sharing member can publish their own arrival event; it is idempotent', async () => {
+    await seed({ bob: true }); await seedPlace(); await shareOn('bob');
+    const ref = doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1')}`);
+    await assertSucceeds(setDoc(ref, evt('bob', 'p1')));
+    await assertFails(setDoc(ref, evt('bob', 'p1')));    // retry/duplicate is rejected (no updates)
+    await assertSucceeds(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1', '1760000000000', 'leave')}`), evt('bob', 'p1', { type: 'leave' })));
+  });
+  it('events cannot be forged: other member, not sharing, paused, bad id/name/place', async () => {
+    await seed({ bob: true }); await seedPlace();
+    await assertFails(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1')}`), evt('bob', 'p1')));   // not sharing
+    await shareOn('bob', { paused: true });
+    await assertFails(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1')}`), evt('bob', 'p1')));   // paused
+    await shareOn('bob');
+    await assertFails(setDoc(doc(db('alice'), `circles/c1/placeEvents/${evtId('bob', 'p1')}`), evt('bob', 'p1'))); // as someone else
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/placeEvents/random-id'), evt('bob', 'p1')));
+    await assertFails(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1')}`), evt('bob', 'p1', { placeName: 'Fake' })));
+    await assertFails(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'nope')}`), evt('bob', 'nope')));
+    await assertFails(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1')}`), evt('bob', 'p1', { memberName: 'Alice' })));
+    await assertFails(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1', '1760000000000', 'visit')}`), evt('bob', 'p1', { type: 'visit' })));
+    await assertFails(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1')}`), evt('bob', 'p1', { occurredAt: Timestamp.fromMillis(1) })));
+  });
+  it('events are readable only by circle members and cannot be edited', async () => {
+    await seed({ bob: true }); await seedPlace(); await shareOn('bob');
+    const id = evtId('bob', 'p1');
+    await assertSucceeds(setDoc(doc(db('bob'), `circles/c1/placeEvents/${id}`), evt('bob', 'p1')));
+    await assertSucceeds(getDoc(doc(db('alice'), `circles/c1/placeEvents/${id}`)));
+    await assertSucceeds(getDocs(collection(db('alice'), 'circles/c1/placeEvents')));
+    await assertFails(getDoc(doc(db('carol'), `circles/c1/placeEvents/${id}`)));
+    await assertFails(getDocs(collection(db('mallory'), 'circles/c1/placeEvents')));
+    await assertFails(updateDoc(doc(db('bob'), `circles/c1/placeEvents/${id}`), { type: 'leave' }));
+    await assertFails(deleteDoc(doc(db('alice'), `circles/c1/placeEvents/${id}`)));   // not the actor
+    await assertSucceeds(deleteDoc(doc(db('bob'), `circles/c1/placeEvents/${id}`)));
+  });
+  it('a member can query their own latest events (state restore) but not others\'', async () => {
+    await seed({ bob: true }); await seedPlace(); await shareOn('bob');
+    await assertSucceeds(getDocs(query(collection(db('bob'), 'circles/c1/placeEvents'), where('memberUid', '==', 'bob'))));
+    await assertFails(getDocs(query(collection(db('carol'), 'circles/c1/placeEvents'), where('memberUid', '==', 'bob'))));
+  });
+});

@@ -35,6 +35,12 @@ Owner selected Firebase-only: Authentication + Cloud Firestore + FCM; the prior 
 **Verified:** nothing executed (same sandbox limits as Increment 1). Background reliability, battery, and the platform script are **Not run**; real-device matrix is in docs/platform-setup.md.
 **Not built (by scope):** directions link (FR-072), timed pause (FR-038), in-app "you were added/sharing started" notices (FR-094 remote deferred), email verification, profile photos.
 
+## Increment 3 (2026-10-13) — status
+**Written:** places (Places tab, add/edit/delete with search + tap-to-pin + radius), per-user alert preferences, on-device detector + engine wired into the sharing controller, event publishing, in-app Notifications screen and snackbar announcements, places overlay on the map, rules + 9 new rule tests, detector/geocoder unit tests.
+**Verified:** nothing executed (same sandbox limits). Real two-device movement test and background reliability remain **Not run**.
+**Limits by owner decision:** alerts are in-app only; no remote push; no automatic cleanup of events.
+**Not built:** per-notification-type settings (FR-081 beyond per-place), read/unread state (FR-082), "you were added/sharing started" notices, directions link, history.
+
 ## Planning artifacts
 PROJECT_BRIEF.md, requirements.md, architecture.md, design/{design-system,screen-specification,design-prompts}.md, docs/{user-flows,data-model,security-privacy,traceability,risks,roadmap,review-findings}.md, docs/decisions/ADR-0001..0004.
 
