@@ -1,4 +1,4 @@
-# Circlo — Requirements Baseline (DRAFT v0.2)
+# Circlo — Requirements Baseline (DRAFT v0.3)
 
 **Owner decisions 2026-10-12/13:** Flutter app for web + Android + iOS · minors may use the app · monthly budget **$0**, no billing account · Firebase-only backend (Authentication + Cloud Firestore + FCM) · history opt-in, 30-day default retention · device-side place detection · native background location when permitted, including screen-locked operation. Web cannot track after its tab closes. Trusted server-side push/automation remains a blocking design issue under Spark/no-billing.
 
