@@ -1,11 +1,11 @@
-# Circlo — Architecture (DRAFT v0.2 — zero-budget revision)
+# Circlo — Architecture (DRAFT v0.3 — Firebase-only)
 
-**Owner constraints (2026-10-12):** monthly budget **$0**; Flutter app for **web, Android, iOS**; Firebase **only for login**; other online data may use a free tier; minors may use the app.
+**Owner decisions (2026-10-13):** monthly budget **$0**, no billing account; Flutter app for **web, Android, iOS**; **Firebase-only** (Authentication + Cloud Firestore + FCM); minors may use the app; native Android/iOS background tracking should continue when screen is locked, subject to OS permissions and restrictions.
 
-> **Verification status.** Checked against public sources on 2026-10-12: Firebase's plan page lists Cloud Functions under the paid Blaze plan, and a third-party article says Cloud Storage for Firebase needs Blaze since Feb 2026; Supabase free-plan figures below come from third-party summaries, not Supabase's own docs. **Confirm every figure in the official console/docs before building** (risk R-10). Not yet verified: map-tile and geocoding provider terms, Flutter/package versions, store policies.
+> **Billing/security constraint:** Firebase Spark provides Firestore free quotas, Authentication (most methods), and FCM. Cloud Functions require Blaze. Therefore Firebase-only + no billing currently has no approved trusted server to send cross-user FCM messages, run scheduled cleanup, or perform privileged workflows. Do not put service credentials in the client or let clients perform privileged operations. Verify all quotas and provider terms before release.
 
 ## 1. Overview
-Flutter client (web, Android, iOS) → Firebase Auth (login only, Spark plan) → free-tier backend (Supabase: Postgres + Row Level Security + Realtime + Edge Functions + Storage) → FCM for push. Maps use OpenStreetMap-based tiles (no Google Maps billing). **No paid service is enabled; no billing account is linked anywhere.**
+Flutter client (web, Android, iOS) → Firebase Authentication + Cloud Firestore (Spark free quotas) → FCM for push delivery. Maps use OpenStreetMap-based tiles. No billing account is linked. Secure server-triggered push/maintenance operations remain blocked pending a zero-cost server design.
 
 ```mermaid
 flowchart LR
@@ -14,15 +14,13 @@ flowchart LR
     LS --> GE[On-device place evaluator]
     UI --> Repo[Repositories]
   end
-  Repo -- sign in --> FA[Firebase Auth - Spark]
-  FA -- ID token --> SB
-  Repo -- RLS-protected queries + Realtime --> SB[(Supabase free: Postgres)]
-  LS -- latest location upsert --> SB
-  GE -- place events --> SB
-  SB -- DB webhook on events --> EF[Edge Functions]
-  EF -- HTTP v1 --> FCM[FCM push - free]
+  Repo -- sign in --> FA[Firebase Authentication - Spark]
+  Repo -- security-rule-checked reads/writes --> FS[(Cloud Firestore - Spark quotas)]
+  LS -- latest location + history --> FS
+  GE -- place events --> FS
+  FS -. server trigger needed; not available on Spark .-> SV[Trusted server automation - unresolved]
+  SV -. authenticated send .-> FCM[FCM - no-cost delivery]
   FCM --> Client
-  SCH[GitHub Actions cron - free] --> EF
   Client --> MAP[OSM tile provider + geocoder]
 ```
 
@@ -30,10 +28,10 @@ flowchart LR
 | Area | Choice | Why / cost | Alternatives |
 |---|---|---|---|
 | Client | Flutter, Riverpod, go_router | One codebase for web/Android/iOS; free | — |
-| Login | Firebase Authentication, email+password (Spark) | Owner requirement; free tier | Supabase Auth would remove one dependency (ADR-0001) |
-| Data | Supabase free plan: Postgres + RLS + Realtime + Storage | Free; relational model suits circles/history; avoids paid Firebase Functions/Storage | Firestore on Spark (no Functions → no push sending) |
-| Server logic | Supabase Edge Functions (Deno/TypeScript) | Free quota; only runs on events, not every location update | Cloud Functions (needs Blaze) |
-| Push | Firebase Cloud Messaging | Free | In-app only (no background alerts) |
+| Login | Firebase Authentication, email+password (Spark) | Owner-selected Firebase-only stack; free quota for most methods |
+| Data | Cloud Firestore on Spark | Native Firebase client integration, realtime listeners, free daily quotas; security rules required | Relational SQL model not available; query design must be deliberate |
+| Server logic | No trusted server approved yet | Strict no-billing rule excludes Cloud Functions; sensitive actions must not be trusted to client | Reconsider a free external server only with owner approval |
+| Push | FCM delivery; trusted sending path unresolved | FCM itself is no-cost, but remote sends require a trusted sender | Local notifications only for device-local events until a secure sender exists |
 | Maps | `flutter_map` + free OSM-based tiles | No billing; works on web/Android/iOS | Google Maps (needs billing account) |
 | Place search | Free geocoder (e.g. Nominatim/Photon) with rate limiting & caching | Free; usage policies limit autocomplete | Paid geocoding |
 | Directions | Open device/web maps app via URL | Free | In-app routing (paid) |
@@ -53,43 +51,43 @@ The $0 budget means store fees are outside budget; the code targets all three pl
 ## 4. Repository structure (proposed)
 ```
 /app           Flutter project (lib/features/{auth,circles,map,places,history,notifications,settings}, lib/core)
-/supabase      migrations (SQL), RLS policies, edge functions, seed (no secrets), tests
-/.github       CI workflows (analyze, test, RLS tests, build, secret scan)
+/firebase      firestore.rules, firestore.indexes.json, emulator tests, seed data (no secrets)
+/.github       CI workflows (analyze, test, Firestore Rules tests, build, secret scan)
 /design /docs  documentation
 ```
 
 ## 5. Data model → [docs/data-model.md](docs/data-model.md)
 
-## 6. Server operations (Edge Functions / RPC)
-Sensitive actions are SQL `SECURITY DEFINER` RPCs or Edge Functions, never direct client writes: `create_circle`, `join_circle(code)`, `approve_request`, `remove_member`, `transfer_ownership`, `delete_circle`, `rotate_join_code`, `delete_my_history`, `delete_account`, `send_push` (webhook), `retention_cleanup` (cron), `stale_sharing_check` (cron). Typed errors: `invalid_code`, `rate_limited`, `permission_denied`, `circle_full`.
+## 6. Privileged operations and current blocker
+Operations requiring trusted authority include create/join circle, approval, member removal, ownership transfer, circle/account deletion, join-code rotation, push sending, retention cleanup, and stale-sharing checks. Firestore Security Rules must enforce all client-accessible reads/writes. Under Spark/no billing, no Cloud Functions may be deployed; do not fake server authority with client checks or ship an FCM server key. Before implementing the full MVP, choose and test a secure no-cost server mechanism or explicitly defer features requiring it.
 
 ## 7. Place alerts (supersedes earlier server-side proposal) — see [ADR-0002](docs/decisions/ADR-0002-place-detection.md)
-Evaluating every location update on a server would exhaust free quotas and Cloud Functions are unavailable on the free plan. Instead:
+Cloud Functions are unavailable under the strict Spark/no-billing constraint. Place detection runs on the sharing member's device; server-side validation/deduplication is still a desired security control but needs a trusted server, so client events must be treated as untrusted:
 1. The app syncs the circle's saved places (id, lat, lon, radius) to the device.
 2. The **sharing member's device** compares each location fix against those places in app code (no OS geofence limit applies).
 3. State machine per (member, place): `outside → inside` after ≥2 consecutive fixes or ≥2 min with accuracy ≤100 m; `inside → outside` after the same persistence beyond radius × 1.2 (hysteresis).
 4. On a transition the device inserts a `place_events` row with a unique `visit_id`; a unique constraint `(member, place, visit_id, type)` makes retries idempotent (no duplicates, FR-048).
-5. A DB webhook calls an Edge Function that looks up subscribers (members who enabled that place/member/type and are still circle members) and sends FCM + writes in-app notifications.
+5. **Blocked under current constraints:** a trusted sender must verify subscriptions and current membership before sending FCM. Until a secure server path is approved, cross-user remote push cannot be promised; never send from the client with a server credential.
 Limitation: events depend on the member's app getting location updates; if the phone is off/killed, no event (shown as "location unavailable").
 
 ## 8. Security & privacy → [docs/security-privacy.md](docs/security-privacy.md)
 
 ## 9. Free-tier budget model (to validate in spike)
-- DB cap ~500 MB → history points sampled (≥50 m or ≥2 min while moving, none while stationary), default retention 30 days, hard cap per user; visits summarized and points pruned.
-- Realtime message cap (~2M/month) and ~200 concurrent connections → throttle: location upsert every 15–30 s only while moving **and** someone is viewing; otherwise 2–5 min or on significant movement. Expected capacity: small groups (families/friends) in early stage; **not** a mass-market scale design.
-- Edge Function invocations only on place events/cron (≪500k/month).
-- Free Supabase projects auto-pause after ~7 days of inactivity → a free GitHub Actions cron pings the project; a paused backend is a launch risk (R-12).
-- Images: client-resized to ≤200 KB, stored in Supabase Storage (1 GB cap).
+- Firestore free quota (verify current console values) → sample history points (≥50 m or ≥2 min while moving, none while stationary), default retention 30 days, per-user caps, and explicitly tested cleanup. Firestore TTL/managed deletion is not available without billing; client cleanup is not a reliable security boundary.
+- Firestore reads/writes count against daily free quotas. Throttle location upserts to 15–30 s only while moving and actively viewed; otherwise 2–5 min or on significant movement. This is for small family/friend groups, not mass-market scale.
+- Cloud Functions are not available on Spark. No privileged server automation is currently included.
+- Defer profile image uploads unless a no-billing storage option is verified; use initials/avatar placeholders.
+- Quota exhaustion can shut off that product until reset; show a clear sync-unavailable state.
 - A usage dashboard/alerts are checked weekly; the app degrades gracefully ("sync delayed") on limits.
 
 ## 10. Reliability & monitoring
-Crash reporting: free option to be chosen (Firebase Crashlytics is free but needs the Firebase SDK; decide in Phase 6). Structured logs in Edge Functions; stale-sharing cron (≥15 min no update).
+Crash reporting: consider Firebase Crashlytics after checking SDK/platform requirements. Until a trusted server exists, no server logs or stale-sharing cron are assumed; clients can display staleness based on last update.
 
 ## 11. Local dev, build, deploy, rollback
-Supabase CLI + local Docker stack for dev; separate dev and prod Supabase projects (2 free projects) and Firebase project(s) on Spark; secrets (FCM service account, Supabase service key) stored only in Supabase/GitHub secrets, never in repo; migrations are versioned SQL in Git; rollback = redeploy previous tag + reversible migrations; no destructive migration without approval.
+Firebase CLI + Firebase Local Emulator Suite for Auth/Firestore/Rules tests; separate dev/prod Firebase projects only if free quota and project limits permit. Never ship an FCM service-account key in Flutter. Keep rules and indexes in Git; validate in Emulator and CI. Version changes and avoid destructive changes without approval.
 
 ## 12. Key risks & trade-offs → [docs/risks.md](docs/risks.md)
 Free-tier limits and auto-pause; background-location reliability; client-side event trust; free map/geocoder terms; web cannot track in background; minors/legal.
 
 ## 13. Cost-sensitive dependencies (all must stay at $0)
-Firebase (Auth, FCM only — no Blaze), Supabase free, map tiles/geocoder free tiers, GitHub free. **Paid items outside budget:** Apple Developer fee, Google Play fee, any plugin licence, custom domain.
+Firebase Auth + Firestore + FCM on Spark free quotas, map tiles/geocoder free tiers, GitHub free. **Paid items outside budget:** Apple Developer fee, Google Play fee, any plugin licence, custom domain.
