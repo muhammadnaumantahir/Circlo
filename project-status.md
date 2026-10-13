@@ -14,7 +14,7 @@
 - Place detection runs on-device; event validation/deduplication needs a trusted processing path.
 
 ## What changed in v0.3
-Owner selected Firebase-only: Authentication + Cloud Firestore + FCM; Supabase references are being removed. Native Android/iOS background tracking should continue with the screen locked when permissions and OS policies allow; web remains foreground-tab only. Minor-safety requirements FR-102–104 remain. Free quotas limit scale.
+Owner selected Firebase-only: Authentication + Cloud Firestore + FCM; the prior database/backend option has been removed. Native Android/iOS background tracking should continue with the screen locked when permissions and OS policies allow; web remains foreground-tab only. Minor-safety requirements FR-102–104 remain. Free quotas limit scale.
 
 ## Review update (2026-10-13)
 - Updated architecture, data model, security/privacy, roadmap, requirements, and review findings for Firebase-only.
