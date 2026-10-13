@@ -1,69 +1,69 @@
-# Repository Review — 2026-10-13
+# Repository Review — 2026-10-13 (Firebase-only revision)
 
-**Scope:** Static review of the planning documents on the default branch. This repository currently contains planning artifacts only; there is no application code to build or test. No runtime behavior has been verified.
+**Scope:** Static review of planning documentation. The repository contains no application code, so no build or runtime tests have been performed.
 
-## Summary
+## Owner's updated decision
 
-The requirements and privacy-first direction are solid. Keep this as a planning baseline until the owner approves the open decisions and the technical spikes pass. The most important unresolved item is the authentication boundary between Firebase Auth and Supabase under a strict $0/no-billing constraint.
+Circlo uses Flutter + Firebase Authentication + Cloud Firestore + Firebase Cloud Messaging, with no Supabase and no billing account. Native Android/iOS should attempt Life360-style background location, including while the screen is locked, subject to OS/OEM restrictions and permission grants. Web can share location only while the tab is open.
 
-## Findings and required actions
+## P0 — Trusted server-side push and privileged operations are unresolved
 
-### P0 — Prove the Firebase Auth → Supabase path before implementation
+Firebase Authentication, FCM delivery, and Cloud Firestore have no-cost usage options. However, Cloud Functions require the Blaze plan. Under the strict Spark/no-billing constraint, this baseline has no approved trusted backend to validate sensitive operations, send cross-user FCM messages, run scheduled cleanup, or perform complete account deletion.
 
-The architecture uses Firebase Auth for sign-in and Supabase for the database, RLS, Realtime, Storage, and Edge Functions. Supabase's official Firebase integration guide says Firebase JWTs need the `role: authenticated` claim for the usual authenticated database policies. Its documented ways to assign that claim use Firebase Cloud Functions or Identity Platform features, which conflict with the current rule that Firebase stays on Spark and no billing account is linked.
+Do not embed FCM server credentials in the client, disable security rules, or trust client-side authorization for privileged actions. Before claiming Life360-style remote arrival/departure alerts work, either prove a secure zero-cost server mechanism and obtain owner approval, or defer cross-user push and server-dependent features. Local notifications can only safely cover device-local events; they do not notify other circle members.
 
-This is a **design risk, not proof that integration is impossible**. Before building features, run a small spike that proves a newly registered user can securely read/write a test row through Supabase RLS without paid Firebase services. Do not solve this by exposing a service-role key or disabling RLS.
+Official reference: https://firebase.google.com/docs/projects/billing/firebase-pricing-plans
 
-**Recommended fallback:** use Supabase Auth for both login and database identity, while retaining Firebase Cloud Messaging only for push. Confirm email/password, password-reset delivery limits, and account deletion on the free plan before deciding.
+## P1 — Prove circle-scoped Firestore Rules
 
-Official reference: https://supabase.com/docs/guides/auth/third-party/firebase-auth
+Rules must verify current membership and the exact owner's sharing permission for the specific circle—not merely that viewer and owner share any circle. Apply this to live locations, history, visits, saved places, place events, notifications, and realtime listeners.
 
-### P1 — Make circle-scoped location authorization explicit
+Required Emulator tests:
+- Circle A cannot read location/history shared only with Circle B.
+- Pausing/revoking sharing denies future reads and writes as specified.
+- Leaving/removal immediately denies further access.
+- Unauthenticated users and accounts from another Firebase project are denied.
+- A user cannot add themselves as a member, promote themselves, or approve their own request.
+- Rules deny writes to another user's live location/history and prevent owner/role spoofing.
 
-The data model has one `live_locations` row per user, while location-sharing permission is stored per circle in `circle_members.shares_location`. RLS must check the relationship between the viewer, the location owner, and the exact circle—not merely that both users belong to some circle. Apply the same principle to historical points, visits, place events, and Realtime subscriptions.
+## P1 — Prove safe join codes and privileged mutations
 
-Add automated tests for:
-- A member of Circle A cannot read location/history shared only with Circle B.
-- Paused or revoked sharing blocks new reads and writes as designed.
-- Leaving/removal immediately blocks current and historical reads.
-- Unauthenticated requests and tokens from a different Firebase project are denied.
+Join codes, ownership transfers, member removal, account deletion and circle deletion are security-sensitive. Firestore rules alone may not safely implement every atomic/privileged flow. Prototype each required transaction in the Emulator; defer flows that cannot be secured without trusted server support. Rate limiting against join-code brute force also needs a trustworthy enforcement point.
 
-### P1 — Treat device-generated place events as untrusted input
+## P1 — Background tracking is a product requirement, not a guarantee
 
-Device-side geofence evaluation is a sensible quota-saving approach, but a modified client can fabricate arrival/departure events. Enforce authenticated ownership, circle membership, place subscription, timestamp bounds, event rate limits, and plausible transitions server-side. A unique constraint only makes retries idempotent when the same event identifier is reused; generate and persist a stable event/idempotency key for each transition, and test process restarts and retries.
+Android should use a compliant foreground service and persistent notification when required. iOS requires appropriate location permissions and can still limit execution. OEM battery managers may terminate tracking. Web cannot track after its tab closes. Test on real Android devices (including aggressive battery-management OEMs) and real iPhones; do not claim reliability or battery targets until measured.
 
-Do not claim alerts are tamper-proof. Clearly handle missed events when the OS suspends or kills the app.
+## P1 — Device-generated events are untrusted
 
-### P1 — Test background location before committing to reliability targets
+The sharing device can generate arrival/departure events, reducing server work, but a modified client can forge them. Use stable event IDs and client-side debounce; do not send remote alerts based solely on untrusted event documents until a trusted validator exists. Document missed alerts when OS suspends/kills the app.
 
-The Android, iOS, and web requirements are not equivalent. Web cannot provide continuous background tracking after a tab is closed. Android background behavior varies by permission state and device power management; iOS has its own permission and execution limits. Keep the web limitation visible, and make an Android real-device spike the first platform test. Treat the proposed battery and alert-delivery targets as goals until measured.
+## P1 — Firestore quota and retention design
 
-### P1 — Make the zero-cost map plan policy-compliant
+Firestore's free quota is limited and applies to the project. Frequent location writes and realtime listeners can exhaust reads/writes. Throttle uploads, keep the live location separate from history, cap history, and show clear sync-unavailable states. Do not assume Firestore TTL/managed deletes are available without billing; test explicit cleanup and account deletion. Avoid claiming complete deletion while no trusted recursive deletion mechanism exists.
 
-OpenStreetMap data is open, but the public OSM tile servers and public geocoding services are not unlimited production APIs. Keep the tile/geocoder provider configurable, display attribution, follow caching and identification requirements, avoid bulk/offline tile downloads, and obey the geocoder's own policy. Do not assume a public endpoint is guaranteed or suitable for growing traffic.
+Official reference: https://firebase.google.com/docs/firestore/quotas
 
-Official tile policy: https://operations.osmfoundation.org/policies/tiles/
+## P1 — Map provider compliance
 
-### P2 — Clarify data lifecycle and privacy decisions
+OpenStreetMap data is open, but public tile servers and public geocoders are not unlimited production APIs. Keep the provider configurable, show attribution, honor caching and identification rules, avoid bulk/offline tile downloads, and follow the chosen geocoder's policy.
 
-Before launch, decide the minimum age and launch markets, and obtain appropriate review for minors' data and privacy obligations. Make sure retention cleanup covers both raw location points and derived visits, and that account deletion removes storage files, notification records, device tokens, and circle-owned data according to the ownership-transfer rule.
+Official reference: https://operations.osmfoundation.org/policies/tiles/
 
-### P2 — Remove assumptions that promise free-tier availability
+## P2 — Privacy, minors and distribution
 
-Do not rely on a keep-alive job as a guarantee that a free backend will remain available. Document possible pause/quota outages, monitor usage, provide a clear “sync delayed/unavailable” state, and test recovery after a pause. Confirm current limits in the provider console before release.
+Confirm minimum age and launch markets, and get appropriate legal/privacy review before launch. Retention must cover raw points, derived visits, notification records, tokens, and circle-owned data. iOS/Play distribution fees remain outside the $0 budget.
 
 ## Suggested next steps
 
-1. Resolve the authentication spike without enabling billing.
-2. Confirm the open product decisions in `requirements.md` §13, especially distribution, minimum age, launch markets, and join approval defaults.
-3. Implement the smallest vertical slice: sign-in → profile → create/join circle → RLS-protected membership.
-4. Add security tests before adding live location data.
-5. Prove Android background tracking and device-side place detection on real phones.
-6. Only then approve the wider MVP implementation.
+1. Prototype Firestore Rules in the Firebase Emulator before storing real locations.
+2. Resolve the no-billing trusted-server blocker or explicitly reduce MVP scope.
+3. Test background location on real Android/iOS devices with the screen locked.
+4. Validate map/geocoder terms and Firestore free quotas.
+5. Only then implement the smallest vertical slice: sign-in → profile → secure create/join circle.
 
-## References checked
+## Official references checked
 
-- Supabase Firebase Auth integration: https://supabase.com/docs/guides/auth/third-party/firebase-auth
-- Supabase third-party auth overview/pricing: https://supabase.com/docs/guides/auth/third-party/overview
-- Firebase pricing (Spark/FCM): https://firebase.google.com/pricing
+- Firebase pricing plans: https://firebase.google.com/docs/projects/billing/firebase-pricing-plans
+- Firestore quotas: https://firebase.google.com/docs/firestore/quotas
 - OpenStreetMap tile usage policy: https://operations.osmfoundation.org/policies/tiles/
