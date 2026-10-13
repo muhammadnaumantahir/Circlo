@@ -66,7 +66,7 @@ Cloud Functions are unavailable under the strict Spark/no-billing constraint. Pl
 1. The app syncs the circle's saved places (id, lat, lon, radius) to the device.
 2. The **sharing member's device** compares each location fix against those places in app code (no OS geofence limit applies).
 3. State machine per (member, place): `outside → inside` after ≥2 consecutive fixes or ≥2 min with accuracy ≤100 m; `inside → outside` after the same persistence beyond radius × 1.2 (hysteresis).
-4. On a transition the device inserts a `place_events` row with a unique `visit_id`; a unique constraint `(member, place, visit_id, type)` makes retries idempotent (no duplicates, FR-048).
+4. On a transition the device writes a Firestore placeEvents document using a stable event ID as the document ID so retries target the same document. This prevents simple duplicate writes but does not validate the event or replace trusted server-side deduplication.
 5. **Blocked under current constraints:** a trusted sender must verify subscriptions and current membership before sending FCM. Until a secure server path is approved, cross-user remote push cannot be promised; never send from the client with a server credential.
 Limitation: events depend on the member's app getting location updates; if the phone is off/killed, no event (shown as "location unavailable").
 
@@ -87,7 +87,7 @@ Crash reporting: consider Firebase Crashlytics after checking SDK/platform requi
 Firebase CLI + Firebase Local Emulator Suite for Auth/Firestore/Rules tests; separate dev/prod Firebase projects only if free quota and project limits permit. Never ship an FCM service-account key in Flutter. Keep rules and indexes in Git; validate in Emulator and CI. Version changes and avoid destructive changes without approval.
 
 ## 12. Key risks & trade-offs → [docs/risks.md](docs/risks.md)
-Free-tier limits and auto-pause; background-location reliability; client-side event trust; free map/geocoder terms; web cannot track in background; minors/legal.
+Free-tier quota exhaustion; missing trusted server automation; background-location reliability; client-side event trust; free map/geocoder terms; web cannot track in background; minors/legal.
 
 ## 13. Cost-sensitive dependencies (all must stay at $0)
 Firebase Auth + Firestore + FCM on Spark free quotas, map tiles/geocoder free tiers, GitHub free. **Paid items outside budget:** Apple Developer fee, Google Play fee, any plugin licence, custom domain.
