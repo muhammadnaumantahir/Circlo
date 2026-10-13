@@ -4,7 +4,7 @@
 
 ## Owner's updated decision
 
-Circlo uses Flutter + Firebase Authentication + Cloud Firestore + Firebase Cloud Messaging, with no Supabase and no billing account. Native Android/iOS should attempt Life360-style background location, including while the screen is locked, subject to OS/OEM restrictions and permission grants. Web can share location only while the tab is open.
+Circlo uses Flutter + Firebase Authentication + Cloud Firestore + Firebase Cloud Messaging, with no billing account. Native Android/iOS should attempt Life360-style background location, including while the screen is locked, subject to OS/OEM restrictions and permission grants. Web can share location only while the tab is open.
 
 ## P0 — Trusted server-side push and privileged operations are unresolved
 
