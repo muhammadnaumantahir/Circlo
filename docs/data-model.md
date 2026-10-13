@@ -1,23 +1,36 @@
-# Data Model (DRAFT v0.2 — Postgres on free-tier Supabase)
+# Data Model (DRAFT v0.3 — Firebase Cloud Firestore)
 
-`uid` = Firebase Auth user id (text) taken from the verified JWT. All tables have Row Level Security **enabled with default deny**.
+Firebase Authentication UID is the stable user key. Use Firestore documents and subcollections; all access is governed by firestore.rules with default-deny behavior. This is a logical model, not deployed code.
 
-| Table | Key columns | Access rule (summary) |
+| Collection / path | Example fields | Access rule (summary) |
 |---|---|---|
-| `profiles` | uid PK, display_name, photo_path, phone?, birth_year/age_band, history_shared bool, retention_days (7/30/90, default 30), sharing_paused bool, created_at | Self read/write; name+photo readable by users sharing a circle |
-| `device_tokens` | uid, token, platform | Self only |
-| `circles` | id, name, photo_path?, owner_uid, requires_approval, created_at | Members read; writes via RPC |
-| `circle_members` | circle_id, uid, role (owner/member), joined_at, shares_location bool | Members read their circle's rows; self may toggle own `shares_location`; others via RPC |
-| `join_codes` | code PK, circle_id, expires_at?, revoked | RPC only (no direct access) |
-| `join_requests` | circle_id, uid, status, created_at | Owner & requester |
-| `places` | id, circle_id, name, lat, lon, radius_m, created_by | Circle members read; creator/owner write |
-| `place_subscriptions` | place_id, subscriber_uid, member_uid, on_arrive, on_leave | Subscriber only |
-| `live_locations` | uid PK, lat, lon, accuracy, recorded_at, status | Readable by members of circles where owner `shares_location` is true |
-| `location_points` | id, uid, lat, lon, accuracy, recorded_at | Owner full; circle members only if `history_shared` and sharing to that circle |
-| `visits` | id, uid, place_id?, name?, lat, lon, arrived_at, left_at, duration_s | Same as points |
-| `place_events` | id, circle_id, place_id, member_uid, type (arrive/leave), visit_id, occurred_at; UNIQUE(member_uid, place_id, visit_id, type) | Insert by the member only; read by service role |
-| `notifications` | id, uid, type, circle_id, payload jsonb, read, created_at | Self only; auto-deleted after 30 days |
+| users/{uid} | display_name, photo_url?, phone?, birth_year/age_band, history_shared=false, retention_days=30, sharing_paused=false, created_at | User reads/writes own private fields; only minimal profile fields shared to current circles |
+| users/{uid}/deviceTokens/{tokenId} | token, platform, updated_at | Owner only; tokens never exposed to other members |
+| circles/{circleId} | name, photo_url?, owner_uid, requires_approval, member_count, created_at | Current members read; sensitive changes require validated rules and, where needed, trusted server support |
+| circles/{circleId}/members/{uid} | role, joined_at, shares_location, history_shared | Current members can read membership; a member may change only their own allowed sharing preferences |
+| joinCodes/{codeId} | circle_id, expires_at?, revoked, created_by | No public listing; joining must not trust a client-supplied circle ID. A safe one-time/transactional join flow must be proven in Rules or deferred until trusted server support exists |
+| joinRequests/{requestId} | circle_id, uid, status, created_at | Requester and circle owner only |
+| circles/{circleId}/places/{placeId} | name, lat, lon, radius_m, created_by, alerts_enabled | Current circle members read; writes limited to authorized owners/creators |
+| circles/{circleId}/placeSubscriptions/{subscriptionId} | subscriber_uid, member_uid, on_arrive, on_leave | Subscriber controls own subscription; server-side authorization needed before sending remote alerts |
+| users/{uid}/live/current | lat, lon, accuracy, recorded_at, status | Owner writes; circle members read only if current membership and per-circle sharing permission both allow it |
+| users/{uid}/locationHistory/{pointId} | lat, lon, accuracy, recorded_at | Owner writes/reads; other members read only with history opt-in and current circle-scoped sharing authorization |
+| users/{uid}/visits/{visitId} | place_id?, name?, lat, lon, arrived_at, left_at, duration_s | Same access as history; owner can delete |
+| placeEvents/{eventId} | circle_id, place_id, member_uid, type, visit_id, occurred_at, idempotency_key | Treat client-created events as untrusted; validate membership/subscription/timestamp/rate server-side before sending remote alerts |
+| users/{uid}/notifications/{notificationId} | type, circle_id, payload, read, created_at | Recipient only; remote creation needs trusted sender. Local notifications may be generated on-device for that device only |
 
-Indexes: `location_points(uid, recorded_at)`, `visits(uid, arrived_at)`, `circle_members(uid)`, `places(circle_id)`.
-Retention: scheduled cleanup deletes points older than each user's `retention_days` and notifications >30 days.
-Migrations: versioned SQL files in `/supabase/migrations`, tested on a fresh local database and the dev project before prod.
+## Query and security rules
+
+- Use circle-scoped paths for shared data; do not rely on matching membership in any circle.
+- Every read must verify current membership and the exact owner's shares_location permission for that circle. History additionally requires history_shared.
+- Leaving/removal must immediately deny future reads. Security rules cannot erase data already downloaded to a device.
+- Clients must never write another user's location or profile, assign themselves owner, approve their own join request, or grant their own membership.
+- A single live/current document per user is simple but makes cross-circle authorization subtle; if Firestore rules cannot safely prove the viewer-to-owner relationship for each circle, duplicate circle-scoped location projections or defer the query.
+- Stable event IDs must be generated once and reused for retries; enforce idempotency in the trusted processing layer when available.
+- Retention: keep live location separate from history. Prune history and notification documents using an explicitly tested cleanup process. Firestore TTL/managed deletes require billing, so no TTL-based deletion is assumed under Spark.
+- Store only the data needed; do not collect battery, contacts, or background data unrelated to the feature.
+
+## Free-tier and implementation notes
+
+- Cloud Firestore has a no-cost daily quota (currently documented as 1 GiB stored, 50,000 document reads/day, 20,000 writes/day and 20,000 deletes/day; verify before launch). Exceeding Spark quota can disable that product until the quota resets.
+- Do not store profile images in Firebase Storage unless its current Spark availability and cost are confirmed; use initials/avatar placeholders for MVP.
+- Firestore Rules and Emulator Suite tests are mandatory before any live location data is used.
