@@ -1,6 +1,6 @@
 # Circlo — Requirements Baseline (DRAFT v0.2)
 
-**Owner decisions 2026-10-12:** Flutter app for web + Android + iOS · minors may use the app · monthly budget **$0** (Firebase for login only; other online data on free tiers) · history opt-in, 30-day default retention · place-detection approach delegated to analyst (see ADR-0002).
+**Owner decisions 2026-10-12/13:** Flutter app for web + Android + iOS · minors may use the app · monthly budget **$0**, no billing account · Firebase-only backend (Authentication + Cloud Firestore + FCM) · history opt-in, 30-day default retention · device-side place detection · native background location when permitted, including screen-locked operation. Web cannot track after its tab closes. Trusted server-side push/automation remains a blocking design issue under Spark/no-billing.
 
 Legend: **[C]** = confirmed from owner's requirements document · **[R]** = recommended by analyst, needs approval · **[A]** = assumption.
 Priority: **Must / Should / Could / Not in this release**.
@@ -143,7 +143,7 @@ Priority: **Must / Should / Could / Not in this release**.
 | NFR-013 | Crash-free sessions ≥99.5%. [R target] | Should |
 | NFR-014 | Compliance: privacy policy, store data-safety/privacy labels, GDPR-style rights; minors' handling per open question Q2. Legal text requires owner/lawyer approval. | Must |
 | NFR-015 | **Monthly cost = $0.** No billing account linked to Firebase/Google Cloud; only free tiers; app degrades gracefully when free quotas are hit; weekly usage check. [C] | Must |
-| NFR-016 | Free-tier limits respected: DB ≤ ~400 MB soft cap with pruning, throttled location uploads, backend keep-alive against auto-pause (to verify). | Must |
+| NFR-016 | Free-tier limits respected: DB ≤ ~400 MB soft cap with pruning, throttled location uploads, Firestore quota monitoring and graceful degradation. | Must |
 
 ## 5. Use cases / acceptance criteria (key)
 - **UC-1 Join circle (FR-013):** Given a valid code, when entering it, then user appears in member list and owner is notified; given an expired/revoked code, then a non-revealing error is shown and no membership is created.
@@ -166,10 +166,10 @@ Every data screen defines loading, empty, error, offline, timeout, permission-de
 Inputs: profile, circle data, locations (lat, lon, accuracy, timestamp, battery-optional **not** collected), places. Outputs: map views, notifications, timelines. Retention: live location = latest only; history per FR-067; notifications 30 d. Deletion per FR-006/066/NFR-012.
 
 ## 9. External integrations
-Firebase Auth (login only) and FCM (push), both on the free Spark plan; free-tier Supabase (Postgres, Realtime, Edge Functions, Storage); OSM-based map tiles + free geocoder. Replaces the source document's Firestore/Cloud Functions/Google Maps, which need a paid plan.
+Firebase Authentication + Cloud Firestore + Firebase Cloud Messaging on Spark, within free quotas; OSM-based map tiles + a free geocoder subject to provider policies. Cloud Functions are not available on Spark. Consequently, secure server-triggered cross-user push, scheduled retention cleanup, and trusted enforcement for sensitive operations need a separate approved solution before those features can be production-ready.
 
 ## 10. Constraints & dependencies
-$0 budget; OS background-location policies; web cannot track in background; Apple Developer (paid) account needed to distribute iOS apps and Google Play has a developer fee (outside budget → see Q1); store review of background location; free-tier quotas and auto-pause.
+$0 budget with no billing account; Firebase Spark quotas; Cloud Functions require Blaze; OS background-location policies; web cannot track in background; Apple Developer (paid) account needed to distribute iOS apps and Google Play has a developer fee (outside budget → see Q1); store review of background location; map/geocoder provider limits.
 
 ## 11. Priorities summary
 Must: auth, circles, join codes, map + consent/pause, places + alerts, history + controls, privacy rules. Should: approval flow, route display, email verification. Could: data export, timed pause.
@@ -183,7 +183,7 @@ Listed inline with [A]. Notable: single Owner role (source uses both "creator" a
 |---|---|---|
 | Q1a | Platforms | Flutter for web, Android, iOS |
 | Q2a | Minors | Allowed |
-| Q4 | Budget | $0; Firebase only for login; free tiers for other online data |
+| Q4 | Budget | $0; Firebase-only architecture on Spark/free quotas; no billing account |
 | Q5/Q6 | History | Opt-in per person; 30-day default retention |
 | Q10 | Place detection | Analyst's choice → device-side detection + server dedup (ADR-0002) |
 
@@ -196,7 +196,7 @@ Listed inline with [A]. Notable: single Owner role (source uses both "creator" a
 | Q7 | Join "approval required" default | Off, owner can enable |
 | Q8 | History visibility | Each person decides (FR-065) |
 | Q9 | Deadline / target launch date | — |
-| Q11 | If Supabase can't accept Firebase login cleanly, use Supabase Auth instead (drops Firebase login)? | Yes, only as fallback |
+| Q11 | Server-side push/automation under Firebase Spark without a billing account | Unresolved blocker; do not expose credentials or claim full remote alerts work until a secure solution is proven |
 | Q12 | Should owners be notified when a minor pauses sharing (FR-104)? | Yes |
 
 ## 14. MVP completion criteria
