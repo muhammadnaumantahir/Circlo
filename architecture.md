@@ -1,88 +1,95 @@
-# Circlo — Architecture (DRAFT v0.1)
+# Circlo — Architecture (DRAFT v0.2 — zero-budget revision)
 
-> **Verification note:** Technology versions, quotas, pricing and OS policies below were **not** re-verified against official documentation when this draft was written. Verification is a mandatory task before implementation (see [docs/risks.md](docs/risks.md) R-10).
+**Owner constraints (2026-10-12):** monthly budget **$0**; Flutter app for **web, Android, iOS**; Firebase **only for login**; other online data may use a free tier; minors may use the app.
+
+> **Verification status.** Checked against public sources on 2026-10-12: Firebase's plan page lists Cloud Functions under the paid Blaze plan, and a third-party article says Cloud Storage for Firebase needs Blaze since Feb 2026; Supabase free-plan figures below come from third-party summaries, not Supabase's own docs. **Confirm every figure in the official console/docs before building** (risk R-10). Not yet verified: map-tile and geocoding provider terms, Flutter/package versions, store policies.
 
 ## 1. Overview
-Flutter mobile client + Firebase backend (serverless). Authorization is enforced by Firestore Security Rules and Cloud Functions; the client is untrusted.
+Flutter client (web, Android, iOS) → Firebase Auth (login only, Spark plan) → free-tier backend (Supabase: Postgres + Row Level Security + Realtime + Edge Functions + Storage) → FCM for push. Maps use OpenStreetMap-based tiles (no Google Maps billing). **No paid service is enabled; no billing account is linked anywhere.**
 
 ```mermaid
 flowchart LR
-  subgraph Device[Flutter app Android/iOS]
-    UI[UI + state] --> LS[Location service bg]
+  subgraph Client[Flutter app: Android / iOS / Web]
+    UI[UI + state] --> LS[Location service]
+    LS --> GE[On-device place evaluator]
     UI --> Repo[Repositories]
   end
-  Repo --> Auth[Firebase Auth]
-  Repo --> FS[(Cloud Firestore)]
-  Repo --> ST[Cloud Storage - images]
-  LS --> FS
-  FS -- onWrite location --> CF[Cloud Functions]
-  CF --> GE[Place/visit engine]
-  GE --> FS
-  CF --> FCM[Firebase Cloud Messaging]
-  FCM --> Device
-  Device --> GM[Google Maps SDK / Places]
-  CF --> SCH[Scheduled jobs: retention, stale-sharing]
+  Repo -- sign in --> FA[Firebase Auth - Spark]
+  FA -- ID token --> SB
+  Repo -- RLS-protected queries + Realtime --> SB[(Supabase free: Postgres)]
+  LS -- latest location upsert --> SB
+  GE -- place events --> SB
+  SB -- DB webhook on events --> EF[Edge Functions]
+  EF -- HTTP v1 --> FCM[FCM push - free]
+  FCM --> Client
+  SCH[GitHub Actions cron - free] --> EF
+  Client --> MAP[OSM tile provider + geocoder]
 ```
 
 ## 2. Technology recommendations
-| Area | Choice | Why | Alternatives |
+| Area | Choice | Why / cost | Alternatives |
 |---|---|---|---|
-| Client | Flutter (stable), Riverpod state mgmt, go_router | One codebase; matches source doc | React Native; native x2 (higher cost) |
-| Auth | Firebase Authentication (email/password) | Managed, secure, password reset | Supabase Auth |
-| DB | Cloud Firestore | Realtime listeners fit live map; rules model | Supabase/Postgres+PostGIS (better geo/history queries, relational); consider if cost/history volume grows |
-| Push | FCM | Standard | — |
-| Maps | Google Maps Platform (maps_flutter, Places) | Source doc | Mapbox, OpenStreetMap (cheaper) |
-| Background location | `flutter_background_geolocation` (commercial licence for Android) **or** `geolocator` + foreground service — chosen after a spike (ADR-0003) | Reliability of background tracking is highest technical risk | Native plugins |
-| Backend | Cloud Functions (TypeScript, 2nd gen) | Serverless | Cloud Run |
-| Security | Firebase App Check, Security Rules, rules unit tests (emulator) | Prevent abuse | — |
-| CI/CD | GitHub Actions: analyze, test, rules tests, build | — | Codemagic |
+| Client | Flutter, Riverpod, go_router | One codebase for web/Android/iOS; free | — |
+| Login | Firebase Authentication, email+password (Spark) | Owner requirement; free tier | Supabase Auth would remove one dependency (ADR-0001) |
+| Data | Supabase free plan: Postgres + RLS + Realtime + Storage | Free; relational model suits circles/history; avoids paid Firebase Functions/Storage | Firestore on Spark (no Functions → no push sending) |
+| Server logic | Supabase Edge Functions (Deno/TypeScript) | Free quota; only runs on events, not every location update | Cloud Functions (needs Blaze) |
+| Push | Firebase Cloud Messaging | Free | In-app only (no background alerts) |
+| Maps | `flutter_map` + free OSM-based tiles | No billing; works on web/Android/iOS | Google Maps (needs billing account) |
+| Place search | Free geocoder (e.g. Nominatim/Photon) with rate limiting & caching | Free; usage policies limit autocomplete | Paid geocoding |
+| Directions | Open device/web maps app via URL | Free | In-app routing (paid) |
+| Background location | Plugin chosen by spike (ADR-0003); free option preferred | Highest technical risk | — |
+| CI | GitHub Actions (free quotas for public repos; verify) | — | — |
+| Hosting (web) | GitHub Pages / Firebase Hosting free quota / Cloudflare Pages (decide in Phase 6) | Free | — |
 
-Simplicity note: no custom servers, no extra databases in MVP.
+## 3. Platform behavior
+| Platform | Background sharing | Notes |
+|---|---|---|
+| Android | Yes (foreground service + persistent notification) | Free distribution via APK/GitHub Releases; Play Store has a one-time developer fee (verify) |
+| iOS | Yes ("Always" permission, system indicator) | Public distribution/TestFlight needs a paid Apple Developer account; builds need macOS (cloud CI) |
+| Web | **No.** Browsers cannot track in the background. Web = view map/history/manage circles; shares location only while the tab is open (optional) | Web push requires service worker & user permission |
 
-## 3. Requirements ↔ components
-See [docs/traceability.md](docs/traceability.md). Summary: Auth (FR-001–007) → Auth+profile module; Circles (FR-010–022) → circles module + `joinCircle` function; Live location (FR-030–038) → location service + `liveLocations`; Places (FR-040–051) → places module + place engine; History (FR-060–068) → history module + visit builder; Notifications (FR-080–084) → notification module + FCM.
+The $0 budget means store fees are outside budget; the code targets all three platforms, **distribution** of iOS/Play follows when the owner can pay (Q1).
 
 ## 4. Repository structure (proposed)
 ```
-/app                 Flutter project (lib/features/{auth,circles,map,places,history,notifications,settings}, lib/core)
-/functions           Cloud Functions (TypeScript)
-/firebase            firestore.rules, firestore.indexes.json, storage.rules, firebase.json
-/firebase/tests      security-rule tests
-/design /docs        documentation
-/.github/workflows   CI
+/app           Flutter project (lib/features/{auth,circles,map,places,history,notifications,settings}, lib/core)
+/supabase      migrations (SQL), RLS policies, edge functions, seed (no secrets), tests
+/.github       CI workflows (analyze, test, RLS tests, build, secret scan)
+/design /docs  documentation
 ```
 
-## 5. Data model
-Detailed in [docs/data-model.md](docs/data-model.md).
+## 5. Data model → [docs/data-model.md](docs/data-model.md)
 
-## 6. APIs
-Client talks to Firestore directly (rules-protected) for reads/simple writes; sensitive operations are **callable Functions**: `createCircle`, `joinCircle(code)`, `approveRequest`, `removeMember`, `transferOwnership`, `deleteCircle`, `rotateJoinCode`, `deleteMyHistory`, `deleteAccount`. Errors return typed codes (`invalid-code`, `expired`, `rate-limited`, `permission-denied`, `circle-full`).
+## 6. Server operations (Edge Functions / RPC)
+Sensitive actions are SQL `SECURITY DEFINER` RPCs or Edge Functions, never direct client writes: `create_circle`, `join_circle(code)`, `approve_request`, `remove_member`, `transfer_ownership`, `delete_circle`, `rotate_join_code`, `delete_my_history`, `delete_account`, `send_push` (webhook), `retention_cleanup` (cron), `stale_sharing_check` (cron). Typed errors: `invalid_code`, `rate_limited`, `permission_denied`, `circle_full`.
 
-## 7. Place alerts (arrival/departure) — design
-Per [ADR-0002](docs/decisions/ADR-0002-server-side-place-detection.md): each location write triggers a function that evaluates the member's position against that circle's places.
-- Per (member, place) state: `outside | inside` with `enteredAt`, `lastNotifiedEnterAt`.
-- **Enter:** inside radius for ≥2 consecutive fixes or ≥2 min with accuracy ≤100 m → mark inside, send *arrived* once.
-- **Exit:** outside radius × 1.2 (hysteresis) for ≥2 consecutive fixes/≥2 min → send *left* once.
-- Dedup key `memberId_placeId_visitId` written in a transaction (idempotent on function retries).
-- Alerts go only to users who enabled that place/member/type and are still circle members.
+## 7. Place alerts (supersedes earlier server-side proposal) — see [ADR-0002](docs/decisions/ADR-0002-place-detection.md)
+Evaluating every location update on a server would exhaust free quotas and Cloud Functions are unavailable on the free plan. Instead:
+1. The app syncs the circle's saved places (id, lat, lon, radius) to the device.
+2. The **sharing member's device** compares each location fix against those places in app code (no OS geofence limit applies).
+3. State machine per (member, place): `outside → inside` after ≥2 consecutive fixes or ≥2 min with accuracy ≤100 m; `inside → outside` after the same persistence beyond radius × 1.2 (hysteresis).
+4. On a transition the device inserts a `place_events` row with a unique `visit_id`; a unique constraint `(member, place, visit_id, type)` makes retries idempotent (no duplicates, FR-048).
+5. A DB webhook calls an Edge Function that looks up subscribers (members who enabled that place/member/type and are still circle members) and sends FCM + writes in-app notifications.
+Limitation: events depend on the member's app getting location updates; if the phone is off/killed, no event (shown as "location unavailable").
 
-## 8. Security & privacy
-Detailed in [docs/security-privacy.md](docs/security-privacy.md). Highlights: default-deny rules; membership checks via `circles/{id}/members/{uid}` docs; share-flag checks; join codes in separate collection, rate-limited, App Check enforced; no real secrets in repo; Maps API keys restricted by app signature/bundle ID; no analytics/ad SDKs.
+## 8. Security & privacy → [docs/security-privacy.md](docs/security-privacy.md)
 
-## 9. Performance & cost control
-- Adaptive location: moving (e.g. every 15–30 s / 50 m distance filter) vs stationary (significant-change/≥5 min). Values tuned in spike.
-- Live location doc overwritten (1 write/update); history points sampled (≥50 m or ≥2 min) and batched.
-- Firestore TTL policy deletes expired history; scheduled function enforces user retention.
-- Cost estimate model to be produced before approval (R-04). Budget alerts on.
+## 9. Free-tier budget model (to validate in spike)
+- DB cap ~500 MB → history points sampled (≥50 m or ≥2 min while moving, none while stationary), default retention 30 days, hard cap per user; visits summarized and points pruned.
+- Realtime message cap (~2M/month) and ~200 concurrent connections → throttle: location upsert every 15–30 s only while moving **and** someone is viewing; otherwise 2–5 min or on significant movement. Expected capacity: small groups (families/friends) in early stage; **not** a mass-market scale design.
+- Edge Function invocations only on place events/cron (≪500k/month).
+- Free Supabase projects auto-pause after ~7 days of inactivity → a free GitHub Actions cron pings the project; a paused backend is a launch risk (R-12).
+- Images: client-resized to ≤200 KB, stored in Supabase Storage (1 GB cap).
+- A usage dashboard/alerts are checked weekly; the app degrades gracefully ("sync delayed") on limits.
 
-## 10. Reliability, logging, monitoring
-Crashlytics; Functions structured logs; alerts on function error rate; stale-sharing job (every 5 min) flags members with no update ≥15 min; FCM token cleanup on failure.
+## 10. Reliability & monitoring
+Crash reporting: free option to be chosen (Firebase Crashlytics is free but needs the Firebase SDK; decide in Phase 6). Structured logs in Edge Functions; stale-sharing cron (≥15 min no update).
 
 ## 11. Local dev, build, deploy, rollback
-Firebase Emulator Suite locally; separate Firebase projects `circlo-dev`, `circlo-staging`, `circlo-prod`; env config via `--dart-define`/Firebase config files excluded from repo where sensitive; deployments by tagged release, manual approval; rollback by redeploying previous tag (functions/rules are versioned in Git); Firestore data migrations are scripted, reversible, run only with approval.
+Supabase CLI + local Docker stack for dev; separate dev and prod Supabase projects (2 free projects) and Firebase project(s) on Spark; secrets (FCM service account, Supabase service key) stored only in Supabase/GitHub secrets, never in repo; migrations are versioned SQL in Git; rollback = redeploy previous tag + reversible migrations; no destructive migration without approval.
 
-## 12. Key risks and trade-offs
-Background location reliability (OEM battery killers, iOS review); Firestore cost with high write rates; geofence correctness; privacy/legal for minors. See [docs/risks.md](docs/risks.md).
+## 12. Key risks & trade-offs → [docs/risks.md](docs/risks.md)
+Free-tier limits and auto-pause; background-location reliability; client-side event trust; free map/geocoder terms; web cannot track in background; minors/legal.
 
-## 13. Cost-sensitive dependencies
-Google Maps/Places/Geocoding, Firestore reads/writes, Functions invocations, FCM (free), Storage, possibly background-location plugin licence, Apple Developer fee, Google Play fee.
+## 13. Cost-sensitive dependencies (all must stay at $0)
+Firebase (Auth, FCM only — no Blaze), Supabase free, map tiles/geocoder free tiers, GitHub free. **Paid items outside budget:** Apple Developer fee, Google Play fee, any plugin licence, custom domain.

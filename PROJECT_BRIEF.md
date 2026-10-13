@@ -24,19 +24,20 @@ Private, consent-based location sharing with useful place alerts and history, an
 5. Pause sharing / leave circle / delete data / delete account.
 
 ## Platforms
-Android and iOS via one Flutter codebase (recommended in the source requirements; see [architecture.md](architecture.md)).
+Web, Android and iOS via one Flutter codebase (owner decision). Web can view and manage but cannot track in the background; iOS/Play distribution depends on paid developer accounts (see [requirements.md](requirements.md) Q1b).
 
 ## First release (MVP) goal
-A reliable core: accounts, circles with join codes, live map with consent controls, saved places with arrival/departure alerts, and basic travel history with deletion/retention controls. Detailed scope: [requirements.md](requirements.md) §2 and §13.
+A reliable core on a $0 stack: accounts, circles with join codes, live map with consent controls, saved places with arrival/departure alerts, and basic travel history with deletion/retention controls. Detailed scope: [requirements.md](requirements.md) §2 and §13.
 
 ## Success criteria (proposed — for approval)
 - A new user can create a circle and a second user can join in under 3 minutes (usability test, 5 participants).
 - Arrival/departure alert delivered within 2 minutes of the event for ≥90% of test visits in field testing.
 - 0 unauthorized location reads in security-rule tests.
 - Battery drain from Circlo background location ≤5% per day in standard test devices (target to be validated).
+- Monthly infrastructure cost remains $0.
 
 ## Constraints known
-- Budget/hosting: unknown; Google Maps, Firestore and Cloud Functions incur usage-based costs.
+- **Budget: $0.** Firebase only for login/push (free plan); other online data on free tiers; OpenStreetMap-based maps. Free-tier quotas limit scale (small groups).
 - Deadline: not stated.
 - Platform rules for background location (Android foreground-service/permission rules, iOS "Always" permission and review) strongly shape the design.
 

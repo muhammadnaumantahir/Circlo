@@ -19,4 +19,4 @@ Shared style: "Modern, friendly mobile app UI, clean, rounded cards, 8-pt grid, 
 | 11-settings.png | Settings with permission status, sharing per circle, history retention, notification toggles, delete account in red |
 | 12-states.png | Sheet showing empty, offline banner, and location-permission-denied states |
 
-Also produce dark-mode variants of 03 and 09 (`*-dark.png`) and a tablet two-pane variant of 03.
+Also produce a desktop-web variant (1440×900, side panel + map) of 03 and 09, and dark-mode variants of 03 and 09 (`*-dark.png`) and a tablet two-pane variant of 03.

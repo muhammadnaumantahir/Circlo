@@ -33,5 +33,11 @@ Global states for every data screen: **Loading** (skeleton), **Empty** (illustra
 ## S8 Profile & Settings (FR-004–006, 034–035, 065–067, 081, 093)
 - Profile edit; location permission status; sharing per circle; history sharing + retention + delete; notification toggles per type; "Who can see me"; change password; export data (Could); delete account (type-to-confirm; handles owned circles).
 
+## Web specifics (FR-100/101)
+Banner on web: "Location is shared only while this tab is open." Background-only features (always-on sharing) hidden; side navigation instead of bottom bar on wide screens.
+
+## Minors (FR-102–104)
+Sign-up asks age/birth year; blocks under minimum age with a friendly message; consent text for minors uses simple language; pause/leave always one tap away.
+
 ## Navigation
 Bottom nav: Map · Circles · Places · History · Profile; Notifications via bell icon on Map app bar. Deep links from push notifications.

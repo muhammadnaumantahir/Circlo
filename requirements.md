@@ -1,4 +1,6 @@
-# Circlo — Requirements Baseline (DRAFT v0.1)
+# Circlo — Requirements Baseline (DRAFT v0.2)
+
+**Owner decisions 2026-10-12:** Flutter app for web + Android + iOS · minors may use the app · monthly budget **$0** (Firebase for login only; other online data on free tiers) · history opt-in, 30-day default retention · place-detection approach delegated to analyst (see ADR-0002).
 
 Legend: **[C]** = confirmed from owner's requirements document · **[R]** = recommended by analyst, needs approval · **[A]** = assumption.
 Priority: **Must / Should / Could / Not in this release**.
@@ -12,7 +14,7 @@ Priority: **Must / Should / Could / Not in this release**.
 
 ## 2. Scope
 **In scope (MVP):** Accounts, circles, join codes, live map, sharing controls, saved places & alerts, travel history, notifications, privacy controls (source phases 1–5).
-**Out of scope / Not in this release [C]:** driving/trip detection, low-battery alerts, SOS button, check-in button, speed alerts. **[R]** also out: in-app chat, payments/subscriptions, web app, social login, analytics/ad SDKs, sharing with non-app users.
+**Out of scope / Not in this release [C]:** driving/trip detection, low-battery alerts, SOS button, check-in button, speed alerts. **[R]** also out: in-app chat, payments/subscriptions, social login, analytics/ad SDKs, sharing with non-app users, any paid cloud service.
 
 ## 3. Functional requirements
 
@@ -60,7 +62,7 @@ Priority: **Must / Should / Could / Not in this release**.
 ### 3.4 Places and alerts
 | ID | Requirement | Pri |
 |---|---|---|
-| FR-040 | User can search for a place (address/name) on the map. [C] | Must |
+| FR-040 | User can search for a place (address/name) on the map using a free geocoder (rate-limited, cached); fallback: drop a pin. [C][A] | Must |
 | FR-041 | User can select a location and save it with custom name. [C] | Must |
 | FR-042 | User sets radius (proposed range 100 m–1 km, default 150 m). [C][A] | Must |
 | FR-043 | User can edit/delete saved places. [C] | Must |
@@ -91,7 +93,7 @@ Priority: **Must / Should / Could / Not in this release**.
 |---|---|---|
 | FR-070 | One map showing all members of the selected circle. [C] | Must |
 | FR-071 | Tap member → detail sheet (current/last location, last update, status). [C] | Must |
-| FR-072 | "Get directions" opens the device's maps app to the member's location (no in-app navigation). [C][A] | Should |
+| FR-072 | "Get directions" opens the device/web maps app to the member's location (no in-app navigation; keeps cost at $0). [C][A] | Should |
 | FR-073 | Saved places drawn on map with radius. [C] | Must |
 | FR-074 | User can switch between circles. [C] | Must |
 
@@ -104,7 +106,17 @@ Priority: **Must / Should / Could / Not in this release**.
 | FR-083 | "Sharing unavailable" alert fires only after ≥15 min stale and at most once per outage. [R] | Should |
 | FR-084 | Push permission requested in context, with in-app fallback when denied. [R] | Must |
 
-### 3.8 Privacy & security (functional)
+### 3.8 Platforms, web and minors (new, from owner decisions)
+| ID | Requirement | Pri |
+|---|---|---|
+| FR-100 | One Flutter codebase builds for web, Android and iOS. [C] | Must |
+| FR-101 | Web app: sign in, view circles/map/places/history, manage settings; shares location **only while the tab is open** and tells the user that background sharing is unavailable on web. [R] | Should |
+| FR-102 | Age declaration at sign-up (age band/birth year). Users below the minimum age (proposed 13, region-dependent) cannot register. [A] | Must |
+| FR-103 | Minor users get plain-language consent text; may pause/leave any time; history sharing off by default. [R] | Must |
+| FR-104 | When a minor pauses sharing or leaves a circle, the circle owner is notified. [R] | Should |
+| FR-105 | Place arrival/departure is detected on the sharing member's device and de-duplicated on the server (ADR-0002); events are not generated while sharing is paused. [A] | Must |
+
+### 3.9 Privacy & security (functional)
 | ID | Requirement | Pri |
 |---|---|---|
 | FR-090 | Only current members of a circle can read data shared to that circle. [C] | Must |
@@ -116,21 +128,22 @@ Priority: **Must / Should / Could / Not in this release**.
 ## 4. Non-functional requirements
 | ID | Requirement (measurable) | Pri |
 |---|---|---|
-| NFR-001 | Location updates visible to other members within 30 s of device upload when online (p95). [R target] | Must |
+| NFR-001 | Location updates visible to other members within 30 s of device upload when online (p95); upload cadence is throttled to fit free quotas, so "live" may mean updates every 15 s–5 min. [R target] | Must |
 | NFR-002 | Arrival/departure alert within 2 min of event (p90) in field tests. [R target] | Must |
 | NFR-003 | Map screen interactive in ≤3 s on mid-range device on 4G (p90). [R target] | Should |
 | NFR-004 | Battery: background sharing ≤5%/day on reference devices. [R target, validate] | Should |
 | NFR-005 | All traffic over TLS; data encrypted at rest (managed provider default). | Must |
 | NFR-006 | Authorization enforced server-side (security rules/functions), never only in client; automated rule tests cover every collection. | Must |
-| NFR-007 | Platforms: Android 8.0+ (API 26+) and iOS 15+. [A] | Must |
+| NFR-007 | Platforms: Android 8.0+ (API 26+), iOS 15+, and current evergreen browsers (Chrome, Edge, Firefox, Safari). [A] | Must |
 | NFR-008 | Accessibility: WCAG 2.1 AA targets, screen-reader labels, text scaling to 200%, 4.5:1 contrast, non-color-only status. | Should |
 | NFR-009 | Offline: show last known data with "offline" banner; queue location uploads up to 24 h. | Should |
 | NFR-010 | Localization: English only for MVP; strings externalised. [A] | Must |
-| NFR-011 | Join-code guessing protected by rate limiting (e.g. 10 attempts/hour/user) and App Check. | Must |
+| NFR-011 | Join-code guessing protected by rate limiting (e.g. 10 attempts/hour/user) and free abuse protection (e.g. Firebase App Check, if available on the free plan). | Must |
 | NFR-012 | Account deletion removes all user-owned data within 30 days (target: immediate; backups ≤30 d). | Must |
 | NFR-013 | Crash-free sessions ≥99.5%. [R target] | Should |
 | NFR-014 | Compliance: privacy policy, store data-safety/privacy labels, GDPR-style rights; minors' handling per open question Q2. Legal text requires owner/lawyer approval. | Must |
-| NFR-015 | Monthly cost ceiling to be set by owner; cost alerts configured. | Should |
+| NFR-015 | **Monthly cost = $0.** No billing account linked to Firebase/Google Cloud; only free tiers; app degrades gracefully when free quotas are hit; weekly usage check. [C] | Must |
+| NFR-016 | Free-tier limits respected: DB ≤ ~400 MB soft cap with pruning, throttled location uploads, backend keep-alive against auto-pause (to verify). | Must |
 
 ## 5. Use cases / acceptance criteria (key)
 - **UC-1 Join circle (FR-013):** Given a valid code, when entering it, then user appears in member list and owner is notified; given an expired/revoked code, then a non-revealing error is shown and no membership is created.
@@ -153,10 +166,10 @@ Every data screen defines loading, empty, error, offline, timeout, permission-de
 Inputs: profile, circle data, locations (lat, lon, accuracy, timestamp, battery-optional **not** collected), places. Outputs: map views, notifications, timelines. Retention: live location = latest only; history per FR-067; notifications 30 d. Deletion per FR-006/066/NFR-012.
 
 ## 9. External integrations
-Firebase Auth/Firestore/FCM/Functions/Storage/App Check, Google Maps SDK + Places/Geocoding. [C by source doc]
+Firebase Auth (login only) and FCM (push), both on the free Spark plan; free-tier Supabase (Postgres, Realtime, Edge Functions, Storage); OSM-based map tiles + free geocoder. Replaces the source document's Firestore/Cloud Functions/Google Maps, which need a paid plan.
 
 ## 10. Constraints & dependencies
-OS background-location policies; Apple/Google store review (background location justification); usage-based costs; Firebase region choice.
+$0 budget; OS background-location policies; web cannot track in background; Apple Developer (paid) account needed to distribute iOS apps and Google Play has a developer fee (outside budget → see Q1); store review of background location; free-tier quotas and auto-pause.
 
 ## 11. Priorities summary
 Must: auth, circles, join codes, map + consent/pause, places + alerts, history + controls, privacy rules. Should: approval flow, route display, email verification. Could: data export, timed pause.
@@ -164,19 +177,27 @@ Must: auth, circles, join codes, map + consent/pause, places + alerts, history +
 ## 12. Assumptions
 Listed inline with [A]. Notable: single Owner role (source uses both "creator" and "owner" → treated as same); places belong to one circle; English only; Android 8+/iOS 15+.
 
-## 13. Open questions (need owner decision)
+## 13. Decisions and open questions
+**Decided by owner (2026-10-12)**
+| # | Topic | Decision |
+|---|---|---|
+| Q1a | Platforms | Flutter for web, Android, iOS |
+| Q2a | Minors | Allowed |
+| Q4 | Budget | $0; Firebase only for login; free tiers for other online data |
+| Q5/Q6 | History | Opt-in per person; 30-day default retention |
+| Q10 | Place detection | Analyst's choice → device-side detection + server dedup (ADR-0002) |
+
+**Still open**
 | # | Question | Recommended default |
 |---|---|---|
-| Q1 | Launch both Android and iOS in MVP? iOS needs a paid Apple Developer account (~$99/yr) and a Mac for builds. | Both; develop Android first |
-| Q2 | Can minors (under 13/16/18) use Circlo? Affects legal compliance and store rules (COPPA/GDPR-K). | 13+/16+ own accounts; under-age use is not supported in MVP; get legal advice |
-| Q3 | Which countries/markets at launch? | Decide before privacy policy |
-| Q4 | Monthly budget ceiling and who pays for Maps/Firebase? | Blaze plan with budget alerts |
-| Q5 | Should history be opt-in (off by default)? | Yes, opt-in |
-| Q6 | Default history retention? | 30 days |
-| Q7 | Is "approval required" default on or off? | Off, owner can enable |
-| Q8 | Can members see each other's history, or only owner/guardian? | Each person decides (FR-065) |
-| Q9 | Deadline / target launch date? | — |
-| Q10 | Server-side vs on-device place detection (ADR-0002). | Server-side |
+| Q1b | iOS distribution needs a paid Apple Developer account (~$99/yr) and Google Play has a one-time fee; both conflict with $0. Distribute Android via APK/GitHub Releases and web for free, add iOS/Play when budget exists? | Yes; keep code iOS-ready |
+| Q2b | Minimum age: 13? "Minors allowed" cannot cover under-13 without verifiable parental consent (not feasible at $0) | 13+ (16 where required); legal review before launch |
+| Q3 | Launch countries/markets (privacy law depends on it) | Decide before privacy policy |
+| Q7 | Join "approval required" default | Off, owner can enable |
+| Q8 | History visibility | Each person decides (FR-065) |
+| Q9 | Deadline / target launch date | — |
+| Q11 | If Supabase can't accept Firebase login cleanly, use Supabase Auth instead (drops Firebase login)? | Yes, only as fallback |
+| Q12 | Should owners be notified when a minor pauses sharing (FR-104)? | Yes |
 
 ## 14. MVP completion criteria
 All Must requirements pass acceptance tests ([docs/test-plan.md](docs/test-plan.md)); security-rule tests pass; field test of alerts on ≥2 Android and ≥2 iOS devices; store privacy declarations ready; owner signs off on documented exceptions.

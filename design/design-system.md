@@ -33,4 +33,4 @@ App bar with circle switcher; bottom navigation (Map, Circles, Places, History, 
 Semantic labels for markers and chips; map has an equivalent **list view** of members; focus order logical; contrast ≥4.5:1; reduce-motion respected; error text programmatically associated with fields.
 
 ## Responsive behavior
-Phones primary (portrait). Tablets: two-pane (list + map). Landscape supported.
+Phones primary (portrait). Tablets and **web desktop**: two-pane (list/side panel + map), keyboard navigation and visible focus. Landscape supported. Map shows required tile-provider attribution.

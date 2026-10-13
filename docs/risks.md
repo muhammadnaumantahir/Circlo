@@ -1,15 +1,19 @@
-# Risk Register (DRAFT)
+# Risk Register (DRAFT v0.2)
 
 | ID | Risk | Impact | Mitigation | Decision needed |
 |---|---|---|---|---|
-| R-01 | Background location killed by OS/OEM battery managers | High: core feature unreliable | Early spike (ADR-0003), foreground service, user guidance, device matrix | Plugin choice/licence |
-| R-02 | iOS/Google Play rejection for background location | High | Clear in-app disclosure, justification text, privacy labels | — |
-| R-03 | Privacy misuse (stalking/coercion) | High | Transparency features, notifications on sharing, easy exit, abuse reporting | Block/report feature scope |
-| R-04 | Cloud cost growth (Maps, Firestore writes, Functions) | Medium–High | Adaptive sampling, cost model, budget alerts, quotas | Monthly budget (Q4) |
-| R-05 | Duplicate/missed place alerts (GPS jitter) | Medium | Hysteresis + debounce + idempotent dedup, simulated-track tests | — |
-| R-06 | Minors / legal compliance (COPPA/GDPR-K) | High | Legal advice, age gate | Q2, Q3 |
-| R-07 | Security-rule gaps expose locations | High | Default deny, emulator rule tests in CI | — |
-| R-08 | Battery drain bad reviews | Medium | Targets NFR-004, tuning | — |
-| R-09 | Apple Developer account/Mac required for iOS | Medium | Plan CI builds (Codemagic/GitHub macOS) | Q1 |
-| R-10 | Versions/quotas/policies outdated in this plan | Medium | Verify with official docs before implementation | — |
-| R-11 | Firestore limits for history queries | Medium | Revisit ADR-0001 if needed | — |
+| R-01 | Background location killed by OS/OEM battery managers | High | Early spike (ADR-0003), foreground service, user guidance, device matrix | Plugin choice (free) |
+| R-02 | Store rejection for background location | High | Clear disclosure, justification text, privacy labels | — |
+| R-03 | Privacy misuse (stalking/coercion) | High | Transparency, notifications on sharing, easy exit, abuse reporting | Report/block scope |
+| R-04 | **Free-tier limits exceeded** (DB 500 MB, realtime messages, connections, edge invocations) | High: service degrades/stops | Throttling, pruning, retention caps, weekly usage check, graceful degradation; design for small groups | Accept small scale? |
+| R-05 | Duplicate/missed place alerts (GPS jitter, device asleep) | Medium | Hysteresis, debounce, unique-constraint dedup, simulated-track tests | — |
+| R-06 | **Minors/legal compliance** (COPPA/GDPR-K, store kids policies) | High | Minimum age, minimal data, legal review before launch | Q2b, Q3 |
+| R-07 | RLS gaps expose locations | High | Default deny, automated RLS tests in CI | — |
+| R-08 | Battery drain | Medium | NFR-004, adaptive sampling | — |
+| R-09 | iOS/Play distribution needs paid accounts | Medium | Android APK + web first; iOS later | Q1b |
+| R-10 | Plan details/versions/policies unverified or changing | Medium | Verify in official docs/console before building | — |
+| R-11 | Free backend auto-pauses after inactivity | Medium | Keep-alive cron (verify allowed), status page/banner | — |
+| R-12 | Free map tile/geocoder terms or limits forbid app use | Medium | Spike (ADR-0004); fallback to pin-drop only | — |
+| R-13 | Web cannot track in background → inconsistent expectations | Low–Medium | Clear web banner, docs | — |
+| R-14 | Firebase login ↔ Supabase integration problems | Medium | Spike; fallback Supabase Auth (Q11) | Q11 |
+| R-15 | Forged place events from modified clients | Low | Validate membership, rate limit, scope to own events | — |
