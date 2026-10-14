@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/auth/auth_repository.dart';
 import 'features/circles/circle_models.dart';
 import 'features/circles/circles_repository.dart';
+import 'features/history/history_models.dart';
+import 'features/history/history_repository.dart';
 import 'features/location/location_models.dart';
 import 'features/location/location_repository.dart';
 import 'features/places/geocoder.dart';
@@ -117,3 +119,35 @@ final notificationFeedProvider = Provider<AsyncValue<List<FeedItem>>>((ref) {
   items.sort((a, b) => b.at.compareTo(a.at));
   return AsyncValue.data(items);
 });
+
+// ---------- Travel history (Increment 4) ----------
+
+final historyRepositoryProvider = Provider<HistoryRepository>(
+    (ref) => HistoryRepository(FirebaseFirestore.instance));
+
+/// (circleId, memberUid, dayKey) -> that member's day, or null when there is nothing to show.
+final dayTrackProvider = FutureProvider.autoDispose.family<DayTrack?, (String, String, String)>((ref, key) async {
+  final uid = ref.watch(currentUidProvider);
+  final (circleId, memberUid, day) = key;
+  final repo = ref.watch(historyRepositoryProvider);
+  if (uid == null) return null;
+  return memberUid == uid ? repo.getMine(uid, day) : repo.getShared(circleId, memberUid, day);
+});
+
+/// Deletes history older than the user's retention period (best effort, client-side: there is no
+/// server to do it). Safe to call repeatedly.
+Future<void> runRetentionCleanup(WidgetRef ref) async {
+  final uid = ref.read(currentUidProvider);
+  final profile = ref.read(profileProvider).valueOrNull;
+  if (uid == null || profile == null) return;
+  final memberships = ref.read(myMembershipsProvider).valueOrNull ?? const <MyMembership>[];
+  final repo = ref.read(historyRepositoryProvider);
+  try {
+    final cutoff = dayKey(DateTime.now().subtract(Duration(days: profile.retentionDays)));
+    final old = await repo.myDaysBefore(uid, cutoff);
+    if (old.isEmpty) return;
+    await repo.deleteDays(uid: uid, days: old, circleIds: [for (final m in memberships) m.circleId]);
+  } catch (_) {
+    // offline or denied: try again next time
+  }
+}

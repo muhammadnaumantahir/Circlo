@@ -41,6 +41,12 @@ Owner selected Firebase-only: Authentication + Cloud Firestore + FCM; the prior 
 **Limits by owner decision:** alerts are in-app only; no remote push; no automatic cleanup of events.
 **Not built:** per-notification-type settings (FR-081 beyond per-place), read/unread state (FR-082), "you were added/sharing started" notices, directions link, history.
 
+## Increment 4 (2026-10-13) — status
+**Written:** history models + pure `TrackBuilder` (visits, route thinning, day rollover, restore), `HistoryRecorder` wired into the sharing controller, repository, History tab (member/date pickers, route + timeline), History settings (keep, retention, per-circle sharing, delete range/all), copy cleanup on sharing-off/leave/log-out, retention cleanup, rules + 6 new rule tests, track-builder tests.
+**Verified:** nothing executed (same sandbox limits). Real-device recording, battery, and quota are **Not run**.
+**Limits by owner decision:** retention/deletion are client-side best-effort; no server cleanup.
+**Not built:** reverse geocoding of unknown places, trip/driving detection, data export (FR-093), notification type settings (FR-081), read state (FR-082).
+
 ## Planning artifacts
 PROJECT_BRIEF.md, requirements.md, architecture.md, design/{design-system,screen-specification,design-prompts}.md, docs/{user-flows,data-model,security-privacy,traceability,risks,roadmap,review-findings}.md, docs/decisions/ADR-0001..0004.
 

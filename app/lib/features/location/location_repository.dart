@@ -25,6 +25,7 @@ class LocationRepository {
                   circleId: d.reference.parent.parent!.id,
                   sharesLocation: d.data()['sharesLocation'] == true,
                   paused: d.data()['paused'] == true,
+                  historyShared: d.data()['historyShared'] == true,
                 ),
           ]);
 
@@ -45,7 +46,11 @@ class LocationRepository {
     required bool enabled,
   }) {
     final batch = _db.batch();
-    batch.update(_member(circleId, uid), {'sharesLocation': enabled, 'paused': false});
+    batch.update(_member(circleId, uid), {
+      'sharesLocation': enabled,
+      'paused': false,
+      if (!enabled) 'historyShared': false, // history sharing never outlives location sharing
+    });
     if (!enabled) batch.delete(_location(circleId, uid));
     return batch.commit();
   }
@@ -89,7 +94,7 @@ class LocationRepository {
   Future<void> stopSharing({required String uid, required Iterable<String> circleIds}) {
     final batch = _db.batch();
     for (final id in circleIds) {
-      batch.update(_member(id, uid), {'sharesLocation': false, 'paused': false});
+      batch.update(_member(id, uid), {'sharesLocation': false, 'paused': false, 'historyShared': false});
       batch.delete(_location(id, uid));
     }
     return batch.commit();

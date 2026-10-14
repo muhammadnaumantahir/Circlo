@@ -30,6 +30,9 @@ class PlaceAlertEngine {
   final List<_PendingEvent> _pending = [];
   final Map<String, String> _names = {}; // circleId -> my display name in that circle
 
+  /// Saved places of the circles currently followed.
+  List<Place> get places => [for (final l in _placesByCircle.values) ...l];
+
   /// Follows exactly the given circles (those with sharing on and not paused).
   Future<void> setCircles(Set<String> circleIds) async {
     for (final id in _subs.keys.toList()) {

@@ -20,6 +20,9 @@ Consent-based, transparent, revocable, least data, default deny. Extra care beca
 - No hidden or forced tracking; no ads/analytics; minors' history sharing is off by default and only visible to circle members the minor shares with.
 - Store policies (Google Play Families/Data safety, Apple privacy labels) must be reviewed before store release.
 
+## Travel history (Increment 4)
+Off by default at two levels: the user must switch on "Keep my travel history", then separately share it per circle (consent dialog). Circle copies are readable only by current members while the owner keeps both history sharing and location sharing on for that circle; revoking hides data immediately and the app removes the copy best-effort. Only daily summaries (stops ≥10 min, thinned route) are stored — never raw GPS tracks or battery/device data. Retention (7/30/90 days) and deletion (range/all) are user-controlled; enforcement is client-side (see docs/risks.md).
+
 ## Threats considered
 Stalking/coercive control (transparency + notifications + easy exit); join-code brute force; Firestore Rules gaps/IDOR (tests); forged place events from modified clients (remote alerts must remain disabled until trusted validation exists); leaked keys; stale data after removal; quota exhaustion (availability).
 

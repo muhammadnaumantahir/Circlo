@@ -20,6 +20,9 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-048, FR-050 | Detector: arrival/departure confirmation, boundary jitter, one event per visit, restore after restart, inaccurate fixes | `app/test/place_detector_test.dart` | `flutter test` | Not run (CI) |
 | FR-040 | Geocoder parsing, short-query guard | `app/test/geocoder_test.dart` | `flutter test` | Not run (CI) |
 | FR-045/046/047/044 | End-to-end alert flow (two devices, real GPS movement), in-app feed filtering by member/arrive/leave | manual, 2 devices + emulator | manual | **Not run — required** |
+| FR-060–067, FR-090, FR-092 | History rules: master copy owner-only & requires keepHistory; circle copy requires sharing on/not paused/historyShared; member-only single reads; revoke and sharing-off hide it; batch-safe deletes; removed members lose access; separate opt-in | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
+| FR-061, FR-062, FR-064, FR-068 | Track builder: visits ≥10 min, named vs Unknown place, home→university→home timeline, route thinning/cap, day rollover, restore, clock/duration formatting | `app/test/track_builder_test.dart` | `flutter test` | Not run (CI) |
+| FR-065, FR-066, FR-067 | History UI: settings, per-circle sharing, retention, delete range/all, "not shared" states | manual (emulator + 2 users) | manual | **Not run — required** |
 | Static | `flutter analyze`, `flutter build web` | CI (not enabled yet: copy docs/ci/ci.yml to .github/workflows/) | CI job `flutter` | Not run |
 | Security | Secret scan | CI | gitleaks | Not run |
 

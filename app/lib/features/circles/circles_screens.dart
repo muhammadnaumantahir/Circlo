@@ -311,6 +311,7 @@ class CircleDetailScreen extends ConsumerWidget {
     );
     if (!ok) return;
     try {
+      await ref.read(historyRepositoryProvider).removeCopies(uid: uid, circleId: circle.id);
       await ref.read(circlesRepositoryProvider).leaveCircle(circleId: circle.id, uid: uid);
       if (context.mounted) context.go('/circles');
     } catch (_) {

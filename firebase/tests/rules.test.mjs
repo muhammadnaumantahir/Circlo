@@ -437,3 +437,92 @@ describe('saved places, subscriptions and events (Increment 3)', () => {
     await assertFails(getDocs(query(collection(db('carol'), 'circles/c1/placeEvents'), where('memberUid', '==', 'bob'))));
   });
 });
+
+describe('travel history (Increment 4)', () => {
+  const dayDoc = (uid, day = '20261013', over = {}) => ({
+    uid, day, tzOffsetMin: 300, visits: [{ name: 'Home', lat: 31.5, lng: 74.3, arrivedAt: 1, leftAt: null }],
+    route: [{ lat: 31.5, lng: 74.3, t: 1 }], lastSeen: 2, updatedAt: serverTimestamp(), ...over,
+  });
+  const seedUser = (uid, extra = {}) => env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `users/${uid}`), { displayName: uid, birthYear: year - 30, createdAt: Timestamp.now(), updatedAt: Timestamp.now(), ...extra });
+  });
+  const flags = (uid, over) => env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), `circles/c1/members/${uid}`), over);
+  });
+  const copy = (f, uid, day = '20261013') => doc(f, `circles/c1/history/${uid}_${day}`);
+
+  it('profile accepts keepHistory and retentionDays 7/30/90 only', async () => {
+    await assertSucceeds(setDoc(doc(db('alice'), 'users/alice'), profile({ keepHistory: true, retentionDays: 30 })));
+    await assertFails(setDoc(doc(db('bob'), 'users/bob'), profile({ retentionDays: 45 })));
+    await assertFails(setDoc(doc(db('bob'), 'users/bob'), profile({ keepHistory: 'yes' })));
+  });
+  it('private master copy: only the owner, only when keepHistory is on, valid shape', async () => {
+    await seedUser('bob');
+    const ref = (f) => doc(f, 'users/bob/history/20261013');
+    await assertFails(setDoc(ref(db('bob')), dayDoc('bob')));                      // keepHistory off
+    await seedUser('bob', { keepHistory: true });
+    await assertSucceeds(setDoc(ref(db('bob')), dayDoc('bob')));
+    await assertSucceeds(getDoc(ref(db('bob'))));
+    await assertFails(getDoc(ref(db('alice'))));
+    await assertFails(setDoc(ref(db('alice')), dayDoc('bob')));
+    await assertFails(setDoc(ref(db('bob')), dayDoc('bob', '20261013', { day: '2026-10-13' })));
+    await assertFails(setDoc(ref(db('bob')), dayDoc('bob', '20261014')));          // day != doc id
+    await assertFails(setDoc(ref(db('bob')), dayDoc('bob', '20261013', { route: Array.from({ length: 401 }, (_, i) => ({ lat: 1, lng: 1, t: i })) })));
+    await assertFails(setDoc(ref(db('bob')), dayDoc('bob', '20261013', { tzOffsetMin: 99999 })));
+    await assertFails(setDoc(ref(db('bob')), dayDoc('bob', '20261013', { extra: 1 })));
+    await assertSucceeds(getDocs(collection(db('bob'), 'users/bob/history')));
+    await assertFails(getDocs(collection(db('alice'), 'users/bob/history')));
+    await assertSucceeds(deleteDoc(ref(db('bob'))));
+  });
+  it('history sharing is a separate opt-in and cannot start enabled', async () => {
+    await seed();
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob', CODE_A, { historyShared: true })));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob', CODE_A, { historyShared: false })));
+    await assertSucceeds(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { historyShared: true }));
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { historyShared: 'yes' }));
+    await assertFails(updateDoc(doc(db('alice'), 'circles/c1/members/bob'), { historyShared: true }));
+  });
+  it('circle copy needs sharing on, not paused and historyShared on for that circle', async () => {
+    await seed({ bob: true });
+    await assertFails(setDoc(copy(db('bob'), 'bob'), dayDoc('bob')));
+    await flags('bob', { sharesLocation: true, paused: false, historyShared: false });
+    await assertFails(setDoc(copy(db('bob'), 'bob'), dayDoc('bob')));
+    await flags('bob', { historyShared: true, paused: true });
+    await assertFails(setDoc(copy(db('bob'), 'bob'), dayDoc('bob')));
+    await flags('bob', { paused: false });
+    await assertSucceeds(setDoc(copy(db('bob'), 'bob'), dayDoc('bob')));
+    await assertFails(setDoc(copy(db('alice'), 'bob'), dayDoc('bob')));            // someone else
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/history/bob_20261014'), dayDoc('bob', '20261013')));  // id mismatch
+    await assertFails(setDoc(doc(db('bob'), 'circles/c2/history/bob_20261013'), dayDoc('bob')));              // not in c2
+  });
+  it('members read a copy only while the owner keeps history and sharing on; outsiders never', async () => {
+    await seed({ bob: true });
+    await flags('bob', { sharesLocation: true, paused: false, historyShared: true });
+    await assertSucceeds(setDoc(copy(db('bob'), 'bob'), dayDoc('bob')));
+    await assertSucceeds(getDoc(copy(db('alice'), 'bob')));
+    await assertSucceeds(getDoc(copy(db('bob'), 'bob')));
+    await assertFails(getDoc(copy(db('carol'), 'bob')));                           // other circle's member
+    await assertFails(getDoc(copy(db('mallory'), 'bob')));
+    await assertFails(getDocs(collection(db('alice'), 'circles/c1/history')));     // no list
+    await flags('bob', { historyShared: false });                                  // revoke
+    await assertFails(getDoc(copy(db('alice'), 'bob')));
+    await assertSucceeds(getDoc(copy(db('bob'), 'bob')));                          // owner still reads own
+    await flags('bob', { historyShared: true, sharesLocation: false });            // sharing off also hides it
+    await assertFails(getDoc(copy(db('alice'), 'bob')));
+  });
+  it('copies can be deleted by their owner (even if absent) and by the circle owner; not by others', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(deleteDoc(copy(db('bob'), 'bob', '20200101')));           // nonexistent: batch-safe
+    await assertFails(deleteDoc(copy(db('carol'), 'bob')));
+    await assertFails(deleteDoc(copy(db('mallory'), 'bob')));
+    await assertSucceeds(deleteDoc(copy(db('alice'), 'bob')));                     // circle owner cleanup
+  });
+  it('removed members lose access to history copies', async () => {
+    await seed({ bob: true });
+    await flags('alice', { sharesLocation: true, paused: false, historyShared: true });
+    await assertSucceeds(setDoc(copy(db('alice'), 'alice'), dayDoc('alice')));
+    await assertSucceeds(getDoc(copy(db('bob'), 'alice')));
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
+    await assertFails(getDoc(copy(db('bob'), 'alice')));
+  });
+});

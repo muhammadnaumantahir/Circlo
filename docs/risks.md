@@ -21,6 +21,13 @@
 | R-17 | Firestore Rules cannot safely express intended cross-circle reads | High | Prototype rules in Emulator; use circle-scoped projections or revise data model if authorization cannot be proven | Security spike |
 
 
+## Increment 4 additions
+- **Retention is best-effort**: cleanup runs on the user's own device (when the History tab opens or retention changes). If a user stops opening the app, old days remain until then; copies in circles stay unreadable once history/location sharing is switched off, but data is not physically removed. Without a server or billing this cannot be guaranteed (owner-accepted scope; legal/privacy review needed before launch).
+- Removing a member or deleting a circle can leave orphaned history copies (the owner cannot list them). They are unreadable after membership ends.
+- History is recorded only while sharing runs and the app/service receives fixes; gaps are expected. A visit that spans midnight is split at the day boundary. Unnamed stops show "Unknown place" (no reverse geocoding, to respect free limits).
+- Each flush writes 1 master + N circle documents (≈ every 5 min while moving, plus on visit changes): watch the free write quota.
+- History reveals routines (home/work): shown only by opt-in, per person, per circle; minors default off. Needs privacy review.
+
 ## Increment 3 additions
 - Alerts are **in-app only** (owner-accepted scope): a viewer sees an arrival/departure only while their app is open and syncing; nothing reaches a closed app.
 - Events are client-created and untrusted; rules bind them to the actor, sharing state, place and names, but cannot prove the position was real. Impact is limited to that member's own events.

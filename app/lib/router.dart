@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'core/widgets.dart';
 import 'features/auth/auth_screens.dart';
 import 'features/circles/circles_screens.dart';
+import 'features/history/history_screens.dart';
 import 'features/location/map_screen.dart';
 import 'features/location/sharing_screen.dart';
 import 'features/places/notifications_screen.dart';
@@ -62,11 +63,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
           GoRoute(path: '/places', builder: (_, __) => const PlacesScreen()),
+          GoRoute(path: '/history', builder: (_, __) => const HistoryScreen()),
           GoRoute(path: '/circles', builder: (_, __) => const CirclesScreen()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
         ],
       ),
       GoRoute(path: '/sharing', builder: (_, __) => const SharingScreen()),
+      GoRoute(path: '/history/settings', builder: (_, __) => const HistorySettingsScreen()),
       GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
       GoRoute(
         path: '/places/new',
@@ -111,7 +114,7 @@ class SplashScreen extends ConsumerWidget {
   }
 }
 
-/// Bottom navigation (Map, Places, Circles, Profile). The History tab arrives with that feature.
+/// Bottom navigation (Map, Places, History, Circles, Profile).
 /// Also announces new matching arrival/departure alerts with a snackbar while the app is open.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key, required this.location, required this.child});
@@ -138,7 +141,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       }
     });
 
-    const paths = ['/map', '/places', '/circles', '/profile'];
+    const paths = ['/map', '/places', '/history', '/circles', '/profile'];
     var index = paths.indexWhere((p) => widget.location.startsWith(p));
     if (index < 0) index = 0;
     return Scaffold(
@@ -149,6 +152,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Map'),
           NavigationDestination(icon: Icon(Icons.place_outlined), selectedIcon: Icon(Icons.place), label: 'Places'),
+          NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history), label: 'History'),
           NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Circles'),
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],

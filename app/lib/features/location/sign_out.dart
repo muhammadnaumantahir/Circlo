@@ -11,6 +11,9 @@ Future<void> signOutStoppingSharing(WidgetRef ref) async {
     final ids = [for (final m in memberships) if (m.sharesLocation) m.circleId];
     if (ids.isNotEmpty) {
       try {
+        for (final id in ids) {
+          await ref.read(historyRepositoryProvider).removeCopies(uid: uid, circleId: id);
+        }
         await ref.read(locationRepositoryProvider).stopSharing(uid: uid, circleIds: ids);
       } catch (_) {
         // Offline: we still sign out; the location is shown as unavailable once it goes stale.

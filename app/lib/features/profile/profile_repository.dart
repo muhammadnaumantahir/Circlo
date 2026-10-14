@@ -28,6 +28,17 @@ class ProfileRepository {
     });
   }
 
+  Future<void> setHistoryPrefs({
+    required String uid,
+    required bool keepHistory,
+    required int retentionDays,
+  }) =>
+      _doc(uid).update({
+        'keepHistory': keepHistory,
+        'retentionDays': retentionDays,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
   Future<void> update({
     required String uid,
     required String displayName,

@@ -172,7 +172,10 @@ class _CircleSharingTile extends ConsumerWidget {
     if (uid == null) return;
     final repo = ref.read(locationRepositoryProvider);
     if (!enable) {
-      await _run(context, () => repo.setCircleSharing(uid: uid, circleId: circle.id, enabled: false));
+      await _run(context, () async {
+        await ref.read(historyRepositoryProvider).removeCopies(uid: uid, circleId: circle.id);
+        await repo.setCircleSharing(uid: uid, circleId: circle.id, enabled: false);
+      });
       return;
     }
     final ok = await confirmAction(

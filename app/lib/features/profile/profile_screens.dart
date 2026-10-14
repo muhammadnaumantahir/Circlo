@@ -204,6 +204,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
+              onPressed: () => context.push('/history/settings'),
+              icon: const Icon(Icons.history),
+              label: const Text('Travel history settings'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
               onPressed: () => context.push('/sharing'),
               icon: const Icon(Icons.share_location),
               label: const Text('Location sharing'),

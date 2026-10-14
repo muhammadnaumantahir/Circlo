@@ -79,6 +79,7 @@ class CirclesRepository {
         'joinedAt': FieldValue.serverTimestamp(),
         'sharesLocation': false, // sharing is always opt-in
         'paused': false,
+        'historyShared': false,
       });
       batch.set(_codes.doc(code), {
         'circleId': circleRef.id,
@@ -133,6 +134,7 @@ class CirclesRepository {
         'joinCode': code,
         'sharesLocation': false, // sharing is always opt-in
         'paused': false,
+        'historyShared': false,
       });
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {

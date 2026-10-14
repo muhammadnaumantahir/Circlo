@@ -6,8 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../providers.dart';
+import '../history/history_recorder.dart';
+import '../history/track_builder.dart';
 import '../places/place_alert_engine.dart';
 import '../places/place_detector.dart';
+import '../places/place_models.dart';
 import 'location_access.dart';
 import 'location_models.dart';
 import 'sharing_status.dart';
@@ -52,6 +55,8 @@ class SharingController extends Notifier<SharingState> {
   Position? _last;
   final UploadThrottle _throttle = UploadThrottle();
   PlaceAlertEngine? _engine;
+  HistoryRecorder? _history;
+  List<MyMembership> _memberships = const [];
   static const Duration _heartbeatEvery = Duration(minutes: 5);
 
   @override
@@ -61,11 +66,26 @@ class SharingController extends Notifier<SharingState> {
       (_, next) => _sync(next.valueOrNull ?? const <MyMembership>[]),
       fireImmediately: true,
     );
+    // Re-evaluate when the user switches "Keep my travel history" on/off.
+    ref.listen(profileProvider, (_, __) => _configureHistory());
     ref.onDispose(_stop);
     return const SharingState();
   }
 
+  void _configureHistory() {
+    final profile = ref.read(profileProvider).valueOrNull;
+    _history?.configure(
+      keepHistory: profile?.keepHistory ?? false,
+      sharedCircleIds: {for (final m in _memberships) if (m.isActive && m.historyShared) m.circleId},
+      places: [
+        for (final p in _engine?.places ?? const <Place>[])
+          NamedPlace(id: p.id, name: p.name, lat: p.lat, lng: p.lng, radiusM: p.radiusM),
+      ],
+    );
+  }
+
   Future<void> _sync(List<MyMembership> memberships) async {
+    _memberships = memberships;
     final active = [for (final m in memberships) if (m.isActive) m.circleId];
     if (active.isEmpty) {
       await _stop();
@@ -84,6 +104,7 @@ class SharingController extends Notifier<SharingState> {
     state = state.copyWith(activeCircleIds: active, clearError: true);
     await _start();
     await _engine?.setCircles(active.toSet());
+    _configureHistory();
   }
 
   LocationSettings _settings() {
@@ -125,6 +146,7 @@ class SharingController extends Notifier<SharingState> {
     final uid = ref.read(currentUidProvider);
     if (uid != null) {
       _engine = PlaceAlertEngine(repository: ref.read(placesRepositoryProvider), uid: uid);
+      _history = HistoryRecorder(repository: ref.read(historyRepositoryProvider), uid: uid);
     }
     _sub = Geolocator.getPositionStream(locationSettings: _settings()).listen(
       (p) {
@@ -156,6 +178,9 @@ class SharingController extends Notifier<SharingState> {
   }
 
   void _feedEngine(Position p, {bool now = false}) {
+    final time = now ? DateTime.now() : p.timestamp;
+    _configureHistory(); // places may have changed since the last fix
+    _history?.onFix(lat: p.latitude, lng: p.longitude, accuracy: p.accuracy, time: time);
     _engine?.onFix(Fix(
       lat: p.latitude,
       lng: p.longitude,
@@ -165,6 +190,8 @@ class SharingController extends Notifier<SharingState> {
   }
 
   Future<void> _stop() async {
+    await _history?.dispose();
+    _history = null;
     await _engine?.dispose();
     _engine = null;
     await _sub?.cancel();

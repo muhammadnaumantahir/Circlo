@@ -32,11 +32,13 @@ class MyMembership {
     required this.circleId,
     required this.sharesLocation,
     required this.paused,
+    this.historyShared = false,
   });
 
   final String circleId;
   final bool sharesLocation;
   final bool paused;
+  final bool historyShared;
 
   /// Location is actually being published to this circle.
   bool get isActive => sharesLocation && !paused;

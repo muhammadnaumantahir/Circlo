@@ -26,6 +26,7 @@ class Member {
     required this.role,
     this.sharesLocation = false,
     this.paused = false,
+    this.historyShared = false,
   });
 
   final String uid;
@@ -33,6 +34,7 @@ class Member {
   final String role;
   final bool sharesLocation;
   final bool paused;
+  final bool historyShared;
 
   bool get isOwner => role == 'owner';
 
@@ -42,6 +44,7 @@ class Member {
         role: (data['role'] as String?) ?? 'member',
         sharesLocation: data['sharesLocation'] == true,
         paused: data['paused'] == true,
+        historyShared: data['historyShared'] == true,
       );
 }
 

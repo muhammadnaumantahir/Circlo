@@ -10,7 +10,8 @@
 iOS/Play distribution (needs paid accounts), driving/trip detection, low-battery alerts, SOS, check-in, speed alerts, data export, report/block tooling, localization, paid scale-up plan.
 
 - Increment 3 done in code: saved places, alert preferences, in-app arrival/departure feed.
-- Next: Increment 4 travel history (device-side visit summaries, opt-in, retention best-effort), then hardening/release prep.
+- Increment 4 done in code: opt-in travel history with daily compact documents, per-circle sharing, client-side retention/deletion.
+- Next: hardening/release prep (first CI run + fixes, real-device test matrix, accessibility pass, privacy/legal review, replace free map/geocoder providers, store prep).
 
 ## Deferred until a trusted no-cost server exists
 Remote cross-user push (arrival/departure and membership alerts), scheduled retention cleanup, complete recursive account/circle deletion guarantee, server-validated place events.
