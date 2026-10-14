@@ -219,6 +219,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onPressed: () => signOutStoppingSharing(ref),
               child: const Text('Log out'),
             ),
+            const SizedBox(height: 24),
+            TextButton.icon(
+              onPressed: () => context.push('/account/delete'),
+              icon: Icon(Icons.delete_forever, color: Theme.of(context).colorScheme.error),
+              label: Text('Delete account', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ),
           ]);
         },
       ),

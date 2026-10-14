@@ -21,6 +21,13 @@
 | R-17 | Firestore Rules cannot safely express intended cross-circle reads | High | Prototype rules in Emulator; use circle-scoped projections or revise data model if authorization cannot be proven | Security spike |
 
 
+## Increment 5 additions
+- **Account/circle deletion is best-effort and client-side.** It cannot list other people's data about you (for example orphaned history copies in a circle you were removed from) and an interrupted run leaves partial deletion; re-running completes it. Needs privacy/legal review (GDPR erasure) before launch.
+- Deleting a circle costs many writes (members × places subscription ids, plus 93 history ids per member who shared history).
+- Approval flow needs the requester's app to be opened after approval to finish joining (no server to create the membership).
+- A requester cannot read the circle, so the app tries an open join first and falls back to a request; error messages stay generic on purpose.
+- Email verification: users on the Auth emulator must fetch the verification link from the emulator; the ID token must be force-refreshed after verifying (handled in the app).
+
 ## Increment 4 additions
 - **Retention is best-effort**: cleanup runs on the user's own device (when the History tab opens or retention changes). If a user stops opening the app, old days remain until then; copies in circles stay unreadable once history/location sharing is switched off, but data is not physically removed. Without a server or billing this cannot be guaranteed (owner-accepted scope; legal/privacy review needed before launch).
 - Removing a member or deleting a circle can leave orphaned history copies (the owner cannot list them). They are unreadable after membership ends.

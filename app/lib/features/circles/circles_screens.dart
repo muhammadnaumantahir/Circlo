@@ -32,7 +32,10 @@ class CirclesScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: const Text('Create circle'),
       ),
-      body: circles.when(
+      body: Column(
+        children: [
+          const _MyPendingRequests(),
+          Expanded(child: circles.when(
         loading: () => const LoadingView(),
         error: (e, _) => MessageView(
           icon: Icons.cloud_off,
@@ -67,6 +70,44 @@ class CirclesScreen extends ConsumerWidget {
             },
           );
         },
+          ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Join requests the user sent to approval-only circles that have not been answered yet.
+class _MyPendingRequests extends ConsumerWidget {
+  const _MyPendingRequests();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uid = ref.watch(currentUidProvider);
+    final requests = ref.watch(myJoinRequestsProvider).valueOrNull ?? const <JoinRequest>[];
+    final pending = [for (final r in requests) if (!r.approved) r];
+    if (pending.isEmpty || uid == null) return const SizedBox.shrink();
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Column(
+        children: [
+          for (final r in pending)
+            ListTile(
+              leading: const Icon(Icons.hourglass_top),
+              title: const Text('Waiting for approval'),
+              subtitle: Text('Request with code ${formatJoinCode(r.joinCode)}'),
+              trailing: TextButton(
+                onPressed: () => ref
+                    .read(circlesRepositoryProvider)
+                    .cancelRequest(circleId: r.circleId, uid: uid)
+                    .catchError((_) {
+                  if (context.mounted) showSnack(context, 'Could not cancel. Try again.');
+                }),
+                child: const Text('Cancel'),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -176,12 +217,18 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
       _error = null;
     });
     try {
-      final id = await ref.read(circlesRepositoryProvider).joinCircle(
+      final outcome = await ref.read(circlesRepositoryProvider).joinCircle(
             uid: uid,
             displayName: profile.displayName,
             rawCode: _code.text,
           );
-      if (mounted) context.pushReplacement('/circles/$id');
+      if (!mounted) return;
+      if (outcome.requested) {
+        showSnack(context, 'Request sent. The owner has to approve it before you can join.');
+        context.pop();
+      } else {
+        context.pushReplacement('/circles/${outcome.circleId}');
+      }
     } on JoinFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } on FirebaseException {
@@ -256,19 +303,35 @@ class CircleDetailScreen extends ConsumerWidget {
             );
           }
           final isOwner = circle.ownerUid == uid;
+          final members = membersAsync.valueOrNull ?? const <Member>[];
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               _JoinCodeCard(circle: circle, isOwner: isOwner, uid: uid),
+              if (isOwner) ...[
+                SwitchListTile(
+                  title: const Text('Require approval to join'),
+                  subtitle: const Text('New people need your OK after entering the code.'),
+                  value: circle.requiresApproval,
+                  onChanged: (v) async {
+                    try {
+                      await ref.read(circlesRepositoryProvider).setRequiresApproval(circleId: circle.id, value: v);
+                    } catch (_) {
+                      if (context.mounted) showSnack(context, 'Could not change this setting. Try again.');
+                    }
+                  },
+                ),
+                _PendingRequests(circleId: circle.id),
+              ],
               const SizedBox(height: 16),
               Text('Members', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               membersAsync.when(
                 loading: () => const Padding(padding: EdgeInsets.all(24), child: LoadingView()),
                 error: (e, _) => const Text('Could not load members.'),
-                data: (members) => Column(
+                data: (list) => Column(
                   children: [
-                    for (final m in members)
+                    for (final m in list)
                       ListTile(
                         leading: CircleAvatar(child: Text(m.displayName.isEmpty ? '?' : m.displayName[0].toUpperCase())),
                         title: Text(m.uid == uid ? '${m.displayName} (you)' : m.displayName),
@@ -291,10 +354,24 @@ class CircleDetailScreen extends ConsumerWidget {
                   icon: const Icon(Icons.logout),
                   label: const Text('Leave circle'),
                 )
-              else
-                const Text(
-                  'As the owner you cannot leave yet. Transferring ownership and deleting a circle are coming in a later update.',
+              else if (uid != null) ...[
+                OutlinedButton.icon(
+                  onPressed: members.length > 1 ? () => _transfer(context, ref, circle, uid, members) : null,
+                  icon: const Icon(Icons.swap_horiz),
+                  label: const Text('Transfer ownership'),
                 ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _deleteCircle(context, ref, circle, uid),
+                  icon: const Icon(Icons.delete_forever),
+                  label: const Text('Delete circle'),
+                ),
+                if (members.length <= 1)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text('You are the only member. Delete the circle to leave it, or invite someone to transfer it to.'),
+                  ),
+              ],
             ],
           );
         },
@@ -333,6 +410,96 @@ class CircleDetailScreen extends ConsumerWidget {
       if (context.mounted) showSnack(context, 'Could not remove the member. Try again.');
     }
   }
+
+  Future<void> _transfer(BuildContext context, WidgetRef ref, Circle circle, String uid, List<Member> members) async {
+    final candidates = [for (final m in members) if (m.uid != uid) m];
+    final chosen = await showDialog<Member>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Make who the new owner?'),
+        children: [
+          for (final m in candidates)
+            SimpleDialogOption(onPressed: () => Navigator.pop(ctx, m), child: Text(m.displayName)),
+        ],
+      ),
+    );
+    if (chosen == null || !context.mounted) return;
+    final ok = await confirmAction(
+      context,
+      title: 'Transfer ownership to ${chosen.displayName}?',
+      message: 'They will manage ${circle.name}, its join code and its members. You become a regular member.',
+      confirmLabel: 'Transfer',
+    );
+    if (!ok) return;
+    try {
+      await ref.read(circlesRepositoryProvider).transferOwnership(circleId: circle.id, ownerUid: uid, newOwnerUid: chosen.uid);
+      if (context.mounted) showSnack(context, 'Ownership transferred.');
+    } catch (_) {
+      if (context.mounted) showSnack(context, 'Could not transfer ownership. Try again.');
+    }
+  }
+
+  Future<void> _deleteCircle(BuildContext context, WidgetRef ref, Circle circle, String uid) async {
+    final ok = await confirmAction(
+      context,
+      title: 'Delete ${circle.name}?',
+      message: 'This removes the circle, its members, places, alerts and shared locations for everyone. It cannot be undone. '
+          'If you lose your connection part-way, run it again.',
+      confirmLabel: 'Delete circle',
+    );
+    if (!ok) return;
+    try {
+      await ref.read(circlesRepositoryProvider).deleteCircle(circleId: circle.id, ownerUid: uid);
+      if (context.mounted) context.go('/circles');
+    } catch (_) {
+      if (context.mounted) showSnack(context, 'Could not delete the circle. Check your connection and try again.');
+    }
+  }
+}
+
+class _PendingRequests extends ConsumerWidget {
+  const _PendingRequests({required this.circleId});
+  final String circleId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final requests = ref.watch(circleRequestsProvider(circleId)).valueOrNull ?? const <JoinRequest>[];
+    final pending = [for (final r in requests) if (!r.approved) r];
+    if (pending.isEmpty) return const SizedBox.shrink();
+    final repo = ref.read(circlesRepositoryProvider);
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Text('Join requests', style: Theme.of(context).textTheme.titleMedium),
+          ),
+          for (final r in pending)
+            ListTile(
+              title: Text(r.displayName),
+              subtitle: const Text('Wants to join this circle'),
+              trailing: Wrap(spacing: 4, children: [
+                IconButton(
+                  tooltip: 'Reject ${r.displayName}',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => repo.rejectRequest(circleId: circleId, memberUid: r.uid).catchError((_) {
+                    if (context.mounted) showSnack(context, 'Could not reject. Try again.');
+                  }),
+                ),
+                IconButton(
+                  tooltip: 'Approve ${r.displayName}',
+                  icon: const Icon(Icons.check),
+                  onPressed: () => repo.approveRequest(circleId: circleId, memberUid: r.uid).catchError((_) {
+                    if (context.mounted) showSnack(context, 'Could not approve. Try again.');
+                  }),
+                ),
+              ]),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _JoinCodeCard extends ConsumerWidget {
@@ -343,6 +510,8 @@ class _JoinCodeCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final expiry = ref.watch(codeExpiryProvider(circle.joinCode)).valueOrNull;
+    final expired = expiry != null && expiry.isBefore(DateTime.now());
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -355,6 +524,9 @@ class _JoinCodeCard extends ConsumerWidget {
               formatJoinCode(circle.joinCode),
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(letterSpacing: 2),
             ),
+            const SizedBox(height: 4),
+            if (expiry != null)
+              Text(expired ? 'This code has expired. Create a new one.' : 'Expires ${expiry.toLocal().toString().substring(0, 16)}'),
             const SizedBox(height: 8),
             const Text('Only share this code with people you trust. Anyone with it can join this circle.'),
             const SizedBox(height: 8),
@@ -370,19 +542,29 @@ class _JoinCodeCard extends ConsumerWidget {
               if (isOwner && uid != null)
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final ok = await confirmAction(
-                      context,
-                      title: 'Create a new code?',
-                      message: 'The current code stops working immediately. People already in the circle are not affected.',
-                      confirmLabel: 'New code',
+                    final choice = await showDialog<_ExpiryChoice>(
+                      context: context,
+                      builder: (ctx) => SimpleDialog(
+                        title: const Text('New join code'),
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
+                            child: Text('The current code stops working immediately. People already in the circle are not affected.'),
+                          ),
+                          for (final c in _ExpiryChoice.values)
+                            SimpleDialogOption(onPressed: () => Navigator.pop(ctx, c), child: Text(c.label)),
+                        ],
+                      ),
                     );
-                    if (!ok) return;
+                    if (choice == null) return;
                     try {
                       await ref.read(circlesRepositoryProvider).rotateJoinCode(
                             circleId: circle.id,
                             oldCode: circle.joinCode,
                             uid: uid!,
+                            expiry: choice.duration,
                           );
+                      ref.invalidate(codeExpiryProvider);
                       if (context.mounted) showSnack(context, 'New code created');
                     } catch (_) {
                       if (context.mounted) showSnack(context, 'Could not create a new code. Try again.');
@@ -397,4 +579,14 @@ class _JoinCodeCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+enum _ExpiryChoice {
+  never('No expiry', null),
+  day('Expires in 24 hours', Duration(hours: 24)),
+  week('Expires in 7 days', Duration(days: 7));
+
+  const _ExpiryChoice(this.label, this.duration);
+  final String label;
+  final Duration? duration;
 }

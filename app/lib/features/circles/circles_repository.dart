@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/join_code.dart';
+import '../history/history_models.dart';
 import 'circle_models.dart';
 
 /// All writes here are checked by firebase/firestore.rules; the app never trusts itself.
@@ -99,8 +100,8 @@ class CirclesRepository {
     throw last!;
   }
 
-  /// Joins a circle by code. Returns the circle id.
-  Future<String> joinCircle({
+  /// Joins a circle by code, or sends a join request when the circle requires approval.
+  Future<JoinOutcome> joinCircle({
     required String uid,
     required String displayName,
     required String rawCode,
@@ -121,10 +122,21 @@ class CirclesRepository {
     final circleId = data['circleId'] as String?;
     if (circleId == null) throw const JoinFailure(JoinFailureKind.invalid);
 
-    final memberRef = _circles.doc(circleId).collection('members').doc(uid);
+    final circle = _circles.doc(circleId);
+    final memberRef = circle.collection('members').doc(uid);
     if ((await memberRef.get()).exists) {
       throw const JoinFailure(JoinFailureKind.alreadyMember);
     }
+    final requestRef = circle.collection('joinRequests').doc(uid);
+    try {
+      if ((await requestRef.get()).exists) {
+        return JoinOutcome(circleId: circleId, requested: true); // already asked
+      }
+    } on FirebaseException {
+      // fall through: try to join normally
+    }
+
+    // 1) Open circle: join directly with the code.
     try {
       await memberRef.set({
         'uid': uid,
@@ -136,13 +148,81 @@ class CirclesRepository {
         'paused': false,
         'historyShared': false,
       });
+      return JoinOutcome(circleId: circleId, requested: false);
+    } on FirebaseException catch (e) {
+      if (e.code != 'permission-denied') rethrow;
+    }
+    // 2) Approval circle (we cannot read the circle to know): ask the owner instead.
+    try {
+      await requestRef.set({
+        'uid': uid,
+        'displayName': displayName,
+        'joinCode': code,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      return JoinOutcome(circleId: circleId, requested: true);
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
         throw const JoinFailure(JoinFailureKind.invalid);
       }
       rethrow;
     }
-    return circleId;
+  }
+
+  /// The user's own join requests across circles.
+  Stream<List<JoinRequest>> watchMyRequests(String uid) => _db
+      .collectionGroup('joinRequests')
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map((s) => [
+            for (final d in s.docs)
+              if (d.reference.parent.parent != null)
+                JoinRequest.fromMap(d.reference.parent.parent!.id, d.data()),
+          ]);
+
+  /// Once the owner approved, create the membership and remove the request (atomic).
+  Future<void> completeApprovedJoin({required String uid, required String displayName, required JoinRequest request}) {
+    final circle = _circles.doc(request.circleId);
+    final batch = _db.batch();
+    batch.set(circle.collection('members').doc(uid), {
+      'uid': uid,
+      'role': 'member',
+      'displayName': displayName,
+      'joinedAt': FieldValue.serverTimestamp(),
+      'joinCode': request.joinCode,
+      'sharesLocation': false,
+      'paused': false,
+      'historyShared': false,
+    });
+    batch.delete(circle.collection('joinRequests').doc(uid));
+    return batch.commit();
+  }
+
+  Future<void> cancelRequest({required String circleId, required String uid}) =>
+      _circles.doc(circleId).collection('joinRequests').doc(uid).delete();
+
+  // ---- owner: approval ----
+  Stream<List<JoinRequest>> watchRequests(String circleId) => _circles
+      .doc(circleId)
+      .collection('joinRequests')
+      .snapshots()
+      .map((s) => [for (final d in s.docs) JoinRequest.fromMap(circleId, d.data())]);
+
+  Future<void> approveRequest({required String circleId, required String memberUid}) =>
+      _circles.doc(circleId).collection('joinRequests').doc(memberUid).update({'status': 'approved'});
+
+  Future<void> rejectRequest({required String circleId, required String memberUid}) =>
+      _circles.doc(circleId).collection('joinRequests').doc(memberUid).delete();
+
+  Future<void> setRequiresApproval({required String circleId, required bool value}) =>
+      _circles.doc(circleId).update({'requiresApproval': value});
+
+  /// Expiry of a join code (null = never), read from the code document.
+  Future<DateTime?> codeExpiry(String code) async {
+    final s = await _codes.doc(code).get();
+    final e = s.data()?['expiresAt'];
+    return e is Timestamp ? e.toDate() : null;
   }
 
   /// Leaving also deletes the member's location projection in the same atomic batch.
@@ -168,6 +248,7 @@ class CirclesRepository {
     required String circleId,
     required String oldCode,
     required String uid,
+    Duration? expiry,
   }) {
     final newCode = generateJoinCode();
     final batch = _db.batch();
@@ -177,6 +258,7 @@ class CirclesRepository {
       'createdBy': uid,
       'revoked': false,
       'createdAt': FieldValue.serverTimestamp(),
+      if (expiry != null) 'expiresAt': Timestamp.fromDate(DateTime.now().add(expiry)),
     });
     batch.update(_circles.doc(circleId), {'joinCode': newCode});
     return batch.commit();
@@ -194,5 +276,69 @@ class CirclesRepository {
       batch.update(d.reference, {'displayName': displayName});
     }
     await batch.commit();
+  }
+
+  /// Atomically makes [newOwnerUid] the owner and demotes [ownerUid] to member.
+  Future<void> transferOwnership({
+    required String circleId,
+    required String ownerUid,
+    required String newOwnerUid,
+  }) {
+    final circle = _circles.doc(circleId);
+    final batch = _db.batch();
+    batch.update(circle, {'ownerUid': newOwnerUid});
+    batch.update(circle.collection('members').doc(newOwnerUid), {'role': 'owner'});
+    batch.update(circle.collection('members').doc(ownerUid), {'role': 'member'});
+    return batch.commit();
+  }
+
+  /// Owner only. With no server we delete everything below the circle from the app, then the
+  /// circle itself last, so an interrupted run leaves a still-valid (smaller) circle.
+  /// History copies are only known for members who had history sharing switched on.
+  Future<void> deleteCircle({required String circleId, required String ownerUid}) async {
+    final circle = _circles.doc(circleId);
+    final members = await circle.collection('members').get();
+    final places = await circle.collection('places').get();
+    final events = await circle.collection('placeEvents').get();
+    final locations = await circle.collection('locations').get();
+    final requests = await circle.collection('joinRequests').get();
+    final circleSnap = await circle.get();
+    final currentCode = circleSnap.data()?['joinCode'] as String?;
+
+    final refs = <DocumentReference<Map<String, dynamic>>>[
+      for (final d in events.docs) d.reference,
+      for (final m in members.docs)
+        for (final p in places.docs) circle.collection('placeSubscriptions').doc('${m.id}_${p.id}'),
+      for (final d in places.docs) d.reference,
+      for (final d in locations.docs) d.reference,
+      for (final d in requests.docs) d.reference,
+    ];
+    final today = DateTime.now();
+    for (final m in members.docs) {
+      if (m.data()['historyShared'] == true) {
+        for (var i = 0; i <= 92; i++) {
+          refs.add(circle.collection('history').doc('${m.id}_${dayKey(today.subtract(Duration(days: i)))}'));
+        }
+      }
+    }
+    for (final m in members.docs) {
+      if (m.id != ownerUid) refs.add(m.reference);
+    }
+    for (var i = 0; i < refs.length; i += 400) {
+      final batch = _db.batch();
+      for (final r in refs.skip(i).take(400)) {
+        batch.delete(r);
+      }
+      await batch.commit();
+    }
+    var codeExists = false;
+    if (currentCode != null && currentCode.isNotEmpty) {
+      codeExists = (await _codes.doc(currentCode).get()).exists;
+    }
+    final last = _db.batch();
+    last.delete(circle.collection('members').doc(ownerUid));
+    if (codeExists) last.delete(_codes.doc(currentCode!));
+    last.delete(circle);
+    await last.commit();
   }
 }

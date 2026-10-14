@@ -22,7 +22,8 @@ before(async () => {
 after(async () => { await env.cleanup(); });
 beforeEach(async () => { await env.clearFirestore(); });
 
-const db = (uid) => env.authenticatedContext(uid).firestore();
+const db = (uid) => env.authenticatedContext(uid, { email_verified: true }).firestore();
+const dbUnverified = (uid) => env.authenticatedContext(uid, { email_verified: false }).firestore();
 const anon = () => env.unauthenticatedContext().firestore();
 const year = new Date().getFullYear();
 
@@ -84,9 +85,9 @@ describe('users profile', () => {
     await assertFails(updateDoc(doc(db('alice'), 'users/alice'), { birthYear: year - 20, updatedAt: serverTimestamp() }));
     await assertSucceeds(updateDoc(doc(db('alice'), 'users/alice'), { displayName: 'Al', updatedAt: serverTimestamp() }));
   });
-  it('cannot delete profile yet', async () => {
+  it("cannot delete someone else's profile", async () => {
     await assertSucceeds(setDoc(doc(db('alice'), 'users/alice'), profile()));
-    await assertFails(deleteDoc(doc(db('alice'), 'users/alice')));
+    await assertFails(deleteDoc(doc(db('mallory'), 'users/alice')));
   });
 });
 
@@ -202,10 +203,10 @@ describe('membership changes', () => {
     await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
     await assertFails(getDoc(doc(db('bob'), 'circles/c1')));
   });
-  it('the owner cannot leave (no transfer/delete yet) and the circle cannot be deleted', async () => {
+  it('the owner cannot simply leave, and only the owner can delete the circle', async () => {
     await seed();
     await assertFails(deleteDoc(doc(db('alice'), 'circles/c1/members/alice')));
-    await assertFails(deleteDoc(doc(db('alice'), 'circles/c1')));
+    await assertFails(deleteDoc(doc(db('mallory'), 'circles/c1')));
   });
 });
 
@@ -233,10 +234,9 @@ describe('join code management', () => {
     await assertFails(setDoc(doc(f, `joinCodes/${CODE_NEW}`), { circleId: 'c1', createdBy: 'bob', revoked: false, createdAt: serverTimestamp() }));
     await assertFails(updateDoc(doc(f, 'circles/c1'), { joinCode: CODE_NEW }));
   });
-  it('owner cannot change ownerUid or approval flag via update', async () => {
+  it('owner cannot change ownerUid via a plain update', async () => {
     await seed();
     await assertFails(updateDoc(doc(db('alice'), 'circles/c1'), { ownerUid: 'bob' }));
-    await assertFails(updateDoc(doc(db('alice'), 'circles/c1'), { requiresApproval: true }));
     await assertSucceeds(updateDoc(doc(db('alice'), 'circles/c1'), { name: 'Family 2' }));
   });
 });
@@ -524,5 +524,144 @@ describe('travel history (Increment 4)', () => {
     await assertSucceeds(getDoc(copy(db('bob'), 'alice')));
     await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
     await assertFails(getDoc(copy(db('bob'), 'alice')));
+  });
+});
+
+describe('circle lifecycle (Increment 5)', () => {
+  const CODE_EXP = 'ABCDEFGHJM';
+  const flagsFor = (uid, over) => env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), `circles/c1/members/${uid}`), over);
+  });
+  const setCircle = (over) => env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), 'circles/c1'), over);
+  });
+  const reqDoc = (uid, over = {}) => ({ uid, displayName: uid, joinCode: CODE_A, status: 'pending', createdAt: serverTimestamp(), ...over });
+  const reqRef = (f, uid) => doc(f, `circles/c1/joinRequests/${uid}`);
+
+  it('email verification is required to create or join a circle', async () => {
+    await seed();
+    const f = dbUnverified('dave'); const b = writeBatch(f);
+    b.set(doc(f, 'circles/c9'), { name: 'X', ownerUid: 'dave', requiresApproval: false, joinCode: CODE_NEW, createdAt: serverTimestamp() });
+    b.set(doc(f, 'circles/c9/members/dave'), { uid: 'dave', role: 'owner', displayName: 'Dave', joinedAt: serverTimestamp() });
+    b.set(doc(f, `joinCodes/${CODE_NEW}`), { circleId: 'c9', createdBy: 'dave', revoked: false, createdAt: serverTimestamp() });
+    await assertFails(b.commit());
+    await assertFails(setDoc(doc(dbUnverified('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
+  });
+
+  it('join-code expiry must be a future timestamp within 31 days', async () => {
+    await seed();
+    const mk = (exp) => { const f = db('alice'); const b = writeBatch(f);
+      b.update(doc(f, `joinCodes/${CODE_A}`), { revoked: true });
+      b.set(doc(f, `joinCodes/${CODE_EXP}`), { circleId: 'c1', createdBy: 'alice', revoked: false, createdAt: serverTimestamp(), expiresAt: exp });
+      b.update(doc(f, 'circles/c1'), { joinCode: CODE_EXP });
+      return b.commit(); };
+    await assertFails(mk(Timestamp.fromMillis(Date.now() - 1000)));
+    await assertFails(mk(Timestamp.fromMillis(Date.now() + 40 * 86400000)));
+    await assertFails(mk('tomorrow'));
+    await assertSucceeds(mk(Timestamp.fromMillis(Date.now() + 86400000)));
+  });
+
+  it('owner can switch approval on/off; others cannot', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(updateDoc(doc(db('alice'), 'circles/c1'), { requiresApproval: true }));
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1'), { requiresApproval: false }));
+    await assertFails(updateDoc(doc(db('alice'), 'circles/c1'), { requiresApproval: 'yes' }));
+  });
+
+  it('approval flow: direct join is blocked, request -> approve -> join', async () => {
+    await seed(); await setCircle({ requiresApproval: true });
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));          // code alone is not enough
+    await assertSucceeds(setDoc(reqRef(db('bob'), 'bob'), reqDoc('bob')));
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));          // still pending
+    await assertFails(updateDoc(reqRef(db('bob'), 'bob'), { status: 'approved' }));               // cannot self-approve
+    await assertFails(updateDoc(reqRef(db('mallory'), 'bob'), { status: 'approved' }));
+    await assertSucceeds(updateDoc(reqRef(db('alice'), 'bob'), { status: 'approved' }));
+    const f = db('bob'); const b = writeBatch(f);
+    b.set(doc(f, 'circles/c1/members/bob'), joinDoc('bob'));
+    b.delete(reqRef(f, 'bob'));
+    await assertSucceeds(b.commit());
+    await assertSucceeds(getDoc(doc(db('bob'), 'circles/c1')));
+  });
+
+  it('join requests need a valid code, an approval circle, verification and the requester themself', async () => {
+    await seed();
+    await assertFails(setDoc(reqRef(db('bob'), 'bob'), reqDoc('bob')));                           // circle does not require approval
+    await setCircle({ requiresApproval: true });
+    await assertFails(setDoc(reqRef(db('bob'), 'bob'), reqDoc('bob', { joinCode: CODE_NEW })));  // bad code
+    await assertFails(setDoc(reqRef(db('bob'), 'bob'), reqDoc('bob', { status: 'approved' })));
+    await assertFails(setDoc(reqRef(db('mallory'), 'bob'), reqDoc('bob')));
+    await assertFails(setDoc(reqRef(dbUnverified('bob'), 'bob'), reqDoc('bob')));
+    await assertSucceeds(setDoc(reqRef(db('bob'), 'bob'), reqDoc('bob')));
+  });
+
+  it('only the owner lists requests; requester reads own; collection group is own-only', async () => {
+    await seed({ bob: true }); await setCircle({ requiresApproval: true });
+    await assertSucceeds(setDoc(reqRef(db('dave'), 'dave'), reqDoc('dave')));
+    await assertSucceeds(getDocs(collection(db('alice'), 'circles/c1/joinRequests')));
+    await assertFails(getDocs(collection(db('bob'), 'circles/c1/joinRequests')));
+    await assertSucceeds(getDoc(reqRef(db('dave'), 'dave')));
+    await assertFails(getDoc(reqRef(db('bob'), 'dave')));
+    await assertSucceeds(getDocs(query(collectionGroup(db('dave'), 'joinRequests'), where('uid', '==', 'dave'))));
+    await assertFails(getDocs(query(collectionGroup(db('dave'), 'joinRequests'), where('uid', '==', 'bob'))));
+    await assertSucceeds(deleteDoc(reqRef(db('alice'), 'dave')));                                  // reject
+  });
+
+  it('ownership transfer needs one batch flipping ownerUid and both roles', async () => {
+    await seed({ bob: true });
+    await assertFails(updateDoc(doc(db('alice'), 'circles/c1'), { ownerUid: 'bob' }));            // circle only
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { role: 'owner' }));    // self-promotion
+    const f = db('alice'); const b = writeBatch(f);
+    b.update(doc(f, 'circles/c1'), { ownerUid: 'bob' });
+    b.update(doc(f, 'circles/c1/members/bob'), { role: 'owner' });
+    b.update(doc(f, 'circles/c1/members/alice'), { role: 'member' });
+    await assertSucceeds(b.commit());
+    await assertSucceeds(updateDoc(doc(db('bob'), 'circles/c1'), { name: 'Bob family' }));        // new owner works
+    await assertFails(updateDoc(doc(db('alice'), 'circles/c1'), { name: 'Nope' }));               // old owner does not
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/members/alice')));                // old owner can now leave
+  });
+
+  it('transfer to a non-member or with a missing role flip is rejected', async () => {
+    await seed({ bob: true });
+    const f = db('alice'); const b = writeBatch(f);
+    b.update(doc(f, 'circles/c1'), { ownerUid: 'mallory' });
+    await assertFails(b.commit());
+    const b2 = writeBatch(f);
+    b2.update(doc(f, 'circles/c1'), { ownerUid: 'bob' });
+    b2.update(doc(f, 'circles/c1/members/bob'), { role: 'owner' });   // old owner not demoted
+    await assertFails(b2.commit());
+  });
+
+  it('owner can delete the circle with everything under it in one batch; others cannot', async () => {
+    await seed({ bob: true });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles/c1/places/p1'), { name: 'School', lat: 31.5, lng: 74.3, radiusM: 150, createdBy: 'bob', createdAt: Timestamp.now() });
+      await setDoc(doc(ctx.firestore(), 'circles/c1/placeSubscriptions/bob_p1'), { subscriberUid: 'bob', placeId: 'p1', arrive: true, leave: true, allMembers: true, memberUids: [], updatedAt: Timestamp.now() });
+      await setDoc(doc(ctx.firestore(), 'circles/c1/placeEvents/bob_p1_1_arrive'), { placeId: 'p1', placeName: 'School', memberUid: 'bob', memberName: 'Bob', type: 'arrive', visitId: '1', occurredAt: Timestamp.now() });
+      await setDoc(doc(ctx.firestore(), 'circles/c1/locations/bob'), { uid: 'bob', lat: 1, lng: 1, accuracy: 1, updatedAt: Timestamp.now() });
+    });
+    await assertFails(deleteDoc(doc(db('bob'), 'circles/c1')));
+    await assertFails(deleteDoc(doc(db('mallory'), 'circles/c1')));
+    const f = db('alice'); const b = writeBatch(f);
+    b.delete(doc(f, 'circles/c1/placeEvents/bob_p1_1_arrive'));
+    b.delete(doc(f, 'circles/c1/placeSubscriptions/bob_p1'));
+    b.delete(doc(f, 'circles/c1/places/p1'));
+    b.delete(doc(f, 'circles/c1/locations/bob'));
+    b.delete(doc(f, 'circles/c1/members/bob'));
+    b.delete(doc(f, 'circles/c1/members/alice'));
+    b.delete(doc(f, `joinCodes/${CODE_A}`));
+    b.delete(doc(f, 'circles/c1'));
+    await assertSucceeds(b.commit());
+  });
+
+  it('the owner cannot leave on their own while the circle still exists', async () => {
+    await seed();
+    await assertFails(deleteDoc(doc(db('alice'), 'circles/c1/members/alice')));
+  });
+
+  it('users can delete their own profile but nobody else\'s', async () => {
+    await assertSucceeds(setDoc(doc(db('alice'), 'users/alice'), profile()));
+    await assertFails(deleteDoc(doc(db('mallory'), 'users/alice')));
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'users/alice')));
   });
 });

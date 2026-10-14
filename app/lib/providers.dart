@@ -151,3 +151,31 @@ Future<void> runRetentionCleanup(WidgetRef ref) async {
     // offline or denied: try again next time
   }
 }
+
+// ---------- Circle lifecycle (Increment 5) ----------
+
+final myJoinRequestsProvider = StreamProvider<List<JoinRequest>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return Stream.value(const <JoinRequest>[]);
+  return ref.watch(circlesRepositoryProvider).watchMyRequests(uid);
+});
+
+final circleRequestsProvider = StreamProvider.family<List<JoinRequest>, String>(
+    (ref, circleId) => ref.watch(circlesRepositoryProvider).watchRequests(circleId));
+
+final codeExpiryProvider = FutureProvider.autoDispose.family<DateTime?, String>(
+    (ref, code) => ref.watch(circlesRepositoryProvider).codeExpiry(code));
+
+/// Switches location/history sharing off in every circle (best effort). Used before deleting an account.
+final sharingStopperProvider = Provider<Future<void> Function()>((ref) => () async {
+      final uid = ref.read(currentUidProvider);
+      final memberships = ref.read(myMembershipsProvider).valueOrNull ?? const <MyMembership>[];
+      if (uid == null) return;
+      final ids = [for (final m in memberships) if (m.sharesLocation) m.circleId];
+      if (ids.isEmpty) return;
+      final history = ref.read(historyRepositoryProvider);
+      for (final id in ids) {
+        await history.removeCopies(uid: uid, circleId: id);
+      }
+      await ref.read(locationRepositoryProvider).stopSharing(uid: uid, circleIds: ids);
+    });

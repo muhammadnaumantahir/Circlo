@@ -4,13 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import 'core/widgets.dart';
 import 'features/auth/auth_screens.dart';
+import 'features/auth/verify_email_screen.dart';
 import 'features/circles/circles_screens.dart';
 import 'features/history/history_screens.dart';
 import 'features/location/map_screen.dart';
 import 'features/location/sharing_screen.dart';
 import 'features/places/notifications_screen.dart';
+import 'features/circles/circle_models.dart';
 import 'features/places/place_models.dart';
 import 'features/places/places_screens.dart';
+import 'features/profile/account_deletion_screen.dart';
 import 'features/profile/profile_screens.dart';
 import 'providers.dart';
 
@@ -31,6 +34,10 @@ class _RouterNotifier extends ChangeNotifier {
     final user = auth.valueOrNull;
     if (user == null) return _publicRoutes.contains(loc) ? null : '/login';
 
+    if (!user.emailVerified) {
+      return loc == '/verify-email' ? null : '/verify-email';
+    }
+
     final profile = _ref.read(profileProvider);
     if (profile.isLoading || profile.hasError) {
       return loc == '/splash' ? null : '/splash';
@@ -38,7 +45,7 @@ class _RouterNotifier extends ChangeNotifier {
     if (profile.valueOrNull == null) {
       return loc == '/profile-setup' ? null : '/profile-setup';
     }
-    if (_publicRoutes.contains(loc) || loc == '/splash' || loc == '/profile-setup') {
+    if (_publicRoutes.contains(loc) || loc == '/splash' || loc == '/profile-setup' || loc == '/verify-email') {
       return '/map';
     }
     return null;
@@ -57,6 +64,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/signup', builder: (_, __) => const SignUpScreen()),
       GoRoute(path: '/reset', builder: (_, __) => const ResetPasswordScreen()),
+      GoRoute(path: '/verify-email', builder: (_, __) => const VerifyEmailScreen()),
+      GoRoute(path: '/account/delete', builder: (_, __) => const DeleteAccountScreen()),
       GoRoute(path: '/profile-setup', builder: (_, __) => const ProfileSetupScreen()),
       ShellRoute(
         builder: (context, state, child) => HomeShell(location: state.matchedLocation, child: child),
@@ -128,6 +137,7 @@ class HomeShell extends ConsumerStatefulWidget {
 class _HomeShellState extends ConsumerState<HomeShell> {
   final DateTime _startedAt = DateTime.now();
   final Set<String> _announced = {};
+  final Set<String> _completing = {};
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +148,21 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         if (item.at.isAfter(_startedAt) && _announced.add(item.id)) {
           showSnack(context, item.text);
         }
+      }
+    });
+
+    // When the owner approves one of our join requests, finish joining (create the membership).
+    ref.listen<AsyncValue<List<JoinRequest>>>(myJoinRequestsProvider, (_, next) {
+      final uid = ref.read(currentUidProvider);
+      final name = ref.read(profileProvider).valueOrNull?.displayName;
+      if (uid == null || name == null) return;
+      for (final r in next.valueOrNull ?? const <JoinRequest>[]) {
+        if (!r.approved || !_completing.add(r.circleId)) continue;
+        ref.read(circlesRepositoryProvider).completeApprovedJoin(uid: uid, displayName: name, request: r).then((_) {
+          if (mounted) showSnack(context, 'You were approved and joined a circle.');
+        }).catchError((_) {
+          _completing.remove(r.circleId); // retry on the next update
+        });
       }
     });
 

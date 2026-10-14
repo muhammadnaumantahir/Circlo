@@ -21,6 +21,9 @@ service cloud.firestore {
     function validCodeFormat(code) {
       return code is string && code.matches('[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{10}');
     }
+    // Email verification (FR-007): the ID token must carry email_verified.
+    function verified() { return request.auth != null && request.auth.token.email_verified == true; }
+    function requestPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/joinRequests/$(uid); }
     function nameOk(v, maxLen) { return v is string && v.size() >= 1 && v.size() <= maxLen; }
 
     // ---------- users (private profile) ----------
@@ -58,7 +61,8 @@ service cloud.firestore {
         && validProfile(request.resource.data)
         && request.resource.data.birthYear == resource.data.birthYear
         && request.resource.data.createdAt == resource.data.createdAt;
-      // No list, no delete (account deletion is a later increment).
+      // No list. Deleting your own profile is part of best-effort account deletion.
+      allow delete: if signedIn() && request.auth.uid == uid;
 
       // Private master copy of the user's own daily history (Increment 4).
       match /history/{day} {
@@ -73,7 +77,8 @@ service cloud.firestore {
 
     // ---------- circles ----------
     function validCircleCreate(d, circleId) {
-      return d.keys().hasOnly(['name', 'ownerUid', 'requiresApproval', 'joinCode', 'createdAt'])
+      return verified()
+        && d.keys().hasOnly(['name', 'ownerUid', 'requiresApproval', 'joinCode', 'createdAt'])
         && d.keys().hasAll(['name', 'ownerUid', 'requiresApproval', 'joinCode', 'createdAt'])
         && nameOk(d.name, 40)
         && d.ownerUid == request.auth.uid
@@ -85,8 +90,9 @@ service cloud.firestore {
     }
 
     function validCircleUpdate(circleId) {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'joinCode'])
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'joinCode', 'requiresApproval'])
         && nameOk(request.resource.data.name, 40)
+        && request.resource.data.requiresApproval is bool
         && (request.resource.data.joinCode == resource.data.joinCode
             || (validCodeFormat(request.resource.data.joinCode)
                 && getAfter(codePath(request.resource.data.joinCode)).data.circleId == circleId
@@ -96,8 +102,17 @@ service cloud.firestore {
     match /circles/{cid} {
       allow get: if isMember(cid);
       allow create: if signedIn() && validCircleCreate(request.resource.data, cid);
-      allow update: if isOwner(cid) && validCircleUpdate(cid);
-      // No list (members find circles via the members collection group), no delete yet.
+      // Ownership transfer: only the owner, only the ownerUid changes, and the same batch must flip both
+      // member roles (new owner -> owner, old owner -> member).
+      allow update: if isOwner(cid) && (validCircleUpdate(cid) || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerUid'])
+          && request.resource.data.ownerUid != request.auth.uid
+          && exists(memberPath(cid, request.resource.data.ownerUid))
+          && getAfter(memberPath(cid, request.resource.data.ownerUid)).data.role == 'owner'
+          && getAfter(memberPath(cid, request.auth.uid)).data.role == 'member'));
+      // Deleting a circle is the owner's call; the app deletes everything below it first (no server).
+      allow delete: if isOwner(cid);
+      // No list: members find circles via the members collection group.
 
       function validJoinCode(code, circleId) {
         let c = get(codePath(code)).data;
@@ -108,7 +123,8 @@ service cloud.firestore {
       }
 
       function validMemberCreate(d, circleId, memberUid) {
-        return d.uid == memberUid
+        return verified()
+          && d.uid == memberUid
           && nameOk(d.displayName, 50)
           && d.joinedAt == request.time
           && d.get('sharesLocation', false) == false   // sharing is always opt-in, off at creation
@@ -127,7 +143,15 @@ service cloud.firestore {
               && d.keys().hasOnly(['uid', 'role', 'displayName', 'joinedAt', 'joinCode', 'sharesLocation', 'paused', 'historyShared'])
               && d.keys().hasAll(['uid', 'role', 'displayName', 'joinedAt', 'joinCode'])
               && exists(circlePath(circleId))
-              && validJoinCode(d.joinCode, circleId))
+              && (
+                // Open circle: a valid, unrevoked, unexpired code.
+                (get(circlePath(circleId)).data.requiresApproval == false && validJoinCode(d.joinCode, circleId))
+                ||
+                // Approval circle: the owner must have approved this user's request.
+                (get(circlePath(circleId)).data.requiresApproval == true
+                  && validCodeFormat(d.joinCode)
+                  && exists(requestPath(circleId, memberUid))
+                  && get(requestPath(circleId, memberUid)).data.status == 'approved')))
           );
       }
 
@@ -195,7 +219,8 @@ service cloud.firestore {
           && request.resource.data.allMembers is bool
           && request.resource.data.memberUids is list && request.resource.data.memberUids.size() <= 20
           && request.resource.data.updatedAt == request.time;
-        allow delete: if signedIn() && resource.data.subscriberUid == request.auth.uid;
+        // Id-based so batch deletes of absent docs work: own preferences, or owner cleanup on circle deletion.
+        allow delete: if signedIn() && (subId.matches(request.auth.uid + '_.*') || isOwner(cid));
       }
 
       // Arrival/departure events detected on the sharing member's own device (ADR-0002).
@@ -217,7 +242,7 @@ service cloud.firestore {
           && get(memberPath(cid, request.auth.uid)).data.get('sharesLocation', false) == true
           && get(memberPath(cid, request.auth.uid)).data.get('paused', false) == false;
         // Events are immutable; members may delete only their own (best-effort retention cleanup).
-        allow delete: if signedIn() && resource.data.memberUid == request.auth.uid;
+        allow delete: if signedIn() && (resource.data.memberUid == request.auth.uid || isOwner(cid));
       }
 
       // ---- Circle-scoped copy of a member's daily history (Increment 4) ----
@@ -240,6 +265,29 @@ service cloud.firestore {
         allow delete: if signedIn() && (docId.matches(request.auth.uid + '_[0-9]{8}') || isOwner(cid));
       }
 
+      // ---- Join requests for circles that require approval (FR-014) ----
+      match /joinRequests/{uid} {
+        allow get: if signedIn() && (request.auth.uid == uid || isOwner(cid));
+        allow list: if isOwner(cid);
+        allow create: if verified() && request.auth.uid == uid
+          && !exists(memberPath(cid, uid))
+          && exists(circlePath(cid))
+          && get(circlePath(cid)).data.requiresApproval == true
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'joinCode', 'status', 'createdAt'])
+          && request.resource.data.keys().hasAll(['uid', 'displayName', 'joinCode', 'status', 'createdAt'])
+          && request.resource.data.uid == uid
+          && nameOk(request.resource.data.displayName, 50)
+          && request.resource.data.status == 'pending'
+          && request.resource.data.createdAt == request.time
+          && validJoinCode(request.resource.data.joinCode, cid);
+        // Only the owner can approve (pending -> approved); nothing else may change.
+        allow update: if isOwner(cid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status == 'approved';
+        // Requester cancels / cleans up after joining; owner rejects. Id-based, batch-safe.
+        allow delete: if signedIn() && (request.auth.uid == uid || isOwner(cid));
+      }
+
       match /members/{uid} {
         allow get: if signedIn() && (request.auth.uid == uid || isMember(cid));
         allow list: if isMember(cid);
@@ -252,15 +300,27 @@ service cloud.firestore {
           && request.resource.data.get('sharesLocation', false) is bool
           && request.resource.data.get('paused', false) is bool
           && request.resource.data.get('historyShared', false) is bool;
-        // Leave (non-owner) or owner removes someone else. The owner cannot leave until transfer/delete exists.
+        // Role flips happen only as part of an ownership transfer batch (circle.ownerUid changes too).
+        allow update: if signedIn() && isOwner(cid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+          && getAfter(circlePath(cid)).data.ownerUid != get(circlePath(cid)).data.ownerUid
+          && ((request.resource.data.role == 'owner' && getAfter(circlePath(cid)).data.ownerUid == uid)
+              || (request.resource.data.role == 'member' && uid == request.auth.uid));
+        // Leave (non-owner), owner removes someone else, or the owner leaves together with deleting the circle.
         allow delete: if signedIn()
           && ((request.auth.uid == uid && resource.data.role != 'owner')
+              || (request.auth.uid == uid && !existsAfter(circlePath(cid)))
               || (request.auth.uid != uid && isOwner(cid)));
       }
     }
 
     // Collection-group query: "which circles am I in?" — a user may list only their own membership docs.
     match /{path=**}/members/{uid} {
+      allow list: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Collection-group query: "which join requests have I made?" — own requests only.
+    match /{path=**}/joinRequests/{rid} {
       allow list: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
@@ -279,11 +339,16 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.revoked == false
         && request.resource.data.createdAt == request.time
+        && (!('expiresAt' in request.resource.data)
+            || (request.resource.data.expiresAt is timestamp
+                && request.resource.data.expiresAt > request.time
+                && request.resource.data.expiresAt < request.time + duration.value(31, 'd')))
         && getAfter(circlePath(request.resource.data.circleId)).data.ownerUid == request.auth.uid;
       // Owner may only revoke (never re-point or un-revoke).
       allow update: if signedIn() && isOwner(resource.data.circleId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revoked'])
         && request.resource.data.revoked == true;
+      allow delete: if signedIn() && isOwner(resource.data.circleId);
     }
   }
 }

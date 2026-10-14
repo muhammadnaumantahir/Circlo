@@ -27,6 +27,8 @@ flutter run -d chrome --dart-define-from-file=env.json
 # 3. Deploy rules to your Firebase project (from repo root's firebase/ folder)
 cd ../firebase && npm ci && npx firebase deploy --only firestore:rules,firestore:indexes --project <your-project-id>
 ```
+Email verification: with the Auth emulator, open `http://localhost:9099/emulator/v1/projects/demo-circlo/oobCodes` to find the verification link (the emulator UI is disabled in `firebase.json`).
+
 Local development without a cloud project: `cd firebase && npx firebase emulators:start --only auth,firestore --project demo-circlo`, then run the app with `USE_FIREBASE_EMULATOR=true`.
 
 ## Test

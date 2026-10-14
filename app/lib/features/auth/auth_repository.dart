@@ -11,7 +11,8 @@ class AuthRepository {
   AuthRepository(this._auth);
   final FirebaseAuth _auth;
 
-  Stream<User?> authStateChanges() => _auth.authStateChanges();
+  /// Emits on sign-in/out and whenever the user object is refreshed (e.g. email verified).
+  Stream<User?> authStateChanges() => _auth.userChanges();
   User? get currentUser => _auth.currentUser;
 
   Future<void> signUp(String email, String password) =>
@@ -22,6 +23,33 @@ class AuthRepository {
       _auth.signInWithEmailAndPassword(email: email.trim(), password: password));
 
   Future<void> signOut() => _auth.signOut();
+
+  Future<void> sendVerificationEmail() => _run(() async {
+        final u = _auth.currentUser;
+        if (u != null && !u.emailVerified) await u.sendEmailVerification();
+      });
+
+  /// Reloads the user and forces a fresh ID token so server rules see email_verified = true.
+  Future<bool> refreshVerification() async {
+    final u = _auth.currentUser;
+    if (u == null) return false;
+    await u.reload();
+    await _auth.currentUser?.getIdToken(true);
+    return _auth.currentUser?.emailVerified ?? false;
+  }
+
+  /// Required before deleting the account (Firebase wants a recent sign-in).
+  Future<void> reauthenticate(String password) => _run(() async {
+        final u = _auth.currentUser;
+        final email = u?.email;
+        if (u == null || email == null) throw const AuthFailure('You are not signed in.');
+        await u.reauthenticateWithCredential(
+            EmailAuthProvider.credential(email: email, password: password));
+      });
+
+  Future<void> deleteAuthUser() => _run(() async {
+        await _auth.currentUser?.delete();
+      });
 
   /// Always reports success for unknown addresses (no account enumeration).
   Future<void> sendPasswordReset(String email) async {

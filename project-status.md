@@ -47,6 +47,11 @@ Owner selected Firebase-only: Authentication + Cloud Firestore + FCM; the prior 
 **Limits by owner decision:** retention/deletion are client-side best-effort; no server cleanup.
 **Not built:** reverse geocoding of unknown places, trip/driving detection, data export (FR-093), notification type settings (FR-081), read state (FR-082).
 
+## Increment 5 (2026-10-14) — status
+**Written:** email verification (screen + rules), join-code expiry, approval flow (toggle, requests list, approve/reject, auto-complete join), ownership transfer, circle deletion, best-effort account deletion (re-auth, owner blockers, data steps, Auth user last), pending-request cards; rules + 10 new rule tests; model tests.
+**Verified:** nothing executed (same sandbox limits).
+**Still not built:** member cap (FR-021, rules cannot count), profile/circle pictures (Cloud Storage needs billing; initials only), push (deferred by owner), notification-type settings/read state/membership notices (next increment), directions link, timed pause, data export.
+
 ## Planning artifacts
 PROJECT_BRIEF.md, requirements.md, architecture.md, design/{design-system,screen-specification,design-prompts}.md, docs/{user-flows,data-model,security-privacy,traceability,risks,roadmap,review-findings}.md, docs/decisions/ADR-0001..0004.
 
