@@ -1,5 +1,7 @@
 # Traceability Matrix (DRAFT)
 
+> Per-requirement implementation status: [requirements-status.md](requirements-status.md). Test IDs below are still placeholders; real tests are listed in [test-plan.md](test-plan.md).
+
 Implementation tasks and test IDs are placeholders to be created in Phase 6/7 (status: **Planned**). Nothing is implemented or tested yet.
 
 | Requirements | Design | Architecture component | Planned task | Planned test |

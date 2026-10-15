@@ -52,6 +52,8 @@ Owner selected Firebase-only: Authentication + Cloud Firestore + FCM; the prior 
 **Verified:** nothing executed (same sandbox limits).
 **Still not built:** member cap (FR-021, rules cannot count), profile/circle pictures (Cloud Storage needs billing; initials only), push (deferred by owner), notification-type settings/read state/membership notices (next increment), directions link, timed pause, data export.
 
+See [docs/requirements-status.md](docs/requirements-status.md) for a requirement-by-requirement table.
+
 ## Increment 6 (2026-10-14) — status
 **Written:** activity events + unified in-app feed (place, membership, sharing, unavailable, join requests), notification settings (kinds + muted circles), unread badge, directions link, timed pause with auto-resume, data export; rules + 7 new rule tests; tests for directions/export.
 **Verified:** nothing executed (same sandbox limits).
