@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../circles/activity.dart';
 import 'location_models.dart';
 
 /// Reads/writes circle-scoped location data. Authorization lives in firestore.rules.
@@ -26,6 +27,7 @@ class LocationRepository {
                   sharesLocation: d.data()['sharesLocation'] == true,
                   paused: d.data()['paused'] == true,
                   historyShared: d.data()['historyShared'] == true,
+                  pausedUntil: (d.data()['pausedUntil'] as Timestamp?)?.toDate(),
                 ),
           ]);
 
@@ -44,26 +46,46 @@ class LocationRepository {
     required String uid,
     required String circleId,
     required bool enabled,
-  }) {
+  }) async {
+    final name = await _myName(circleId, uid);
     final batch = _db.batch();
     batch.update(_member(circleId, uid), {
       'sharesLocation': enabled,
       'paused': false,
+      'pausedUntil': FieldValue.delete(),
       if (!enabled) 'historyShared': false, // history sharing never outlives location sharing
     });
+    if (name != null) {
+      batch.set(
+        _db.collection('circles').doc(circleId).collection('activity').doc(),
+        activityDoc(
+          type: enabled ? ActivityType.sharingStarted : ActivityType.sharingStopped,
+          actorUid: uid,
+          actorName: name,
+        ),
+      );
+    }
     if (!enabled) batch.delete(_location(circleId, uid));
     return batch.commit();
   }
 
+  Future<String?> _myName(String circleId, String uid) async =>
+      (await _member(circleId, uid).get()).data()?['displayName'] as String?;
+
   /// Pause/resume in all given circles (those where sharing is on). Pausing removes the locations.
+  /// [until] makes the pause timed: the app resumes sharing automatically once it has passed.
   Future<void> setPausedForCircles({
     required String uid,
     required Iterable<String> circleIds,
     required bool paused,
+    DateTime? until,
   }) {
     final batch = _db.batch();
     for (final id in circleIds) {
-      batch.update(_member(id, uid), {'paused': paused});
+      batch.update(_member(id, uid), {
+        'paused': paused,
+        'pausedUntil': (paused && until != null) ? Timestamp.fromDate(until) : FieldValue.delete(),
+      });
       if (paused) batch.delete(_location(id, uid));
     }
     return batch.commit();
@@ -91,11 +113,23 @@ class LocationRepository {
   }
 
   /// Switches sharing off in every given circle and removes the locations (used on log-out).
-  Future<void> stopSharing({required String uid, required Iterable<String> circleIds}) {
+  Future<void> stopSharing({required String uid, required Iterable<String> circleIds}) async {
     final batch = _db.batch();
     for (final id in circleIds) {
-      batch.update(_member(id, uid), {'sharesLocation': false, 'paused': false, 'historyShared': false});
+      final name = await _myName(id, uid);
+      batch.update(_member(id, uid), {
+        'sharesLocation': false,
+        'paused': false,
+        'pausedUntil': FieldValue.delete(),
+        'historyShared': false,
+      });
       batch.delete(_location(id, uid));
+      if (name != null) {
+        batch.set(
+          _db.collection('circles').doc(id).collection('activity').doc(),
+          activityDoc(type: ActivityType.sharingStopped, actorUid: uid, actorName: name),
+        );
+      }
     }
     return batch.commit();
   }

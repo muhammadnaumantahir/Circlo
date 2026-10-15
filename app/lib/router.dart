@@ -80,6 +80,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/sharing', builder: (_, __) => const SharingScreen()),
       GoRoute(path: '/history/settings', builder: (_, __) => const HistorySettingsScreen()),
       GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      GoRoute(path: '/notifications/settings', builder: (_, __) => const NotificationSettingsScreen()),
       GoRoute(
         path: '/places/new',
         builder: (_, state) => PlaceFormScreen(circleId: state.uri.queryParameters['circle'] ?? ''),

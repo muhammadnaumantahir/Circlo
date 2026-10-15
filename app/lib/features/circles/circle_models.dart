@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Circle {
   const Circle({
     required this.id,
@@ -73,6 +75,7 @@ class JoinRequest {
     required this.displayName,
     required this.joinCode,
     required this.approved,
+    this.createdAt,
   });
 
   final String circleId;
@@ -80,6 +83,7 @@ class JoinRequest {
   final String displayName;
   final String joinCode;
   final bool approved;
+  final DateTime? createdAt;
 
   factory JoinRequest.fromMap(String circleId, Map<String, dynamic> d) => JoinRequest(
         circleId: circleId,
@@ -87,6 +91,7 @@ class JoinRequest {
         displayName: (d['displayName'] as String?) ?? 'Someone',
         joinCode: (d['joinCode'] as String?) ?? '',
         approved: d['status'] == 'approved',
+        createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
       );
 }
 

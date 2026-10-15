@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/join_code.dart';
 import '../history/history_models.dart';
+import 'activity.dart';
 import 'circle_models.dart';
 
 /// All writes here are checked by firebase/firestore.rules; the app never trusts itself.
@@ -138,7 +139,8 @@ class CirclesRepository {
 
     // 1) Open circle: join directly with the code.
     try {
-      await memberRef.set({
+      final batch = _db.batch();
+      batch.set(memberRef, {
         'uid': uid,
         'role': 'member',
         'displayName': displayName,
@@ -148,6 +150,9 @@ class CirclesRepository {
         'paused': false,
         'historyShared': false,
       });
+      batch.set(circle.collection('activity').doc(),
+          activityDoc(type: ActivityType.joined, actorUid: uid, actorName: displayName));
+      await batch.commit();
       return JoinOutcome(circleId: circleId, requested: false);
     } on FirebaseException catch (e) {
       if (e.code != 'permission-denied') rethrow;
@@ -196,6 +201,8 @@ class CirclesRepository {
       'historyShared': false,
     });
     batch.delete(circle.collection('joinRequests').doc(uid));
+    batch.set(circle.collection('activity').doc(),
+        activityDoc(type: ActivityType.joined, actorUid: uid, actorName: displayName));
     return batch.commit();
   }
 
@@ -226,18 +233,35 @@ class CirclesRepository {
   }
 
   /// Leaving also deletes the member's location projection in the same atomic batch.
-  Future<void> leaveCircle({required String circleId, required String uid}) {
+  Future<void> leaveCircle({required String circleId, required String uid}) async {
     final circle = _circles.doc(circleId);
+    final name = (await circle.collection('members').doc(uid).get()).data()?['displayName'] as String?;
     final batch = _db.batch();
+    if (name != null) {
+      batch.set(circle.collection('activity').doc(),
+          activityDoc(type: ActivityType.left, actorUid: uid, actorName: name));
+    }
     batch.delete(circle.collection('members').doc(uid));
     batch.delete(circle.collection('locations').doc(uid));
     return batch.commit();
   }
 
   /// Owner only (enforced by rules). Also removes the member's location projection.
-  Future<void> removeMember({required String circleId, required String memberUid}) {
+  Future<void> removeMember({
+    required String circleId,
+    required String memberUid,
+    required String ownerUid,
+  }) async {
     final circle = _circles.doc(circleId);
+    final subject = (await circle.collection('members').doc(memberUid).get()).data()?['displayName'] as String?;
+    final owner = (await circle.collection('members').doc(ownerUid).get()).data()?['displayName'] as String?;
     final batch = _db.batch();
+    if (subject != null && owner != null) {
+      batch.set(
+        circle.collection('activity').doc(),
+        activityDoc(type: ActivityType.removed, actorUid: ownerUid, actorName: owner, subjectUid: memberUid, subjectName: subject),
+      );
+    }
     batch.delete(circle.collection('members').doc(memberUid));
     batch.delete(circle.collection('locations').doc(memberUid));
     return batch.commit();
@@ -277,6 +301,17 @@ class CirclesRepository {
     }
     await batch.commit();
   }
+
+  Stream<List<ActivityEvent>> watchActivity(String circleId, {int limit = 50}) => _circles
+      .doc(circleId)
+      .collection('activity')
+      .orderBy('occurredAt', descending: true)
+      .limit(limit)
+      .snapshots()
+      .map((s) => [
+            for (final d in s.docs)
+              if (ActivityEvent.fromMap(circleId, d.id, d.data()) != null) ActivityEvent.fromMap(circleId, d.id, d.data())!,
+          ]);
 
   /// Atomically makes [newOwnerUid] the owner and demotes [ownerUid] to member.
   Future<void> transferOwnership({

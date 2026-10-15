@@ -26,6 +26,9 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-007, FR-014, FR-018, FR-020, FR-022, FR-090 | Lifecycle rules: verified email required; join-code expiry bounds; approval toggle; request → approve → join; no self-approval; only owner lists requests; ownership transfer needs one batch with role flips; circle deletion batch; owner cannot simply leave; profile delete | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
 | Models | Circle/Member/JoinRequest parsing, alert filtering | `app/test/models_test.dart` | `flutter test` | Not run (CI) |
 | FR-006, FR-007, FR-014, FR-018 | Account deletion end-to-end, email verification with the Auth emulator, approval/transfer/delete UI | manual (emulator + 2 users) | manual | **Not run — required** |
+| FR-080, FR-081, FR-082, FR-083, FR-094, FR-038 | Rules: activity events bound to the actor's own batch (joined/left/removed/sharing), names must match, immutable, member-only reads; notification prefs bounds; timed pause field | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
+| FR-072, FR-093 | Directions URL (no key), data export content | `app/test/directions_export_test.dart` | `flutter test` | Not run (CI) |
+| FR-080–083 | Feed: kinds, mute, unread badge, unavailable notice after 15 min, join-request notice (owner) | manual (emulator + 2 users) | manual | **Not run — required** |
 | Static | `flutter analyze`, `flutter build web` | CI (not enabled yet: copy docs/ci/ci.yml to .github/workflows/) | CI job `flutter` | Not run |
 | Security | Secret scan | CI | gitleaks | Not run |
 

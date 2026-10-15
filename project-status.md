@@ -52,6 +52,12 @@ Owner selected Firebase-only: Authentication + Cloud Firestore + FCM; the prior 
 **Verified:** nothing executed (same sandbox limits).
 **Still not built:** member cap (FR-021, rules cannot count), profile/circle pictures (Cloud Storage needs billing; initials only), push (deferred by owner), notification-type settings/read state/membership notices (next increment), directions link, timed pause, data export.
 
+## Increment 6 (2026-10-14) — status
+**Written:** activity events + unified in-app feed (place, membership, sharing, unavailable, join requests), notification settings (kinds + muted circles), unread badge, directions link, timed pause with auto-resume, data export; rules + 7 new rule tests; tests for directions/export.
+**Verified:** nothing executed (same sandbox limits).
+**Requirements status:** all Must/Should/Could items that are possible at $0 without a server are now written in code. **Not built, by constraint:** FR-021 member cap (rules cannot count), profile/circle pictures (Cloud Storage needs billing; initials shown), remote push / FR-084 (needs a paid server), guaranteed retention/deletion (client-side best effort), reverse geocoding of unknown places, driving/trip detection and other "later version" items.
+**Everything is unverified:** no code has been compiled or run; first CI run, rules tests on the emulator and a real-device test are the gate before any release.
+
 ## Planning artifacts
 PROJECT_BRIEF.md, requirements.md, architecture.md, design/{design-system,screen-specification,design-prompts}.md, docs/{user-flows,data-model,security-privacy,traceability,risks,roadmap,review-findings}.md, docs/decisions/ADR-0001..0004.
 

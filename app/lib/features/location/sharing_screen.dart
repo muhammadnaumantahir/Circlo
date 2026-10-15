@@ -53,15 +53,27 @@ class SharingScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             SwitchListTile(
               title: const Text('Pause sharing'),
-              subtitle: const Text('Temporarily stops sharing in all circles. Others see "Paused".'),
+              subtitle: Text(allPaused
+                  ? (_pausedUntilLabel(sharingOn) ?? 'Paused until you resume')
+                  : 'Temporarily stops sharing in all circles. Others see "Paused".'),
               value: allPaused,
               onChanged: sharingOn.isEmpty
                   ? null
-                  : (v) => _run(context, () => ref.read(locationRepositoryProvider).setPausedForCircles(
-                        uid: ref.read(currentUidProvider)!,
-                        circleIds: [for (final m in sharingOn) m.circleId],
-                        paused: v,
-                      )),
+                  : (v) async {
+                      DateTime? until;
+                      if (v) {
+                        final choice = await _askPauseDuration(context);
+                        if (choice == null) return;
+                        until = choice.until();
+                      }
+                      if (!context.mounted) return;
+                      await _run(context, () => ref.read(locationRepositoryProvider).setPausedForCircles(
+                            uid: ref.read(currentUidProvider)!,
+                            circleIds: [for (final m in sharingOn) m.circleId],
+                            paused: v,
+                            until: until,
+                          ));
+                    },
             ),
             const Divider(),
             Text('Circles that can see me', style: Theme.of(context).textTheme.titleMedium),
@@ -199,4 +211,50 @@ class _CircleSharingTile extends ConsumerWidget {
     if (!context.mounted) return;
     await _run(context, () => repo.setCircleSharing(uid: uid, circleId: circle.id, enabled: true));
   }
+}
+
+enum _PauseChoice {
+  hour('For 1 hour'),
+  tomorrow('Until tomorrow morning (6:00)'),
+  manual('Until I resume');
+
+  const _PauseChoice(this.label);
+  final String label;
+
+  DateTime? until() {
+    final now = DateTime.now();
+    switch (this) {
+      case _PauseChoice.hour:
+        return now.add(const Duration(hours: 1));
+      case _PauseChoice.tomorrow:
+        final t = DateTime(now.year, now.month, now.day, 6);
+        return now.isBefore(t) ? t : t.add(const Duration(days: 1));
+      case _PauseChoice.manual:
+        return null;
+    }
+  }
+}
+
+Future<_PauseChoice?> _askPauseDuration(BuildContext context) => showDialog<_PauseChoice>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Pause sharing'),
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text('Timed pauses end automatically while Circlo is open; if it is closed, sharing stays paused until you open it.'),
+          ),
+          for (final c in _PauseChoice.values)
+            SimpleDialogOption(onPressed: () => Navigator.pop(ctx, c), child: Text(c.label)),
+        ],
+      ),
+    );
+
+String? _pausedUntilLabel(List<MyMembership> sharingOn) {
+  final times = [for (final m in sharingOn) if (m.pausedUntil != null) m.pausedUntil!];
+  if (times.isEmpty) return null;
+  times.sort();
+  final t = times.last.toLocal();
+  String two(int n) => n.toString().padLeft(2, '0');
+  return 'Paused until ${two(t.hour)}:${two(t.minute)}';
 }

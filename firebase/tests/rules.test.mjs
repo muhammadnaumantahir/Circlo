@@ -665,3 +665,78 @@ describe('circle lifecycle (Increment 5)', () => {
     await assertSucceeds(deleteDoc(doc(db('alice'), 'users/alice')));
   });
 });
+
+describe('activity feed, notification prefs and timed pause (Increment 6)', () => {
+  const act = (over = {}) => ({ type: 'joined', actorUid: 'bob', actorName: 'Bob', occurredAt: serverTimestamp(), ...over });
+  const aref = (f, id = 'a1') => doc(f, `circles/c1/activity/${id}`);
+
+  it("'joined' is only valid together with the actor's own membership creation", async () => {
+    await seed();
+    const f = db('bob'); const b = writeBatch(f);
+    b.set(doc(f, 'circles/c1/members/bob'), joinDoc('bob', CODE_A, { displayName: 'Bob' }));
+    b.set(aref(f), act());
+    await assertSucceeds(b.commit());
+    await env.clearFirestore(); await seed();
+    await assertFails(setDoc(aref(db('bob')), act()));                                   // not joining
+    const b2 = writeBatch(db('bob'));                                                    // wrong name
+    b2.set(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob', CODE_A, { displayName: 'Bob' }));
+    b2.set(aref(db('bob')), act({ actorName: 'Alice' }));
+    await assertFails(b2.commit());
+  });
+  it("'left' needs the actor's membership removed in the same batch", async () => {
+    await seed({ bob: true });
+    const f = db('bob'); const b = writeBatch(f);
+    b.delete(doc(f, 'circles/c1/members/bob'));
+    b.set(aref(f), act({ type: 'left' }));
+    await assertSucceeds(b.commit());
+    await env.clearFirestore(); await seed({ bob: true });
+    await assertFails(setDoc(aref(db('bob')), act({ type: 'left' })));                   // still a member
+  });
+  it("'removed' only by the owner, for a member removed in the same batch", async () => {
+    await seed({ bob: true });
+    const f = db('alice'); const b = writeBatch(f);
+    b.delete(doc(f, 'circles/c1/members/bob'));
+    b.set(aref(f), act({ type: 'removed', actorUid: 'alice', actorName: 'Alice', subjectUid: 'bob', subjectName: 'Bob' }));
+    await assertSucceeds(b.commit());
+    await env.clearFirestore(); await seed({ bob: true });
+    const fb = db('bob'); const b2 = writeBatch(fb);
+    b2.delete(doc(fb, 'circles/c1/members/alice'));
+    b2.set(aref(fb), act({ type: 'removed', actorName: 'Bob', subjectUid: 'alice', subjectName: 'Alice' }));
+    await assertFails(b2.commit());                                                      // not the owner
+  });
+  it("'sharing_started/stopped' must match the member's sharing switch in the same batch", async () => {
+    await seed({ bob: true });
+    const f = db('bob'); const b = writeBatch(f);
+    b.update(doc(f, 'circles/c1/members/bob'), { sharesLocation: true });
+    b.set(aref(f), act({ type: 'sharing_started' }));
+    await assertSucceeds(b.commit());
+    await assertFails(setDoc(aref(f, 'a2'), act({ type: 'sharing_started', actorUid: 'alice', actorName: 'Alice' })));  // spoofed actor
+    const b2 = writeBatch(f);
+    b2.update(doc(f, 'circles/c1/members/bob'), { sharesLocation: false });
+    b2.set(aref(f, 'a3'), act({ type: 'sharing_started' }));                              // says started, switch says stopped
+    await assertFails(b2.commit());
+  });
+  it('activity is readable only by circle members and immutable', async () => {
+    await seed({ bob: true });
+    const f = db('bob'); const b = writeBatch(f);
+    b.update(doc(f, 'circles/c1/members/bob'), { sharesLocation: true });
+    b.set(aref(f), act({ type: 'sharing_started' }));
+    await assertSucceeds(b.commit());
+    await assertSucceeds(getDocs(collection(db('alice'), 'circles/c1/activity')));
+    await assertFails(getDocs(collection(db('carol'), 'circles/c1/activity')));
+    await assertFails(updateDoc(aref(db('bob')), { type: 'left' }));
+    await assertFails(deleteDoc(aref(db('bob'))));
+    await assertSucceeds(deleteDoc(aref(db('alice'))));
+  });
+  it('profile accepts notification preferences with sane bounds', async () => {
+    await assertSucceeds(setDoc(doc(db('alice'), 'users/alice'), profile({ notifOff: ['sharing'], notifMuted: ['c1'], notifSeenAt: Timestamp.now() })));
+    await assertFails(setDoc(doc(db('bob'), 'users/bob'), profile({ notifOff: Array.from({ length: 11 }, (_, i) => `t${i}`) })));
+    await assertFails(setDoc(doc(db('bob'), 'users/bob'), profile({ notifSeenAt: 'yesterday' })));
+  });
+  it('timed pause: members set pausedUntil on themselves as a timestamp only', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { paused: true, pausedUntil: Timestamp.fromMillis(Date.now() + 3600000) }));
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { pausedUntil: 'soon' }));
+    await assertFails(updateDoc(doc(db('alice'), 'circles/c1/members/bob'), { pausedUntil: Timestamp.now() }));
+  });
+});

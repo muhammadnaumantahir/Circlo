@@ -56,6 +56,7 @@ class SharingController extends Notifier<SharingState> {
   final UploadThrottle _throttle = UploadThrottle();
   PlaceAlertEngine? _engine;
   HistoryRecorder? _history;
+  Timer? _resumeTimer;
   List<MyMembership> _memberships = const [];
   static const Duration _heartbeatEvery = Duration(minutes: 5);
 
@@ -68,7 +69,10 @@ class SharingController extends Notifier<SharingState> {
     );
     // Re-evaluate when the user switches "Keep my travel history" on/off.
     ref.listen(profileProvider, (_, __) => _configureHistory());
-    ref.onDispose(_stop);
+    ref.onDispose(() {
+      _resumeTimer?.cancel();
+      _stop();
+    });
     return const SharingState();
   }
 
@@ -84,8 +88,35 @@ class SharingController extends Notifier<SharingState> {
     );
   }
 
+  /// Timed pauses end by themselves while the app is running (FR-038).
+  void _handleTimedPauses(List<MyMembership> memberships) {
+    final uid = ref.read(currentUidProvider);
+    final now = DateTime.now();
+    _resumeTimer?.cancel();
+    if (uid == null) return;
+    final expired = [
+      for (final m in memberships)
+        if (m.sharesLocation && m.paused && m.pausedUntil != null && !m.pausedUntil!.isAfter(now)) m.circleId,
+    ];
+    if (expired.isNotEmpty) {
+      ref
+          .read(locationRepositoryProvider)
+          .setPausedForCircles(uid: uid, circleIds: expired, paused: false)
+          .catchError((_) {}); // retried on the next update
+    }
+    DateTime? next;
+    for (final m in memberships) {
+      final u = m.pausedUntil;
+      if (m.sharesLocation && m.paused && u != null && u.isAfter(now) && (next == null || u.isBefore(next))) next = u;
+    }
+    if (next != null) {
+      _resumeTimer = Timer(next.difference(now) + const Duration(seconds: 1), () => _handleTimedPauses(_memberships));
+    }
+  }
+
   Future<void> _sync(List<MyMembership> memberships) async {
     _memberships = memberships;
+    _handleTimedPauses(memberships);
     final active = [for (final m in memberships) if (m.isActive) m.circleId];
     if (active.isEmpty) {
       await _stop();

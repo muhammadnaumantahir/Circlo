@@ -28,7 +28,7 @@ service cloud.firestore {
 
     // ---------- users (private profile) ----------
     function validProfile(d) {
-      return d.keys().hasOnly(['displayName', 'phone', 'birthYear', 'createdAt', 'updatedAt', 'keepHistory', 'retentionDays'])
+      return d.keys().hasOnly(['displayName', 'phone', 'birthYear', 'createdAt', 'updatedAt', 'keepHistory', 'retentionDays', 'notifOff', 'notifMuted', 'notifSeenAt'])
         && d.keys().hasAll(['displayName', 'birthYear', 'createdAt', 'updatedAt'])
         && nameOk(d.displayName, 50)
         && d.birthYear is int && d.birthYear >= 1900
@@ -36,6 +36,9 @@ service cloud.firestore {
         && (!('phone' in d) || (d.phone is string && d.phone.matches('[+][1-9][0-9]{6,14}')))
         && (!('keepHistory' in d) || d.keepHistory is bool)
         && (!('retentionDays' in d) || d.retentionDays in [7, 30, 90])
+        && (!('notifOff' in d) || (d.notifOff is list && d.notifOff.size() <= 10))
+        && (!('notifMuted' in d) || (d.notifMuted is list && d.notifMuted.size() <= 50))
+        && (!('notifSeenAt' in d) || d.notifSeenAt is timestamp)
         && d.updatedAt == request.time;
     }
 
@@ -288,6 +291,52 @@ service cloud.firestore {
         allow delete: if signedIn() && (request.auth.uid == uid || isOwner(cid));
       }
 
+      // ---- Membership / sharing activity shown in the in-app notification feed (FR-080, FR-094) ----
+      // Written by the person who acts (or by the owner for removals); names must match member documents.
+      // Client-written and untrusted beyond this feed. Immutable; deletable by the actor or the owner.
+      function validActivity(d, circleId) {
+        return d.keys().hasOnly(['type', 'actorUid', 'actorName', 'subjectUid', 'subjectName', 'occurredAt'])
+          && d.keys().hasAll(['type', 'actorUid', 'actorName', 'occurredAt'])
+          && d.actorUid == request.auth.uid
+          && d.occurredAt == request.time
+          && d.type in ['joined', 'left', 'removed', 'sharing_started', 'sharing_stopped']
+          && (
+            (d.type == 'joined'
+              && !exists(memberPath(circleId, request.auth.uid))
+              && existsAfter(memberPath(circleId, request.auth.uid))
+              && getAfter(memberPath(circleId, request.auth.uid)).data.displayName == d.actorName)
+            ||
+            (d.type == 'left'
+              && exists(memberPath(circleId, request.auth.uid))
+              && !existsAfter(memberPath(circleId, request.auth.uid))
+              && get(memberPath(circleId, request.auth.uid)).data.displayName == d.actorName)
+            ||
+            (d.type == 'sharing_started'
+              && isMember(circleId)
+              && get(memberPath(circleId, request.auth.uid)).data.displayName == d.actorName
+              && getAfter(memberPath(circleId, request.auth.uid)).data.get('sharesLocation', false) == true)
+            ||
+            (d.type == 'sharing_stopped'
+              && isMember(circleId)
+              && get(memberPath(circleId, request.auth.uid)).data.displayName == d.actorName
+              && getAfter(memberPath(circleId, request.auth.uid)).data.get('sharesLocation', false) == false)
+            ||
+            (d.type == 'removed'
+              && isOwner(circleId)
+              && d.subjectUid is string && d.subjectUid != request.auth.uid
+              && exists(memberPath(circleId, d.subjectUid))
+              && !existsAfter(memberPath(circleId, d.subjectUid))
+              && get(memberPath(circleId, d.subjectUid)).data.displayName == d.subjectName
+              && get(memberPath(circleId, request.auth.uid)).data.displayName == d.actorName)
+          );
+      }
+
+      match /activity/{activityId} {
+        allow get, list: if isMember(cid);
+        allow create: if signedIn() && validActivity(request.resource.data, cid);
+        allow delete: if signedIn() && isOwner(cid);
+      }
+
       match /members/{uid} {
         allow get: if signedIn() && (request.auth.uid == uid || isMember(cid));
         allow list: if isMember(cid);
@@ -295,11 +344,12 @@ service cloud.firestore {
           && validMemberCreate(request.resource.data, cid, uid);
         // A member may only change their own display name and their own sharing switches.
         allow update: if signedIn() && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'sharesLocation', 'paused', 'historyShared'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'sharesLocation', 'paused', 'historyShared', 'pausedUntil'])
           && nameOk(request.resource.data.displayName, 50)
           && request.resource.data.get('sharesLocation', false) is bool
           && request.resource.data.get('paused', false) is bool
-          && request.resource.data.get('historyShared', false) is bool;
+          && request.resource.data.get('historyShared', false) is bool
+          && (!('pausedUntil' in request.resource.data) || request.resource.data.pausedUntil is timestamp);
         // Role flips happen only as part of an ownership transfer batch (circle.ownerUid changes too).
         allow update: if signedIn() && isOwner(cid)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])

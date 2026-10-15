@@ -405,7 +405,7 @@ class CircleDetailScreen extends ConsumerWidget {
     );
     if (!ok) return;
     try {
-      await ref.read(circlesRepositoryProvider).removeMember(circleId: circleId, memberUid: m.uid);
+      await ref.read(circlesRepositoryProvider).removeMember(circleId: circleId, memberUid: m.uid, ownerUid: ref.read(currentUidProvider)!);
     } catch (_) {
       if (context.mounted) showSnack(context, 'Could not remove the member. Try again.');
     }

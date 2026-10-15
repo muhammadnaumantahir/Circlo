@@ -8,7 +8,9 @@ import '../../core/map_config.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
 import '../circles/circle_models.dart';
+import '../places/notifications_screen.dart';
 import '../places/place_models.dart';
+import 'directions.dart';
 import 'location_models.dart';
 import 'sharing_controller.dart';
 import 'sharing_status.dart';
@@ -93,11 +95,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       appBar: AppBar(
         title: const Text('Map'),
         actions: [
-          IconButton(
-            tooltip: 'Notifications',
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () => context.push('/notifications'),
-          ),
+          const NotificationsBell(),
         ],
       ),
       body: circlesAsync.when(
@@ -338,6 +336,15 @@ class _MapBody extends ConsumerWidget {
                   padding: EdgeInsets.only(top: 8),
                   child: Text('This is the last known location. It may be out of date.'),
                 ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final ok = await launchDirections(loc.lat, loc.lng);
+                  if (!ok && ctx.mounted) showSnack(ctx, 'Could not open a maps app.');
+                },
+                icon: const Icon(Icons.directions),
+                label: const Text('Get directions'),
+              ),
             ],
           ],
         ),

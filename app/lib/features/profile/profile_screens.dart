@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/validators.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
+import '../history/history_models.dart';
 import '../location/sign_out.dart';
+import 'data_export.dart';
 
 /// Shown after sign-up (or whenever a signed-in user has no profile yet).
 class ProfileSetupScreen extends ConsumerStatefulWidget {
@@ -158,6 +161,67 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _export(BuildContext context, WidgetRef ref) async {
+    final profile = ref.read(profileProvider).valueOrNull;
+    final uid = ref.read(currentUidProvider);
+    if (profile == null || uid == null) return;
+    final email = ref.read(authStateProvider).valueOrNull?.email ?? '';
+    try {
+      final circles = ref.read(myCirclesProvider).valueOrNull ?? const [];
+      final memberships = {for (final m in ref.read(myMembershipsProvider).valueOrNull ?? const []) m.circleId: m};
+      final subs = ref.read(mySubscriptionsProvider).valueOrNull ?? const [];
+      final repo = ref.read(historyRepositoryProvider);
+      final days = await repo.myDays(uid, limit: 200);
+      final tracks = <DayTrack>[];
+      for (final d in days) {
+        final t = await repo.getMine(uid, d);
+        if (t != null) tracks.add(t);
+      }
+      final json = buildExportJson(
+        exportedAt: DateTime.now(),
+        email: email,
+        profile: profile,
+        circles: [
+          for (final c in circles)
+            {
+              'name': c.name,
+              'role': c.ownerUid == uid ? 'owner' : 'member',
+              'sharingLocation': memberships[c.id]?.sharesLocation ?? false,
+              'sharingHistory': memberships[c.id]?.historyShared ?? false,
+            },
+        ],
+        placeAlerts: [
+          for (final s in subs)
+            {'circleId': s.circleId, 'placeId': s.placeId, 'arrive': s.arrive, 'leave': s.leave, 'allMembers': s.allMembers},
+        ],
+        history: tracks,
+      );
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Your data'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(child: SelectableText(json, style: const TextStyle(fontFamily: 'monospace', fontSize: 11))),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: json));
+                if (ctx.mounted) showSnack(ctx, 'Copied to clipboard');
+              },
+              child: const Text('Copy'),
+            ),
+            FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (context.mounted) showSnack(context, 'Could not prepare your data. Check your connection and try again.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(profileProvider);
@@ -213,6 +277,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onPressed: () => context.push('/sharing'),
               icon: const Icon(Icons.share_location),
               label: const Text('Location sharing'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _export(context, ref),
+              icon: const Icon(Icons.download),
+              label: const Text('Export my data'),
             ),
             const SizedBox(height: 12),
             OutlinedButton(

@@ -111,19 +111,43 @@ class PlaceEvent {
       );
 }
 
+/// Notification categories the user can switch off (FR-081).
+enum FeedKind { place, membership, sharing, unavailable, requests }
+
+String feedKindName(FeedKind k) => k.name;
+
+String feedKindLabel(FeedKind k) {
+  switch (k) {
+    case FeedKind.place:
+      return 'Arrivals and departures at places';
+    case FeedKind.membership:
+      return 'Members joining, leaving or removed';
+    case FeedKind.sharing:
+      return 'Someone starts or stops sharing';
+    case FeedKind.unavailable:
+      return 'Someone\'s location becomes unavailable';
+    case FeedKind.requests:
+      return 'Join requests for circles I own';
+  }
+}
+
 /// One line in the in-app notification feed.
 class FeedItem {
   const FeedItem({
     required this.id,
+    required this.circleId,
     required this.circleName,
+    required this.kind,
     required this.text,
     required this.at,
-    required this.isArrival,
+    this.isArrival = false,
   });
 
   final String id;
+  final String circleId;
   final String circleName;
+  final FeedKind kind;
   final String text;
   final DateTime at;
-  final bool isArrival;
+  final bool isArrival; // only meaningful for FeedKind.place
 }

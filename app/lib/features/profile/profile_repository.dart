@@ -39,6 +39,22 @@ class ProfileRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
+  Future<void> setNotificationPrefs({
+    required String uid,
+    required List<String> off,
+    required List<String> muted,
+  }) =>
+      _doc(uid).update({
+        'notifOff': off,
+        'notifMuted': muted,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+  Future<void> markNotificationsSeen(String uid) => _doc(uid).update({
+        'notifSeenAt': Timestamp.now(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
   Future<void> update({
     required String uid,
     required String displayName,

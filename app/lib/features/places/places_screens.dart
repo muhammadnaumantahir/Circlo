@@ -13,6 +13,7 @@ import '../../providers.dart';
 import '../circles/circle_models.dart';
 import '../location/location_access.dart';
 import 'geocoder.dart';
+import 'notifications_screen.dart';
 import 'place_models.dart';
 
 String _alertSummary(PlaceSubscription? s) {
@@ -31,11 +32,7 @@ class PlacesScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Places'),
         actions: [
-          IconButton(
-            tooltip: 'Notifications',
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () => context.push('/notifications'),
-          ),
+          const NotificationsBell(),
         ],
       ),
       body: circlesAsync.when(

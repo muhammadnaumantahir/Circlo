@@ -21,6 +21,13 @@
 | R-17 | Firestore Rules cannot safely express intended cross-circle reads | High | Prototype rules in Emulator; use circle-scoped projections or revise data model if authorization cannot be proven | Security spike |
 
 
+## Increment 6 additions
+- Notifications are **in-app only**: nothing reaches a closed app. Time-based notices (location unavailable) are computed on the viewer's device, so they only appear while it is open.
+- Activity events are client-written and immutable; rules bind actor, names and the matching membership/sharing change, but they are never trusted beyond this feed. They are not cleaned up automatically (the owner or actor may delete them).
+- Timed pauses resume only while the app is open; a closed app stays paused (safe default).
+- Directions open an external maps app/browser (Google Maps URL, no key); this shares the destination coordinates with that app.
+- The data export is shown/copied in the app; it is not a downloadable file and is limited to data the app can read for the user.
+
 ## Increment 5 additions
 - **Account/circle deletion is best-effort and client-side.** It cannot list other people's data about you (for example orphaned history copies in a circle you were removed from) and an interrupted run leaves partial deletion; re-running completes it. Needs privacy/legal review (GDPR erasure) before launch.
 - Deleting a circle costs many writes (members × places subscription ids, plus 93 history ids per member who shared history).
