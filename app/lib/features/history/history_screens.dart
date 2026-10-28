@@ -569,7 +569,7 @@ class _VisitTile extends StatelessWidget {
                             color: scheme.secondaryContainer.withValues(alpha: .8),
                             borderRadius: BorderRadius.circular(9),
                           ),
-                          child: Text('HERE', style: TextStyle(color: scheme.onSecondaryContainer, fontSize: 10, fontWeight: FontWeight.w900)),
+                          child: Text('OPEN', style: TextStyle(color: scheme.onSecondaryContainer, fontSize: 10, fontWeight: FontWeight.w900)),
                         ),
                     ],
                   ),
@@ -587,7 +587,7 @@ class _VisitTile extends StatelessWidget {
                       if (left != null)
                         _timePill(context, Icons.logout_rounded, 'Left ${formatClock(left, tz)}')
                       else
-                        _timePill(context, Icons.location_on_rounded, 'Still here'),
+                        _timePill(context, Icons.location_on_rounded, 'Last seen ${formatClock(track.lastSeen, tz)}'),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -597,7 +597,7 @@ class _VisitTile extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          left != null ? 'Stay duration: $duration' : '$duration so far',
+                          left != null ? 'Stay duration: $duration' : 'Until last fix: $duration',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ),
