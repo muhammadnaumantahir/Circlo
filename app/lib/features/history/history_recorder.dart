@@ -105,7 +105,9 @@ class HistoryRecorder {
       if (before != null && !identical(before, after)) {
         await _write(before); // persist the finished day (its open visit was closed)
       }
-      if (changed) _dirty = true;
+      // Persist lastSeen on the normal flush cadence even while stationary; TrackBuilder can
+      // update it without changing the thinned route or visit list.
+      if (changed || after?.lastSeen == time.millisecondsSinceEpoch) _dirty = true;
       final sig = _visitSignature(after);
       final visitChanged = sig != _signature;
       _signature = sig;
