@@ -873,171 +873,176 @@ class _MapBodyState extends ConsumerState<_MapBody> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _Avatar(name: v.member.displayName, color: statusColor, size: 58),
-                    const SizedBox(width: 14),
-                    Expanded(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _Avatar(name: v.member.displayName, color: statusColor, size: 58),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(v.member.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                            const SizedBox(height: 4),
+                            Text(v.member.isOwner ? 'Circle owner' : 'Circle member', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: .12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_statusIcon(v.status), color: statusColor, size: 17),
+                            const SizedBox(width: 6),
+                            Text(statusLabel(v.status), maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: statusColor, fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  if (latestCheckIn != null && latestCheckIn.occurredAt != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: scheme.secondaryContainer.withValues(alpha: .55),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .65)),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(v.member.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-                          const SizedBox(height: 4),
-                          Text(v.member.isOwner ? 'Circle owner' : 'Circle member', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                          Row(
+                            children: [
+                              Icon(Icons.task_alt_rounded, color: scheme.secondary, size: 19),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Latest manual check-in',
+                                  style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
+                                ),
+                              ),
+                              Text(
+                                formatAgo(latestCheckIn.occurredAt, now),
+                                style: Theme.of(ctx).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            kCheckInStatuses[latestCheckIn.checkInStatus] ?? 'Check-in shared',
+                            style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Shared ${_formatDateTime(latestCheckIn.occurredAt!)}',
+                            style: Theme.of(ctx).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                          if ((latestCheckIn.checkInPlaceName ?? '').trim().isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              'At ${latestCheckIn.checkInPlaceName}',
+                              style: Theme.of(ctx).textTheme.bodyMedium,
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Self-reported by ${latestCheckIn.actorName}; not verified by GPS.',
+                            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 14),
+                  ],
+                  if (loc == null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: .12),
-                        borderRadius: BorderRadius.circular(14),
+                        color: scheme.surfaceContainerHighest.withValues(alpha: .55),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      child: const Row(
                         children: [
-                          Icon(_statusIcon(v.status), color: statusColor, size: 17),
-                          const SizedBox(width: 6),
-                          Text(statusLabel(v.status), maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: statusColor, fontWeight: FontWeight.w800)),
+                          Icon(Icons.location_off_outlined),
+                          SizedBox(width: 10),
+                          Expanded(child: Text('No location is available. Sharing may be off, paused, or waiting for a GPS fix.')),
                         ],
+                      ),
+                    )
+                  else ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest.withValues(alpha: .55),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.schedule_rounded, color: scheme.primary, size: 19),
+                              const SizedBox(width: 9),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Last location update', style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      '${formatAgo(loc.updatedAt, now)}${loc.updatedAt == null ? '' : ' · ${_formatDateTime(loc.updatedAt!)}'}',
+                                      style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Icon(Icons.gps_fixed_rounded, color: scheme.primary, size: 19),
+                              const SizedBox(width: 9),
+                              Expanded(
+                                child: Text('Estimated GPS accuracy ±${loc.accuracy.round()} m', style: Theme.of(ctx).textTheme.bodyMedium),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (v.status == ShareStatus.unavailable)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Text(
+                          'This is the last known location and may be out of date.',
+                          style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.error),
+                        ),
+                      ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () async {
+                          final ok = await launchDirections(loc.lat, loc.lng);
+                          if (!ok && ctx.mounted) showSnack(ctx, 'Could not open a maps app.');
+                        },
+                        icon: const Icon(Icons.directions_rounded),
+                        label: const Text('Get directions'),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 18),
-                if (latestCheckIn != null && latestCheckIn.occurredAt != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: scheme.secondaryContainer.withValues(alpha: .55),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: scheme.outlineVariant.withValues(alpha: .65)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.task_alt_rounded, color: scheme.secondary, size: 19),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Latest manual check-in',
-                                style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
-                              ),
-                            ),
-                            Text(
-                              formatAgo(latestCheckIn.occurredAt, now),
-                              style: Theme.of(ctx).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          kCheckInStatuses[latestCheckIn.checkInStatus] ?? 'Check-in shared',
-                          style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        if ((latestCheckIn.checkInPlaceName ?? '').trim().isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            'At ${latestCheckIn.checkInPlaceName}',
-                            style: Theme.of(ctx).textTheme.bodyMedium,
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        Text(
-                          'Self-reported by ${latestCheckIn.actorName}; not verified by GPS.',
-                          style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
                 ],
-                if (loc == null)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(alpha: .55),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.location_off_outlined),
-                        SizedBox(width: 10),
-                        Expanded(child: Text('No location is available. Sharing may be off, paused, or waiting for a GPS fix.')),
-                      ],
-                    ),
-                  )
-                else ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(alpha: .55),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.schedule_rounded, color: scheme.primary, size: 19),
-                            const SizedBox(width: 9),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Last location update', style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    '${formatAgo(loc.updatedAt, now)}${loc.updatedAt == null ? '' : ' · ${_formatDateTime(loc.updatedAt!)}'}',
-                                    style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Icon(Icons.gps_fixed_rounded, color: scheme.primary, size: 19),
-                            const SizedBox(width: 9),
-                            Expanded(
-                              child: Text('Estimated GPS accuracy ±${loc.accuracy.round()} m', style: Theme.of(ctx).textTheme.bodyMedium),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (v.status == ShareStatus.unavailable)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: Text(
-                        'This is the last known location and may be out of date.',
-                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.error),
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () async {
-                        final ok = await launchDirections(loc.lat, loc.lng);
-                        if (!ok && ctx.mounted) showSnack(ctx, 'Could not open a maps app.');
-                      },
-                      icon: const Icon(Icons.directions_rounded),
-                      label: const Text('Get directions'),
-                    ),
-                  ),
-                ],
-              ],
               ),
             ),
           ),
