@@ -11,10 +11,12 @@
 - Increment 6 (notifications and polish): activity events (member joined/left/removed, sharing started/stopped), one in-app feed with place alerts, "location unavailable" (15+ min, once per outage) and join requests, notification settings per kind and per circle, unread badge/read state, directions link, timed pause (1 h / until 6:00 / manual, auto-resume while the app is open), export my data (JSON); rules + tests.
 ### UI and reliability polish (2026-10-28)
 - Premium forest-green/warm-neutral light and dark themes, polished shared cards/forms/empty states, responsive desktop navigation, and refreshed login/profile presentation.
-- Map/People full-screen toggle on compact screens, visible web-tab tracking limitation, last successful location-sync status with retry, and live circle member counts.
+- Map/People full-screen toggle on compact screens, visible web-tab tracking limitation, stale-sync warning with retry, and circle role cards that avoid extra per-circle listeners.
 - Improved places and notification feed cards with capacity/alert states.
 - Fixed place-alert restoration to reset completed visits correctly and prevent stale duplicate departure events; added a regression test.
 - Hardened sharing shutdown so a failed position stream cannot keep the heartbeat publishing stale coordinates.
+- Serialized notification preference saves to prevent rapid switch changes from overwriting one another; failed saves roll back locally.
+- History recording retries a failed initial restore from Firestore instead of proceeding without the prior daily track.
 
 ### Deferred / unverified release blockers
 - Remote phone push notifications are deferred under the current $0/no-billing decision; the feed is in-app only.
