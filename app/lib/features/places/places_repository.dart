@@ -135,6 +135,41 @@ class PlacesRepository {
     return s.data()?['displayName'] as String?;
   }
 
+  /// Publishes an explicit, user-initiated check-in for a saved place.
+  /// Only the place ID/name are stored: this does not verify presence or share coordinates.
+  Future<void> publishCheckIn({
+    required String circleId,
+    required String uid,
+    required String memberName,
+    required Place place,
+    required String checkInId,
+  }) =>
+      _circle(circleId).collection('placeEvents').doc('${uid}_${place.id}_${checkInId}_checkIn').set({
+        'placeId': place.id,
+        'placeName': place.name,
+        'memberUid': uid,
+        'memberName': memberName,
+        'type': 'checkIn',
+        'visitId': checkInId,
+        'occurredAt': FieldValue.serverTimestamp(),
+      });
+
+  /// Delete only the caller's own manual check-in. Arrival/departure records are not affected.
+  Future<void> deleteOwnCheckIn({
+    required String circleId,
+    required String uid,
+    required String eventId,
+  }) async {
+    final ref = _circle(circleId).collection('placeEvents').doc(eventId);
+    final snapshot = await ref.get();
+    final data = snapshot.data();
+    if (!snapshot.exists) return;
+    if (data?['memberUid'] != uid || data?['type'] != 'checkIn') {
+      throw StateError('Only your own manual check-ins can be deleted here.');
+    }
+    await ref.delete();
+  }
+
   /// Idempotent: the document id is derived from (member, place, visit, type), so a retry of an
   /// already-written event is rejected by the rules (no updates) and can be ignored.
   Future<void> publishEvent({
