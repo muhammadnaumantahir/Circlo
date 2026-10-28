@@ -344,9 +344,23 @@ class _VisitTile extends StatelessWidget {
       when = 'Arrived $arrived · Still here (last seen ${formatClock(track.lastSeen, tz)})';
       stay = 'So far: ${formatDuration(Duration(milliseconds: (track.lastSeen > visit.arrivedAt ? track.lastSeen : visit.arrivedAt) - visit.arrivedAt))}';
     }
+    final accent = CircloPalette.accent(index - 1);
     return ListTile(
-      leading: CircleAvatar(radius: 14, child: Text('$index', style: const TextStyle(fontSize: 12))),
-      title: Text(visit.name),
+      leading: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: .14),
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(color: accent.withValues(alpha: .18)),
+        ),
+        child: Text(
+          '$index',
+          style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w900),
+        ),
+      ),
+      title: Text(visit.name, style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text('$when\n$stay'),
       isThreeLine: true,
     );
