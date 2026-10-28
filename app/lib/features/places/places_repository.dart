@@ -125,7 +125,14 @@ class PlacesRepository {
       .orderBy('occurredAt', descending: true)
       .limit(limit)
       .snapshots()
-      .map((s) => [for (final d in s.docs) PlaceEvent.fromMap(circleId, d.id, d.data())]);
+      .map((s) {
+        final events = <PlaceEvent>[];
+        for (final d in s.docs) {
+          final event = PlaceEvent.tryFromMap(circleId, d.id, d.data());
+          if (event != null) events.add(event);
+        }
+        return events;
+      });
 
   /// The user's own latest events, newest first (used to restore "inside" state after a restart).
   Future<List<PlaceEvent>> myLatestEvents(String circleId, String uid, {int limit = 50}) async {
@@ -135,7 +142,12 @@ class PlacesRepository {
         .orderBy('occurredAt', descending: true)
         .limit(limit)
         .get();
-    return [for (final d in s.docs) PlaceEvent.fromMap(circleId, d.id, d.data())];
+    final events = <PlaceEvent>[];
+    for (final d in s.docs) {
+      final event = PlaceEvent.tryFromMap(circleId, d.id, d.data());
+      if (event != null) events.add(event);
+    }
+    return events;
   }
 
   /// The caller's display name as stored on their membership (events must carry exactly this).
