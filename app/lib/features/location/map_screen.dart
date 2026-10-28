@@ -413,6 +413,15 @@ class _MapBodyState extends ConsumerState<_MapBody> {
     final membersAsync = ref.watch(membersProvider(circle.id));
     final locationsAsync = ref.watch(locationsProvider(circle.id));
     final places = ref.watch(placesProvider(circle.id)).valueOrNull ?? const <Place>[];
+    final activityAsync = ref.watch(activityProvider(circle.id));
+    final latestCheckIns = <String, ActivityEvent>{};
+    for (final event in activityAsync.valueOrNull ?? const <ActivityEvent>[]) {
+      if (event.type != ActivityType.checkedIn || event.actorUid.isEmpty || event.occurredAt == null) continue;
+      final previous = latestCheckIns[event.actorUid];
+      if (previous == null || event.occurredAt!.isAfter(previous.occurredAt!)) {
+        latestCheckIns[event.actorUid] = event;
+      }
+    }
     final now = DateTime.now();
 
     final members = membersAsync.valueOrNull ?? const <Member>[];
@@ -435,8 +444,8 @@ class _MapBodyState extends ConsumerState<_MapBody> {
       WidgetsBinding.instance.addPostFrameCallback((_) => onFit(points));
     }
 
-    final mapWidget = _buildMap(context, ref, visibleViews, located, uid, places);
-    final list = _buildList(context, ref, visibleViews, uid, now, membersAsync.isLoading, membersAsync.hasError);
+    final mapWidget = _buildMap(context, ref, visibleViews, located, uid, places, latestCheckIns);
+    final list = _buildList(context, ref, visibleViews, uid, now, membersAsync.isLoading, membersAsync.hasError, latestCheckIns);
     final peopleOnly = ref.watch(_peopleListModeProvider);
 
     return Column(
@@ -623,7 +632,15 @@ class _MapBodyState extends ConsumerState<_MapBody> {
     );
   }
 
-  Widget _buildMap(BuildContext context, WidgetRef ref, List<_MemberView> views, List<_MemberView> located, String? uid, List<Place> places) {
+  Widget _buildMap(
+    BuildContext context,
+    WidgetRef ref,
+    List<_MemberView> views,
+    List<_MemberView> located,
+    String? uid,
+    List<Place> places,
+    Map<String, ActivityEvent> latestCheckIns,
+  ) {
     return Stack(
       children: [
         FlutterMap(
@@ -670,9 +687,9 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                   child: Semantics(
                     button: true,
                     label: '${v.member.displayName}, ${statusLabel(v.status)}. Open member details.',
-                    onTap: () => _showDetails(context, v, DateTime.now()),
+                    onTap: () => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid]),
                     child: GestureDetector(
-                      onTap: () => _showDetails(context, v, DateTime.now()),
+                      onTap: () => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid]),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -741,7 +758,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
             child: _PeoplePeekCard(
               views: views,
               onAllPeople: () => ref.read(_peopleListModeProvider.notifier).state = true,
-              onMemberTap: (v) => _showDetails(context, v, DateTime.now()),
+              onMemberTap: (v) => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid]),
               onPlaces: () => context.go('/places'),
               onSharing: () => context.push('/sharing'),
             ),
@@ -760,8 +777,16 @@ class _MapBodyState extends ConsumerState<_MapBody> {
     );
   }
 
-  Widget _buildList(BuildContext context, WidgetRef ref, List<_MemberView> views, String? uid,
-      DateTime now, bool loading, bool hasError) {
+  Widget _buildList(
+    BuildContext context,
+    WidgetRef ref,
+    List<_MemberView> views,
+    String? uid,
+    DateTime now,
+    bool loading,
+    bool hasError,
+    Map<String, ActivityEvent> latestCheckIns,
+  ) {
     if (loading && views.isEmpty) return const LoadingView();
     if (hasError) return const MessageView(icon: Icons.lock_outline, title: 'Could not load members');
     if (views.isEmpty) {
@@ -796,16 +821,35 @@ class _MapBodyState extends ConsumerState<_MapBody> {
         final v = views[i];
         final name = v.member.uid == uid ? '${v.member.displayName} (you)' : v.member.displayName;
         final ago = v.location == null ? '' : ' · ${formatAgo(v.location!.updatedAt, now)}';
+        final checkIn = latestCheckIns[v.member.uid];
         return Card(
           margin: EdgeInsets.zero,
           child: ListTile(
             leading: _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 40),
             title: Text(name),
-            subtitle: Row(children: [
-              Icon(_statusIcon(v.status), size: 16, color: _statusColor(context, v.status)),
-              const SizedBox(width: 6),
-              Flexible(child: Text('${statusLabel(v.status)}$ago')),
-            ]),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Icon(_statusIcon(v.status), size: 16, color: _statusColor(context, v.status)),
+                    const SizedBox(width: 6),
+                    Flexible(child: Text('${statusLabel(v.status)}$ago')),
+                  ],
+                ),
+                if (checkIn?.occurredAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Manual check-in: ${kCheckInStatuses[checkIn!.checkInStatus] ?? 'Check-in shared'} · ${formatAgo(checkIn.occurredAt, now)}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.secondary),
+                    ),
+                  ),
+              ],
+            ),
             trailing: const Icon(Icons.chevron_right_rounded, size: 20),
             onTap: () => _showDetails(context, v, now),
           ),
@@ -814,7 +858,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
     );
   }
 
-  void _showDetails(BuildContext context, _MemberView v, DateTime now) {
+  void _showDetails(BuildContext context, _MemberView v, DateTime now, {ActivityEvent? latestCheckIn}) {
     final loc = v.location;
     final statusColor = _statusColor(context, v.status);
     showModalBottomSheet<void>(
@@ -826,8 +870,9 @@ class _MapBodyState extends ConsumerState<_MapBody> {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -862,6 +907,56 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                   ],
                 ),
                 const SizedBox(height: 18),
+                if (latestCheckIn != null && latestCheckIn.occurredAt != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: scheme.secondaryContainer.withValues(alpha: .55),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: scheme.outlineVariant.withValues(alpha: .65)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.task_alt_rounded, color: scheme.secondary, size: 19),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Latest manual check-in',
+                                style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
+                              ),
+                            ),
+                            Text(
+                              formatAgo(latestCheckIn.occurredAt, now),
+                              style: Theme.of(ctx).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          kCheckInStatuses[latestCheckIn.checkInStatus] ?? 'Check-in shared',
+                          style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        if ((latestCheckIn.checkInPlaceName ?? '').trim().isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            'At ${latestCheckIn.checkInPlaceName}',
+                            style: Theme.of(ctx).textTheme.bodyMedium,
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Self-reported by ${latestCheckIn.actorName}; not verified by GPS.',
+                          style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 if (loc == null)
                   Container(
                     width: double.infinity,
@@ -943,6 +1038,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                   ),
                 ],
               ],
+              ),
             ),
           ),
         );
