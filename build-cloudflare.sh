@@ -8,10 +8,10 @@ FLUTTER_REPO="https://github.com/flutter/flutter.git"
 # Resolve project root regardless of the caller's working directory.
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "${SCRIPT_DIR}" && pwd)"
-FLUTTER_VERSION="$(sed -nE 's/.*"flutter"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "${ROOT}/.fvmrc" | head -n 1)"
+FLUTTER_VERSION="$(sed -nE 's/.*"flutter"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "${ROOT}/app/.fvmrc" | head -n 1)"
 
 if [[ -z "${FLUTTER_VERSION}" ]]; then
-  echo "ERROR: Could not read the Flutter SDK pin from ${ROOT}/.fvmrc."
+  echo "ERROR: Could not read the Flutter SDK pin from ${ROOT}/app/.fvmrc."
   exit 1
 fi
 
