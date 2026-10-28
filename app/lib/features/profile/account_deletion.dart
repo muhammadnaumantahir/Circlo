@@ -79,7 +79,7 @@ class AccountDeletionService {
         await _deleteReferencesInBatches([
           for (final day in days) circleRef.collection('history').doc('${uid}_$day'),
         ]);
-        await circles.deleteCircle(circleId: circleId, ownerUid: uid);
+        await circles.deleteCircle(circleId: circleRef.id, ownerUid: uid);
         continue;
       }
 
