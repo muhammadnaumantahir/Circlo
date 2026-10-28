@@ -218,11 +218,7 @@ class SharingController extends Notifier<SharingState> {
       },
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) {
-      final p = _last;
-      if (p != null) {
-        _feedEngine(p, now: true); // a stationary phone still confirms arrivals by elapsed time
-        _publish(p, force: true); // keeps "last updated" fresh while stationary
-      }
+      unawaited(_refreshHeartbeat(generation));
     });
     state = state.copyWith(tracking: true, clearError: true);
     try {
@@ -240,6 +236,35 @@ class SharingController extends Notifier<SharingState> {
           error: 'Could not get your location. Check location permission, GPS and device settings.',
         );
       }
+    }
+  }
+
+  /// Refreshes a stationary device with a new fix. Never re-stamp an old cached coordinate
+  /// as fresh: other members rely on updatedAt to decide whether the position is current.
+  Future<void> _refreshHeartbeat(int generation) async {
+    if (generation != _syncGeneration || _sub == null) return;
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+      ).timeout(const Duration(seconds: 20));
+      if (generation != _syncGeneration || _sub == null) return;
+
+      final age = DateTime.now().difference(position.timestamp);
+      if (age > const Duration(minutes: 10)) {
+        state = state.copyWith(
+          error: 'The device returned an old location fix. Check GPS and retry before sharing again.',
+        );
+        return;
+      }
+
+      _last = position;
+      _feedEngine(position, now: true);
+      await _publish(position, force: true);
+    } catch (_) {
+      if (generation != _syncGeneration || _sub == null) return;
+      state = state.copyWith(
+        error: 'Could not refresh your location. Check GPS and connection; retry if it persists.',
+      );
     }
   }
 
