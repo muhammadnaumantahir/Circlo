@@ -101,7 +101,7 @@ class PlacesRepository {
   Future<PlaceSubscription?> getSubscription(String circleId, String uid, String placeId) async {
     final s = await _subRef(circleId, uid, placeId).get();
     final d = s.data();
-    return (s.exists && d != null) ? PlaceSubscription.fromMap(circleId, d) : null;
+    return (s.exists && d != null) ? PlaceSubscription.tryFromMap(circleId, d) : null;
   }
 
   /// All of the user's alert preferences across circles (collection-group query on own docs).
@@ -153,7 +153,8 @@ class PlacesRepository {
   /// The caller's display name as stored on their membership (events must carry exactly this).
   Future<String?> myMemberName(String circleId, String uid) async {
     final s = await _circle(circleId).collection('members').doc(uid).get();
-    return s.data()?['displayName'] as String?;
+    final name = s.data()?['displayName'];
+    return name is String ? name : null;
   }
 
   /// Idempotent: the document id is derived from (member, place, visit, type), so a retry of an
