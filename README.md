@@ -14,7 +14,7 @@ Flutter (stable), Node.js 22+, Java 21+ (for the Firestore emulator), a free Fir
 ```bash
 # 1. Generate platform folders (not committed yet)
 cd app
-flutter create --org com.circlo --project-name circlo --platforms=android,ios,web .
+flutter create --org com.circlo --project-name app --platforms=android,ios,web .
 git checkout -- pubspec.yaml analysis_options.yaml lib test   # keep our files
 rm -f test/widget_test.dart                                   # generated sample test, not ours
 flutter pub get
@@ -66,9 +66,10 @@ Copy the values from **Firebase Console → Project settings → General → You
 
 ## Native Android and iOS Firebase setup
 
-- Firebase client options are selected in `app/lib/core/firebase_options.dart`. Android values currently match the registered Firebase app (`com.circlo.circlo`).
+- **Android package name and iOS bundle ID:** `com.circlo.app`. The Setup command uses `--project-name app` so Flutter generates this native identifier.
+- Firebase client options in `app/lib/core/firebase_options.dart` now match the registered Web, Android and iOS apps in project `circlo-1dbda`.
 - The repository does not commit generated `app/android/` or `app/ios/` platform folders yet. Generate them locally using the Setup command above before editing their Gradle/Xcode settings.
-- After Android platform generation, place the downloaded `google-services.json` at `app/android/app/google-services.json`. The repository ignores this file, so keep a local copy and do not add it to commits.
+- After Android platform generation, place the downloaded `google-services.json` at `app/android/app/google-services.json`. After iOS platform generation, place `GoogleService-Info.plist` at `app/ios/Runner/GoogleService-Info.plist`. Both files are excluded by `.gitignore`; keep them local and do not add them to commits.
 - Circlo uses FlutterFire packages (`firebase_core`, `firebase_auth`, `cloud_firestore`). Do not add native Firebase BoM dependencies or Firebase Analytics manually; they are not needed for the current Flutter code.
-- Google sign-in is not configured yet. Enable Google as an Authentication provider, add the Android app's SHA-1 certificate fingerprint, then download a refreshed `google-services.json` containing the OAuth client details. The current file has an empty `oauth_client` list.
-- iOS remains unconfigured until the iOS app is registered in Firebase. After registration, keep `GoogleService-Info.plist` locally at `app/ios/Runner/GoogleService-Info.plist`; do not commit it. Fill the iOS app ID and API key in the compile-time options before running on iOS.
+- Google sign-in is not ready yet. Enable Google as an Authentication provider and add the Android signing SHA-1 fingerprint, then download refreshed Android configuration if Firebase includes OAuth clients. The uploaded Android JSON currently has an empty `oauth_client` list; the iOS plist also has no OAuth client ID or reversed client ID. Those values should be added by Firebase after Google provider configuration.
+- Building iOS requires macOS and Xcode; platform registration and editing these configuration files can be done from Windows.
