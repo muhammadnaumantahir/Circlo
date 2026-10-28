@@ -33,6 +33,34 @@ void main() {
     });
   });
 
+  group('isLocationFixFresh', () {
+    test('accepts a current or recent fix', () {
+      expect(isLocationFixFresh(capturedAt: now, now: now), isTrue);
+      expect(
+        isLocationFixFresh(capturedAt: now.subtract(const Duration(minutes: 9)), now: now),
+        isTrue,
+      );
+    });
+
+    test('rejects a stale fix and an implausibly future-dated fix', () {
+      expect(
+        isLocationFixFresh(capturedAt: now.subtract(const Duration(minutes: 11)), now: now),
+        isFalse,
+      );
+      expect(
+        isLocationFixFresh(capturedAt: now.add(const Duration(minutes: 3)), now: now),
+        isFalse,
+      );
+    });
+
+    test('allows a small device-clock skew', () {
+      expect(
+        isLocationFixFresh(capturedAt: now.add(const Duration(minutes: 1)), now: now),
+        isTrue,
+      );
+    });
+  });
+
   test('formatAgo', () {
     expect(formatAgo(null, now), 'never');
     expect(formatAgo(now.subtract(const Duration(seconds: 20)), now), 'just now');
