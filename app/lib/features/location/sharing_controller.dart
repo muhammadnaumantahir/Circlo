@@ -207,6 +207,12 @@ class SharingController extends Notifier<SharingState> {
     }
     _sub = Geolocator.getPositionStream(locationSettings: _settings()).listen(
       (p) {
+        if (!isLocationFixFresh(capturedAt: p.timestamp, now: DateTime.now())) {
+          state = state.copyWith(
+            error: 'The device returned an old location fix. Check GPS before sharing again.',
+          );
+          return;
+        }
         _last = p;
         _feedEngine(p);
         _publish(p);
@@ -226,6 +232,12 @@ class SharingController extends Notifier<SharingState> {
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       ).timeout(const Duration(seconds: 20));
       if (generation != _syncGeneration || _sub == null) return;
+      if (!isLocationFixFresh(capturedAt: first.timestamp, now: DateTime.now())) {
+        state = state.copyWith(
+          error: 'The device returned an old location fix. Check GPS before sharing again.',
+        );
+        return;
+      }
       _last = first;
       await _publish(first, force: true);
     } catch (_) {
