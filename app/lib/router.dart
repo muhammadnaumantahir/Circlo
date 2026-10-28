@@ -34,7 +34,12 @@ class _RouterNotifier extends ChangeNotifier {
     final user = auth.valueOrNull;
     if (user == null) return _publicRoutes.contains(loc) ? null : '/login';
 
-    if (!user.emailVerified) {
+    // Google verifies the provider email; don't force Google-authenticated users
+    // through the email/password verification screen.
+    final trustedGoogleEmail = user.providerData.any(
+      (provider) => provider.providerId == 'google.com',
+    );
+    if (!user.emailVerified && !trustedGoogleEmail) {
       return loc == '/verify-email' ? null : '/verify-email';
     }
 
