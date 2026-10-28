@@ -317,6 +317,8 @@ describe('live location sharing (circle-scoped)', () => {
     await seed({ bob: true });
     await env.withSecurityRulesDisabled(async (ctx) => {
       const f = ctx.firestore();
+      // Simulate a legacy doc whose member has since enabled sharing again.
+      await updateDoc(doc(f, 'circles/c1/members/bob'), { sharesLocation: true, paused: false });
       await setDoc(locRef(f, 'c1', 'bob'), {
         uid: 'bob',
         lat: 31.5204,
