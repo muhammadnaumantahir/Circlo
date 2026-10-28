@@ -447,6 +447,8 @@ describe('saved places, subscriptions and events (Increment 3)', () => {
     await assertFails(setDoc(doc(db('alice'), 'circles/c1/placeSubscriptions/bob_p1'), sub('bob', 'p1')));   // for someone else
     await assertFails(setDoc(doc(db('bob'), 'circles/c1/placeSubscriptions/wrongid'), sub('bob', 'p1')));
     await assertFails(setDoc(doc(db('bob'), 'circles/c1/placeSubscriptions/bob_p1'), sub('bob', 'p1', { arrive: 'yes' })));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/placeSubscriptions/bob_p1'), sub('bob', 'p1', { paused: true })));
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/placeSubscriptions/bob_p1'), sub('bob', 'p1', { paused: 'yes' })));
     await assertFails(setDoc(doc(db('mallory'), 'circles/c1/placeSubscriptions/mallory_p1'), sub('mallory', 'p1')));
   });
   it('a user can list only their own subscriptions via the collection group', async () => {
