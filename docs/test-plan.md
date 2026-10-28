@@ -35,4 +35,4 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | Static | `flutter analyze`, `flutter test` | `.github/workflows/flutter_ci.yml` (manual `workflow_dispatch`) | CI job `verify` | Not run here |
 | Security | Secret scan | CI | gitleaks | Not run |
 
-Not covered yet (later increments): location sharing, places, history, notifications, account deletion, accessibility audit, real-device background tracking.
+Not verified yet: full end-to-end location sharing, places/history/notification workflows across two devices, account deletion, accessibility audit, and real-device background tracking. Automated coverage exists for several core flows but has not been run in this authoring environment.
