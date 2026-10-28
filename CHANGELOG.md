@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Ignore out-of-order GPS samples in saved-place arrival/departure detection so delayed callbacks cannot advance confirmation or create false transitions.
 - Skip malformed saved-place documents in the live places stream so bad coordinates or radii cannot break place tracking.
 - Ignore malformed GPS samples and invalid saved-place coordinates/radii in arrival/departure detection to prevent false safety alerts.
 - Fix the account-deletion circle reference and guard relative-time labels against future timestamps.
