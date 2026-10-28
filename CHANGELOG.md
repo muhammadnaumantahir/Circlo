@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Reject malformed saved-place subscription `allMembers` values rather than accidentally interpreting them as enabled; legacy documents without the field still default to all members.
 - Reject shared-location documents with malformed accuracy values instead of treating them as zero-accuracy GPS fixes; legacy documents with no accuracy field remain compatible.
 - Prevent malformed Firestore display-name values from causing runtime cast errors in location-sharing and place-event flows; ignore malformed one-off place-subscription reads instead of throwing.
 - Make circle, member and join-request model parsing tolerate malformed Firestore string and timestamp fields without runtime cast failures.
