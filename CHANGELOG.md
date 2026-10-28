@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Fixed
+- Fix the account-deletion circle reference and guard relative-time labels against future timestamps.
+- Skip malformed or out-of-range shared-location documents so one invalid Firestore record cannot break the live-location stream; add regression tests.
 - Treat shared-location timestamps more than two minutes in the future as unavailable instead of falsely showing a member as actively sharing; add regression coverage for large and small clock skew.
 - Clarified the timed location-sharing pause choice as “Until 6:00 AM”; it can resume at 6:00 AM today when selected before 6:00 AM, or the next day when selected later.
 
