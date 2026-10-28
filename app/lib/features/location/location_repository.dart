@@ -35,6 +35,7 @@ class LocationRepository {
       .collection('circles')
       .doc(circleId)
       .collection('locations')
+      .where('sharing', isEqualTo: true)
       .snapshots()
       .map((snap) => {
             for (final d in snap.docs) d.id: MemberLocation.fromMap(d.id, d.data()),
@@ -106,6 +107,7 @@ class LocationRepository {
         'lat': lat,
         'lng': lng,
         'accuracy': accuracy < 0 ? 0 : accuracy,
+        'sharing': true,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     }
