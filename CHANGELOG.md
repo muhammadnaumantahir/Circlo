@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Changed
-- Polished the Travel History timeline with richer stop cards, arrival/departure chips, duration and current-stop state, plus a one-tap map control to fit the selected route and stops.
+- Polished the Travel History timeline with richer stop cards, arrival/departure chips, stay duration and an explicit open/last-seen state for unfinished records, plus a one-tap map control to fit the selected route and stops.
 - Improved Travel History with one-tap Today / Yesterday / 7 days ago shortcuts and a compact daily summary of recorded stops, simplified route points, and last recorded fix; privacy and retention behavior are unchanged.
 - Added map-wide People search and Sharing, Paused, Unavailable and Not sharing filters; the selected filters apply to both the People list and visible map markers, and reset when switching circles.
 - Added search across activity text, circle names and event categories, plus category chips for All, Places, People and Location with counts and a clear-filter empty state. This uses the existing in-app feed only and does not add push delivery or backend cost.
