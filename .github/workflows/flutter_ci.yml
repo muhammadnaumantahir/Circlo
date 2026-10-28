@@ -22,15 +22,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate build helper syntax
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n build-cloudflare.sh
+          python3 -m py_compile tools/apply_platform_config.py
+
       - name: Read pinned Flutter version
         id: flutter-version
         working-directory: .
         shell: bash
         run: |
           set -euo pipefail
-          version="$(sed -nE 's/.*"flutter"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' .fvmrc | head -n 1)"
+          version="$(sed -nE 's/.*"flutter"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' app/.fvmrc | head -n 1)"
           if [[ -z "$version" ]]; then
-            echo "::error::Could not read Flutter version from .fvmrc"
+            echo "::error::Could not read Flutter version from app/.fvmrc"
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
