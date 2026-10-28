@@ -14,4 +14,12 @@ void main() {
     expect(find.text('Enter your password'), findsOneWidget);
     expect(find.text('Continue with Google'), findsOneWidget);
   });
+
+  testWidgets('signup exposes Google sign-in and keeps the birth-year requirement', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: SignUpScreen())));
+
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Birth year'), findsOneWidget);
+    expect(find.text('At least 8 characters'), findsOneWidget);
+  });
 }
