@@ -16,7 +16,10 @@ service cloud.firestore {
     function locationPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/locations/$(uid); }
     function codePath(code) { return /databases/$(database)/documents/joinCodes/$(code); }
 
-    function isMember(cid) { return signedIn() && exists(memberPath(cid, request.auth.uid)); }
+    function isMember(cid) {
+      // Orphaned subcollection documents stop being visible as soon as the parent circle is gone.
+      return signedIn() && exists(circlePath(cid)) && exists(memberPath(cid, request.auth.uid));
+    }
     function isOwner(cid) { return isMember(cid) && get(circlePath(cid)).data.ownerUid == request.auth.uid; }
 
     function validCodeFormat(code) {
@@ -115,7 +118,10 @@ service cloud.firestore {
           && getAfter(memberPath(cid, request.resource.data.ownerUid)).data.role == 'owner'
           && getAfter(memberPath(cid, request.auth.uid)).data.role == 'member'));
       // Deleting a circle is the owner's call; the app deletes everything below it first (no server).
-      allow delete: if isOwner(cid);
+      allow delete: if isOwner(cid)
+        // Circle deletion must remove the owner's membership and location in the same final batch.
+        && !existsAfter(memberPath(cid, request.auth.uid))
+        && !existsAfter(locationPath(cid, request.auth.uid));
       // No list: members find circles via the members collection group.
 
       function validJoinCode(code, circleId) {
