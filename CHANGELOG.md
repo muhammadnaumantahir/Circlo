@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Changed
+- Improved Travel History with one-tap Today / Yesterday / 7 days ago shortcuts and a compact daily summary of recorded stops, simplified route points, and last recorded fix; privacy and retention behavior are unchanged.
 - Added map-wide People search and Sharing, Paused, Unavailable and Not sharing filters; the selected filters apply to both the People list and visible map markers, and reset when switching circles.
 - Added search across activity text, circle names and event categories, plus category chips for All, Places, People and Location with counts and a clear-filter empty state. This uses the existing in-app feed only and does not add push delivery or backend cost.
 - Upgraded Saved Places with a per-circle alert dashboard, filters for all/alerts on/alerts off, one-tap pause/resume of arrival and departure alerts while preserving each user's member-selection preferences, and live search by saved-place name.
