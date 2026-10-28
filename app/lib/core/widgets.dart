@@ -133,20 +133,20 @@ class FormPage extends StatelessWidget {
 
 /// Calm, colorful design tokens shared across Circlo's feature screens.
 abstract final class CircloPalette {
-  static const brand = Color(0xFF2563EB);
-  static const mint = Color(0xFF17C7A1);
-  static const violet = Color(0xFF8B7CFF);
-  static const orange = Color(0xFFF28C38);
-  static const rose = Color(0xFFE772A1);
-  static const ink = Color(0xFF10203A);
-  static const muted = Color(0xFF65738B);
-  static const canvas = Color(0xFFF6F8FC);
+  static const brand = Color(0xFF5B4FE8);
+  static const mint = Color(0xFF18B8A5);
+  static const violet = Color(0xFF9B8AFB);
+  static const orange = Color(0xFFF59E0B);
+  static const rose = Color(0xFFF472B6);
+  static const ink = Color(0xFF171B3B);
+  static const muted = Color(0xFF68708A);
+  static const canvas = Color(0xFFF7F7FC);
   static const darkCanvas = Color(0xFF0D1524);
   static const darkSurface = Color(0xFF111C2D);
   static const heroGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF1D4ED8), Color(0xFF2563EB), Color(0xFF17C7A1)],
+    colors: [Color(0xFF4338CA), Color(0xFF665BEA), Color(0xFF18B8A5)],
   );
 
   static const accents = <Color>[brand, mint, violet, orange, rose];
