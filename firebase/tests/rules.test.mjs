@@ -242,7 +242,7 @@ describe('join code management', () => {
 });
 
 describe('live location sharing (circle-scoped)', () => {
-  const loc = (uid, over = {}) => ({ uid, lat: 31.5204, lng: 74.3587, accuracy: 12, updatedAt: serverTimestamp(), ...over });
+  const loc = (uid, over = {}) => ({ uid, lat: 31.5204, lng: 74.3587, accuracy: 12, sharing: true, updatedAt: serverTimestamp(), ...over });
   const locRef = (f, cid, uid) => doc(f, `circles/${cid}/locations/${uid}`);
   const setSharing = (uid, cid, over) => env.withSecurityRulesDisabled(async (ctx) => {
     await updateDoc(doc(ctx.firestore(), `circles/${cid}/members/${uid}`), over);
@@ -284,11 +284,55 @@ describe('live location sharing (circle-scoped)', () => {
     await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
     await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
     await assertSucceeds(getDoc(locRef(db('alice'), 'c1', 'bob')));
-    await assertSucceeds(getDocs(collection(db('alice'), 'circles/c1/locations')));
+    await assertSucceeds(getDocs(query(collection(db('alice'), 'circles/c1/locations'), where('sharing', '==', true))));
     await assertFails(getDoc(locRef(db('carol'), 'c1', 'bob')));              // member of c2 only
     await assertFails(getDocs(collection(db('carol'), 'circles/c1/locations')));
     await assertFails(getDoc(locRef(db('mallory'), 'c1', 'bob')));
   });
+  it('does not allow a user to turn sharing off or pause while leaving a location document behind', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+
+    // The member flag cannot be changed to off independently of location deletion.
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { sharesLocation: false }));
+    const stop = writeBatch(db('bob'));
+    stop.update(doc(db('bob'), 'circles/c1/members/bob'), { sharesLocation: false, paused: false });
+    stop.delete(locRef(db('bob'), 'c1', 'bob'));
+    await assertSucceeds(stop.commit());
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+
+    // Pausing has the same atomic deletion requirement.
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { paused: true }));
+    const pause = writeBatch(db('bob'));
+    pause.update(doc(db('bob'), 'circles/c1/members/bob'), { paused: true });
+    pause.delete(locRef(db('bob'), 'c1', 'bob'));
+    await assertSucceeds(pause.commit());
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+  });
+
+  it('legacy location documents without the active-sharing marker are not readable or queried', async () => {
+    await seed({ bob: true });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const f = ctx.firestore();
+      await setDoc(locRef(f, 'c1', 'bob'), {
+        uid: 'bob',
+        lat: 31.5204,
+        lng: 74.3587,
+        accuracy: 12,
+        updatedAt: Timestamp.now(),
+      });
+    });
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+    const activeOnly = await getDocs(query(
+      collection(db('alice'), 'circles/c1/locations'),
+      where('sharing', '==', true),
+    ));
+    if (!activeOnly.empty) throw new Error('legacy location must be excluded from the active query');
+  });
+
   it('stopping sharing (member flag + delete in one batch) removes the location', async () => {
     await seed({ bob: true });
     await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
