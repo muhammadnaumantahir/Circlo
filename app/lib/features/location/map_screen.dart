@@ -390,21 +390,22 @@ class _MapBody extends ConsumerWidget {
               ),
             ),
           ),
-        Positioned(
-          left: 12,
-          right: 12,
-          bottom: 12,
-          child: _PeoplePeekCard(
-            views: views,
-            onAllPeople: () => ref.read(_peopleListModeProvider.notifier).state = true,
-            onMemberTap: (v) => _showDetails(context, v, DateTime.now()),
-            onPlaces: () => context.go('/places'),
-            onSharing: () => context.push('/sharing'),
+        if (MediaQuery.sizeOf(context).width < 900)
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: _PeoplePeekCard(
+              views: views,
+              onAllPeople: () => ref.read(_peopleListModeProvider.notifier).state = true,
+              onMemberTap: (v) => _showDetails(context, v, DateTime.now()),
+              onPlaces: () => context.go('/places'),
+              onSharing: () => context.push('/sharing'),
+            ),
           ),
-        ),
         Positioned(
           right: 18,
-          bottom: 174,
+          bottom: MediaQuery.sizeOf(context).width < 900 ? 194 : 24,
           child: FloatingActionButton.small(
             heroTag: 'recenter',
             tooltip: 'Show everyone',
@@ -598,7 +599,7 @@ class _PeoplePeekCard extends StatelessWidget {
                               _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 38),
                               const SizedBox(height: 4),
                               Text(
-                                v.member.uid == null ? v.member.displayName : v.member.displayName,
+                                v.member.displayName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
