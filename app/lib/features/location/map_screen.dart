@@ -478,7 +478,7 @@ class _MapBody extends ConsumerWidget {
                         children: [
                           Text(v.member.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                           const SizedBox(height: 4),
-                          Text('Circle member', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                          Text(v.member.isOwner ? 'Circle owner' : 'Circle member', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
                         ],
                       ),
                     ),
