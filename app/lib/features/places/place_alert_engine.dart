@@ -38,7 +38,10 @@ class PlaceAlertEngine {
     for (final id in _subs.keys.toList()) {
       if (!circleIds.contains(id)) {
         await _subs.remove(id)?.cancel();
-        _placesByCircle.remove(id);
+        final removedPlaces = _placesByCircle.remove(id) ?? const <Place>[];
+        for (final place in removedPlaces) {
+          _detector.forget(place.id);
+        }
         _names.remove(id);
       }
     }
@@ -56,7 +59,11 @@ class PlaceAlertEngine {
         final seen = <String>{};
         for (final e in events) {
           if (!seen.add(e.placeId)) continue; // newest event per place wins
-          if (e.isArrival) _detector.restoreInside(e.placeId, e.visitId);
+          _detector.restoreState(
+            e.placeId,
+            inside: e.isArrival,
+            visitId: e.isArrival ? e.visitId : null,
+          );
         }
       } on FirebaseException {
         // Without restore we might repeat an "arrived"; acceptable, rules reject exact duplicates.
