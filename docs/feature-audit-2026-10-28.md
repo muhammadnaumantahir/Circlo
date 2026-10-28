@@ -34,6 +34,8 @@ This audit reflects a static review of the current Flutter source and project re
 - Circle deletion removes location projections before deleting member documents in small batches to stay within Firestore security-rule access-call limits.
 - Sharing heartbeats use the current session generation across circle switches; late upload responses or delayed errors from an old native stream cannot replace or stop the newer session.
 - Pending place events retry the member-name lookup after connectivity recovers instead of remaining stuck until sharing is toggled.
+- Pinned Flutter **3.47.2** in `app/.fvmrc`; CI and the Cloudflare build read the same pin. Cloudflare rejects a stale/mismatched SDK instead of silently reusing it.
+- Aligned generated Android Gradle settings through `tools/apply_platform_config.py` with AGP **9.4.0**, Gradle **9.8.0**, Kotlin **2.4.10**, Java/JVM target **17**, and Google Services plugin **4.5.0** when present. The native project is generated locally, so this still requires a real generated Android build.
 
 ## Important gaps before release
 
