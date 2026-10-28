@@ -108,6 +108,25 @@ void main() {
       expect(place.radiusM, 150);
     });
 
+    test('rejects a non-string name and safely defaults malformed optional creator', () {
+      expect(Place.tryFromMap('c1', 'p1', {
+        'name': 42,
+        'lat': 31.52,
+        'lng': 74.35,
+        'radiusM': 150,
+      }), isNull);
+
+      final place = Place.tryFromMap('c1', 'p1', {
+        'name': 'Home',
+        'lat': 31.52,
+        'lng': 74.35,
+        'radiusM': 150,
+        'createdBy': 42,
+      });
+      expect(place, isNotNull);
+      expect(place!.createdBy, '');
+    });
+
     test('rejects malformed coordinates and out-of-policy radii', () {
       expect(Place.tryFromMap('c1', 'p1', {'name': 'Home', 'lat': 91, 'lng': 0, 'radiusM': 150}), isNull);
       expect(Place.tryFromMap('c1', 'p1', {'name': 'Home', 'lat': 0, 'lng': double.nan, 'radiusM': 150}), isNull);

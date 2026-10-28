@@ -37,8 +37,11 @@ class Place {
     final lat = rawLat.toDouble();
     final lng = rawLng.toDouble();
     final radiusM = rawRadius.toDouble();
-    final name = (d['name'] as String?)?.trim() ?? '';
+    final rawName = d['name'];
+    if (rawName is! String) return null;
+    final name = rawName.trim();
     if (name.isEmpty || !_validPlaceCoordinate(lat, lng)) return null;
+    final rawCreatedBy = d['createdBy'];
     if (!radiusM.isFinite || radiusM < kMinRadiusM || radiusM > kMaxRadiusM) return null;
 
     return Place(
@@ -48,7 +51,8 @@ class Place {
       lat: lat,
       lng: lng,
       radiusM: radiusM,
-      createdBy: (d['createdBy'] as String?) ?? '',
+      // Older documents may omit the creator; ignore malformed optional values safely.
+      createdBy: rawCreatedBy is String ? rawCreatedBy : '',
     );
   }
 
