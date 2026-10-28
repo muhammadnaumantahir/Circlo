@@ -92,6 +92,15 @@ void main() {
         'placeId': 'p1',
         'memberUids': ['u1', 42],
       }), isNull);
+      // A malformed value must not silently enable alerts for every circle member.
+      expect(PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'allMembers': 'false',
+      }), isNull);
+      expect(PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'allMembers': 42,
+      }), isNull);
     });
   });
 
