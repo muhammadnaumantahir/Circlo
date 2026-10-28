@@ -21,7 +21,7 @@ This audit reflects a static review of the current Flutter source and project re
 - Added a consistent light/dark theme, reusable empty-state presentation, polished circle/place cards, and responsive desktop navigation.
 - Circle cards use a role label without starting a separate live member listener for every circle, avoiding extra reads.
 - The sharing screen shows tracking state, the last successful location sync, flags syncs older than 10 minutes, and offers retry.
-- A location-stream failure now cancels the heartbeat before cleanup so the app does not keep republishing a stale position.
+- A location-stream failure now cancels the heartbeat before cleanup. The five-minute heartbeat requests a fresh position, and initial/stream/heartbeat fixes are rejected when their timestamp is stale rather than being re-stamped as fresh.
 - The map clearly tells web users that sharing stops when the tab is closed, and compact screens can switch between a full map and a full-height People list.
 - The profile screen and in-app notification feed use clearer identity, privacy and activity cards.
 - Notification preference saves are serialized; controls are disabled during writes and local choices roll back if a save fails.
