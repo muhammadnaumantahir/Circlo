@@ -4,16 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router.dart';
 
 ThemeData _theme(Brightness brightness) {
-  const brand = Color(0xFF2563EB);
-  const mint = Color(0xFF17C7A1);
+  const brand = Color(0xFF5B4FE8);
+  const mint = Color(0xFF18B8A5);
   final isLight = brightness == Brightness.light;
   final scheme = ColorScheme.fromSeed(
     seedColor: brand,
     secondary: mint,
-    tertiary: const Color(0xFF8B7CFF),
+    tertiary: const Color(0xFF9B8AFB),
     brightness: brightness,
   );
-  final background = isLight ? const Color(0xFFF6F8FC) : const Color(0xFF0D1524);
+  final background = isLight ? const Color(0xFFF7F7FC) : const Color(0xFF0D1524);
   final surface = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF111C2D);
   final border = isLight ? const Color(0xFFE3E8F0) : const Color(0xFF29364A);
   final base = ThemeData(useMaterial3: true, colorScheme: scheme);
