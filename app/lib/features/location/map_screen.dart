@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -204,6 +206,7 @@ enum _MemberFilter { all, sharing, paused, unavailable, notSharing }
 
 class _MapBodyState extends ConsumerState<_MapBody> {
   final TextEditingController _searchController = TextEditingController();
+  late final Timer _statusRefreshTimer;
   String _query = '';
   _MemberFilter _filter = _MemberFilter.all;
 
@@ -214,6 +217,16 @@ class _MapBodyState extends ConsumerState<_MapBody> {
   void Function(List<LatLng>) get onFit => widget.onFit;
   String? get fittedFor => widget.fittedFor;
   void Function(String) get markFitted => widget.markFitted;
+
+  @override
+  void initState() {
+    super.initState();
+    // Location snapshots can go quiet, so refresh age labels and stale status locally.
+    // This timer only rebuilds the UI; it performs no Firebase reads or writes.
+    _statusRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void didUpdateWidget(covariant _MapBody oldWidget) {
@@ -227,6 +240,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
 
   @override
   void dispose() {
+    _statusRefreshTimer.cancel();
     _searchController.dispose();
     super.dispose();
   }
