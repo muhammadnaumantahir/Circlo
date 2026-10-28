@@ -60,6 +60,7 @@ class SharingController extends Notifier<SharingState> {
   Timer? _resumeTimer;
   List<MyMembership> _memberships = const [];
   int _syncGeneration = 0;
+  int _streamGeneration = 0;
   static const Duration _heartbeatEvery = Duration(minutes: 5);
 
   @override
@@ -227,6 +228,7 @@ class SharingController extends Notifier<SharingState> {
 
   Future<void> _start({required int generation}) async {
     if (_sub != null) return;
+    final streamGeneration = ++_streamGeneration;
     _throttle.reset();
     final uid = ref.read(currentUidProvider);
     if (uid != null) {
@@ -248,7 +250,7 @@ class SharingController extends Notifier<SharingState> {
       onError: (Object e) {
         // Do not keep the heartbeat publishing a stale position after the OS revokes location
         // access or the position stream fails. Stop the stream and engines; the user can retry.
-        unawaited(_handleLocationStreamError(_syncGeneration));
+        unawaited(_handleLocationStreamError(streamGeneration));
       },
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) {
@@ -323,14 +325,16 @@ class SharingController extends Notifier<SharingState> {
     ));
   }
 
-  Future<void> _handleLocationStreamError(int generation) async {
+  Future<void> _handleLocationStreamError(int streamGeneration) async {
+    // A late error from a cancelled stream must not stop its replacement.
+    if (streamGeneration != _streamGeneration) return;
     try {
       await _stop();
     } catch (_) {
       // Preserve the actionable location error even if best-effort flush/cleanup also fails.
     }
-    // A newer permission check or sharing-switch change supersedes this stream error.
-    if (generation != _syncGeneration) return;
+    // A newer stream may have started while cleanup was in flight.
+    if (_streamGeneration != streamGeneration + 1) return;
     state = state.copyWith(
       tracking: false,
       error: 'Could not read your location. Check location permission and device settings.',
@@ -338,6 +342,8 @@ class SharingController extends Notifier<SharingState> {
   }
 
   Future<void> _stop() async {
+    // Invalidate callbacks belonging to the stream being detached.
+    ++_streamGeneration;
     // Detach every resource before the first await. A newer sync may start fresh resources
     // while cancellation/flush below is still finishing; this cleanup must never dispose those.
     _heartbeat?.cancel();
