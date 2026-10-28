@@ -260,7 +260,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['placeId', 'placeName', 'memberUid', 'memberName', 'type', 'visitId', 'occurredAt'])
           && request.resource.data.keys().hasAll(['placeId', 'placeName', 'memberUid', 'memberName', 'type', 'visitId', 'occurredAt'])
           && request.resource.data.memberUid == request.auth.uid
-          && request.resource.data.type in ['arrive', 'leave']
+          && request.resource.data.type in ['arrive', 'leave', 'checkIn']
           && request.resource.data.visitId is string
           && request.resource.data.visitId.size() >= 1 && request.resource.data.visitId.size() <= 20
           && eventId == request.auth.uid + '_' + request.resource.data.placeId + '_' + request.resource.data.visitId + '_' + request.resource.data.type
@@ -268,8 +268,9 @@ service cloud.firestore {
           && exists(placePath(cid, request.resource.data.placeId))
           && get(placePath(cid, request.resource.data.placeId)).data.name == request.resource.data.placeName
           && get(memberPath(cid, request.auth.uid)).data.displayName == request.resource.data.memberName
-          && get(memberPath(cid, request.auth.uid)).data.get('sharesLocation', false) == true
-          && get(memberPath(cid, request.auth.uid)).data.get('paused', false) == false;
+          && (request.resource.data.type == 'checkIn'
+              || (get(memberPath(cid, request.auth.uid)).data.get('sharesLocation', false) == true
+                  && get(memberPath(cid, request.auth.uid)).data.get('paused', false) == false));
         // Events are immutable; members may delete only their own (best-effort retention cleanup).
         allow delete: if signedIn() && (resource.data.memberUid == request.auth.uid || isOwner(cid));
       }
