@@ -124,7 +124,22 @@ final notificationFeedProvider = Provider<AsyncValue<List<FeedItem>>>((ref) {
     if (wants(FeedKind.place)) {
       for (final e in ref.watch(recentEventsProvider(c.id)).valueOrNull ?? const <PlaceEvent>[]) {
         final at = e.occurredAt;
-        if (at == null || at.isBefore(cutoff) || e.memberUid == uid) continue;
+        if (at == null || at.isBefore(cutoff)) continue;
+        if (e.isCheckIn) {
+          items.add(FeedItem(
+            id: '${c.id}/${e.id}',
+            circleId: c.id,
+            circleName: c.name,
+            kind: FeedKind.place,
+            text: e.memberUid == uid ? 'You checked in at ${e.placeName}' : '${e.memberName} checked in at ${e.placeName}',
+            at: at,
+            isCheckIn: true,
+            actorUid: e.memberUid,
+            eventId: e.id,
+          ));
+          continue;
+        }
+        if (e.memberUid == uid) continue;
         final sub = subByKey['${c.id}/${e.placeId}'];
         if (sub == null || !sub.wants(e.type, e.memberUid)) continue;
         items.add(FeedItem(
