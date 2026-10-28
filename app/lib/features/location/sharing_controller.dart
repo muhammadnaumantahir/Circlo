@@ -186,7 +186,9 @@ class SharingController extends Notifier<SharingState> {
         _publish(p);
       },
       onError: (Object e) {
-        state = state.copyWith(error: 'Could not read your location. Check location settings.');
+        // Do not keep the heartbeat publishing a stale position after the OS revokes location
+        // access or the position stream fails. Stop the stream and engines; the user can retry.
+        unawaited(_handleLocationStreamError());
       },
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) {
@@ -218,6 +220,18 @@ class SharingController extends Notifier<SharingState> {
       accuracy: p.accuracy,
       time: now ? DateTime.now() : p.timestamp,
     ));
+  }
+
+  Future<void> _handleLocationStreamError() async {
+    try {
+      await _stop();
+    } catch (_) {
+      // Preserve the actionable location error even if best-effort flush/cleanup also fails.
+    }
+    state = state.copyWith(
+      tracking: false,
+      error: 'Could not read your location. Check location permission and device settings.',
+    );
   }
 
   Future<void> _stop() async {
