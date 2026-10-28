@@ -10,6 +10,7 @@ import 'features/history/history_screens.dart';
 import 'features/location/map_screen.dart';
 import 'features/location/sharing_screen.dart';
 import 'features/places/notifications_screen.dart';
+import 'features/places/check_in_screen.dart';
 import 'features/circles/circle_models.dart';
 import 'features/places/place_models.dart';
 import 'features/places/places_screens.dart';
@@ -116,6 +117,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/sharing', builder: (_, __) => const SharingScreen()),
       GoRoute(path: '/history/settings', builder: (_, __) => const HistorySettingsScreen()),
       GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      GoRoute(path: '/check-in', builder: (_, __) => const CheckInScreen()),
       GoRoute(path: '/notifications/settings', builder: (_, __) => const NotificationSettingsScreen()),
       GoRoute(
         path: '/places/new',
