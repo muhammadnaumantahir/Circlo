@@ -16,14 +16,39 @@ class MemberLocation {
   final double accuracy;
   final DateTime? updatedAt; // null while the server timestamp is still pending
 
-  factory MemberLocation.fromMap(String uid, Map<String, dynamic> data) =>
-      MemberLocation(
-        uid: uid,
-        lat: (data['lat'] as num).toDouble(),
-        lng: (data['lng'] as num).toDouble(),
-        accuracy: (data['accuracy'] as num?)?.toDouble() ?? 0,
-        updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
-      );
+  /// Returns null for malformed or out-of-range coordinates instead of letting
+  /// one bad Firestore document break the entire live-location stream.
+  static MemberLocation? tryFromMap(String uid, Map<String, dynamic> data) {
+    final rawLat = data['lat'];
+    final rawLng = data['lng'];
+    final rawAccuracy = data['accuracy'];
+    if (rawLat is! num || rawLng is! num) return null;
+
+    final lat = rawLat.toDouble();
+    final lng = rawLng.toDouble();
+    final accuracy = rawAccuracy is num ? rawAccuracy.toDouble() : 0.0;
+    if (!lat.isFinite || !lng.isFinite || !accuracy.isFinite) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180 || accuracy < 0) {
+      return null;
+    }
+
+    final rawUpdatedAt = data['updatedAt'];
+    return MemberLocation(
+      uid: uid,
+      lat: lat,
+      lng: lng,
+      accuracy: accuracy,
+      updatedAt: rawUpdatedAt is Timestamp ? rawUpdatedAt.toDate() : null,
+    );
+  }
+
+  factory MemberLocation.fromMap(String uid, Map<String, dynamic> data) {
+    final parsed = tryFromMap(uid, data);
+    if (parsed == null) {
+      throw FormatException('Invalid location document for member $uid');
+    }
+    return parsed;
+  }
 }
 
 /// The signed-in user's own sharing switches for one circle.
