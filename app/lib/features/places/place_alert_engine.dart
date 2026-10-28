@@ -78,6 +78,7 @@ class PlaceAlertEngine {
         if (generation != _generation || !_desiredCircleIds.contains(id)) return;
         final seen = <String>{};
         for (final e in events) {
+          if (e.isCheckIn) continue;
           if (!seen.add(e.placeId)) continue;
           _detector.restoreState(
             e.placeId,
