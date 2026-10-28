@@ -49,6 +49,53 @@ void main() {
     expect(writes, greaterThan(0));
   });
 
+  test('a second fix cannot mutate track state while the first flush is pending', () async {
+    final writeStarted = Completer<void>();
+    final releaseWrite = Completer<void>();
+    DayTrack? firstTrack;
+    var writes = 0;
+    final firstTime = DateTime(2026, 10, 29, 8);
+
+    final recorder = HistoryRecorder(
+      uid: 'u1',
+      loadDay: (uid, day) async => null,
+      saveDay: (uid, track, sharedCircleIds) async {
+        writes++;
+        if (writes == 1) {
+          firstTrack = track;
+          writeStarted.complete();
+          await releaseWrite.future;
+        }
+      },
+    )..configure(
+        keepHistory: true,
+        sharedCircleIds: <String>{},
+        places: const [],
+      );
+
+    final first = recorder.onFix(
+      lat: 31.52,
+      lng: 74.35,
+      accuracy: 10,
+      time: firstTime,
+    );
+    await writeStarted.future;
+
+    final second = recorder.onFix(
+      lat: 31.52,
+      lng: 74.35,
+      accuracy: 10,
+      time: firstTime.add(const Duration(minutes: 1)),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(firstTrack!.lastSeen, firstTime.millisecondsSinceEpoch);
+    releaseWrite.complete();
+    await Future.wait([first, second]);
+
+    expect(firstTrack!.lastSeen, firstTime.add(const Duration(minutes: 1)).millisecondsSinceEpoch);
+  });
+
   test('a failed initial restore can be retried on a later fix', () async {
     var reads = 0;
     final recorder = HistoryRecorder(
