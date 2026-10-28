@@ -70,6 +70,68 @@ void main() {
     expect(b.current!.visits[2].leftAt, isNull);
   });
 
+  test('invalid GPS coordinates and accuracy are ignored without creating history', () {
+    final b = TrackBuilder();
+    final invalidSamples = [
+      (double.nan, homeLng, 10.0),
+      (91.0, homeLng, 10.0),
+      (homeLat, double.infinity, 10.0),
+      (homeLat, homeLng, double.nan),
+      (homeLat, homeLng, double.infinity),
+      (homeLat, homeLng, -1.0),
+    ];
+
+    for (final sample in invalidSamples) {
+      expect(
+        b.process(
+          lat: sample.$1,
+          lng: sample.$2,
+          accuracy: sample.$3,
+          time: t0,
+          places: const [home],
+          tzOffsetMin: 0,
+        ),
+        isFalse,
+      );
+    }
+    expect(b.current, isNull);
+  });
+
+  test('an older GPS fix cannot roll history back to a previous day', () {
+    final b = TrackBuilder();
+    final newer = DateTime(2026, 10, 14, 0, 5);
+    expect(
+      b.process(
+        lat: homeLat,
+        lng: homeLng,
+        accuracy: 10,
+        time: newer,
+        places: const [home],
+        tzOffsetMin: 0,
+      ),
+      isTrue,
+    );
+    final current = b.current!;
+    final lastSeen = current.lastSeen;
+    final routeLength = current.route.length;
+
+    expect(
+      b.process(
+        lat: homeLat,
+        lng: homeLng,
+        accuracy: 10,
+        time: t0,
+        places: const [home],
+        tzOffsetMin: 0,
+      ),
+      isFalse,
+    );
+    expect(b.current, same(current));
+    expect(b.current!.day, '20261014');
+    expect(b.current!.lastSeen, lastSeen);
+    expect(b.current!.route, hasLength(routeLength));
+  });
+
   test('inaccurate fixes are ignored', () {
     final b = TrackBuilder();
     expect(feed(b, north(10), homeLng, 0, acc: 500), isFalse);
