@@ -28,6 +28,9 @@ class MemberLocation {
     final rawLng = data['lng'];
     final rawAccuracy = data['accuracy'];
     if (rawLat is! num || rawLng is! num) return null;
+    // Keep legacy documents without accuracy readable, but do not disguise a
+    // present, malformed accuracy value as a perfect GPS fix.
+    if (rawAccuracy != null && rawAccuracy is! num) return null;
 
     final lat = rawLat.toDouble();
     final lng = rawLng.toDouble();
