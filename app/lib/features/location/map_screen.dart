@@ -16,6 +16,9 @@ import 'location_models.dart';
 import 'sharing_controller.dart';
 import 'sharing_status.dart';
 
+/// False = map view, true = full-height people list on compact screens.
+final _peopleListModeProvider = StateProvider<bool>((ref) => false);
+
 Color _statusColor(BuildContext context, ShareStatus s) {
   switch (s) {
     case ShareStatus.sharing:
@@ -194,6 +197,7 @@ class _MapBody extends ConsumerWidget {
 
     final mapWidget = _buildMap(context, located, uid, places);
     final list = _buildList(context, ref, views, uid, now, membersAsync.isLoading, membersAsync.hasError);
+    final peopleOnly = ref.watch(_peopleListModeProvider);
 
     return Column(
       children: [
@@ -238,10 +242,33 @@ class _MapBody extends ConsumerWidget {
                   SizedBox(width: 360, child: list),
                 ]);
               }
-              return Column(children: [
-                Expanded(flex: 3, child: mapWidget),
-                Expanded(flex: 2, child: list),
-              ]);
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                    child: SegmentedButton<bool>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment<bool>(
+                          value: false,
+                          icon: Icon(Icons.map_outlined),
+                          label: Text('Map'),
+                        ),
+                        ButtonSegment<bool>(
+                          value: true,
+                          icon: Icon(Icons.groups_outlined),
+                          label: Text('People'),
+                        ),
+                      ],
+                      selected: {peopleOnly},
+                      onSelectionChanged: (selection) {
+                        ref.read(_peopleListModeProvider.notifier).state = selection.first;
+                      },
+                    ),
+                  ),
+                  Expanded(child: peopleOnly ? list : mapWidget),
+                ],
+              );
             },
           ),
         ),
