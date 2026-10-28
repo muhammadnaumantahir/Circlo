@@ -52,7 +52,7 @@ class _RouterNotifier extends ChangeNotifier {
 
     final auth = _ref.read(authStateProvider);
     if (auth.isLoading) {
-      if (loc == '/splash' && queryRedirect == null) return null;
+      if (loc == '/splash') return null;
       return _routeWithRedirect('/splash', requestedLocation);
     }
 
