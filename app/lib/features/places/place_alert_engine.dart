@@ -120,8 +120,18 @@ class PlaceAlertEngine {
 
   Future<void> _flush() async {
     for (final e in List<_PendingEvent>.of(_pending)) {
-      final name = _names[e.place.circleId];
-      if (name == null) continue; // retry once the member name has been loaded
+      var name = _names[e.place.circleId];
+      if (name == null) {
+        // If the first lookup happened while offline, retry on the next location fix rather
+        // than keeping this event stuck until the user toggles sharing.
+        try {
+          name = await repository.myMemberName(e.place.circleId, uid);
+          if (name != null) _names[e.place.circleId] = name;
+        } on FirebaseException {
+          continue;
+        }
+      }
+      if (name == null) continue;
       try {
         await repository.publishEvent(
           circleId: e.place.circleId,
