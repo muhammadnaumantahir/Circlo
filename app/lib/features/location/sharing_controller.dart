@@ -151,7 +151,8 @@ class SharingController extends Notifier<SharingState> {
       return;
     }
 
-    final scopeChanged = !listEquals(state.activeCircleIds, active);
+    final scopeChanged = !setEquals(state.activeCircleIds.toSet(), active.toSet());
+    final wasRunning = _sub != null;
     state = state.copyWith(
       activeCircleIds: active,
       clearError: true,
@@ -160,6 +161,33 @@ class SharingController extends Notifier<SharingState> {
     await _start(generation: generation);
     if (generation != _syncGeneration) return;
     await _engine?.setCircles(active.toSet());
+    if (generation != _syncGeneration) return;
+
+    // When sharing is enabled/disabled for a circle while the stream is already running,
+    // immediately refresh the location scope rather than waiting for the next movement/heartbeat.
+    if (scopeChanged && wasRunning && _sub != null) {
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        ).timeout(const Duration(seconds: 20));
+        if (generation != _syncGeneration || _sub == null) return;
+        if (!isLocationFixFresh(capturedAt: position.timestamp, now: DateTime.now())) {
+          state = state.copyWith(
+            error: 'Could not refresh location after the sharing change. Check GPS and retry.',
+          );
+          return;
+        }
+        _last = position;
+        _feedEngine(position, now: true);
+        await _publish(position, force: true);
+      } catch (_) {
+        if (generation == _syncGeneration && _sub != null) {
+          state = state.copyWith(
+            error: 'Could not refresh location after the sharing change. Check GPS and retry.',
+          );
+        }
+      }
+    }
     if (generation != _syncGeneration) return;
     _configureHistory();
   }
