@@ -249,8 +249,10 @@ class SharingController extends Notifier<SharingState> {
       ).timeout(const Duration(seconds: 20));
       if (generation != _syncGeneration || _sub == null) return;
 
-      final age = DateTime.now().difference(position.timestamp);
-      if (age > const Duration(minutes: 10)) {
+      if (!isLocationFixFresh(
+        capturedAt: position.timestamp,
+        now: DateTime.now(),
+      )) {
         state = state.copyWith(
           error: 'The device returned an old location fix. Check GPS and retry before sharing again.',
         );
