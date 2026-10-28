@@ -68,6 +68,48 @@ void main() {
     });
   });
 
+  test('rejects out-of-range epoch values and invalid timezone offsets', () {
+    expect(
+      TrackPoint.tryFromMap({
+        'lat': 0,
+        'lng': 0,
+        't': 9007199254740991,
+      }),
+      isNull,
+    );
+    expect(
+      Visit.tryFromMap({
+        'name': 'Home',
+        'lat': 0,
+        'lng': 0,
+        'arrivedAt': 9007199254740991,
+      }),
+      isNull,
+    );
+
+    final track = DayTrack.fromMap({
+      'day': '20261029',
+      'tzOffsetMin': 999999999,
+      'lastSeen': 9007199254740991,
+      'route': [
+        {'lat': 0, 'lng': 0, 't': 9007199254740991},
+      ],
+      'visits': [
+        {
+          'name': 'Home',
+          'lat': 0,
+          'lng': 0,
+          'arrivedAt': 9007199254740991,
+        },
+      ],
+    });
+
+    expect(track.tzOffsetMin, 0);
+    expect(track.lastSeen, 0);
+    expect(track.route, isEmpty);
+    expect(track.visits, isEmpty);
+  });
+
   group('history item tryFromMap', () {
     test('rejects invalid point coordinates and timestamps', () {
       expect(TrackPoint.tryFromMap({'lat': 91, 'lng': 0, 't': 1}), isNull);
