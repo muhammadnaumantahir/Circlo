@@ -98,7 +98,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/circles/create', builder: (_, __) => const CreateCircleScreen()),
-      GoRoute(path: '/circles/join', builder: (_, __) => const JoinCircleScreen()),
+      GoRoute(
+        path: '/circles/join',
+        builder: (_, state) => JoinCircleScreen(initialCode: state.uri.queryParameters['code']),
+      ),
       GoRoute(
         path: '/circles/:id',
         builder: (_, state) => CircleDetailScreen(circleId: state.pathParameters['id']!),
