@@ -49,6 +49,9 @@ class HistoryRecorder {
   bool _keep = false;
   bool _restored = false;
   Future<void>? _restorePending;
+  // GPS callbacks may overlap while a Firestore restore/flush is awaiting network I/O.
+  // Process them in arrival order so mutable track state cannot change mid-write.
+  Future<void> _fixQueue = Future<void>.value();
   bool _dirty = false;
   DateTime? _lastFlush;
   String _signature = '';
@@ -64,6 +67,23 @@ class HistoryRecorder {
   }
 
   Future<void> onFix({
+    required double lat,
+    required double lng,
+    required double accuracy,
+    required DateTime time,
+  }) {
+    final operation = _fixQueue.then(
+      (_) => _processFix(lat: lat, lng: lng, accuracy: accuracy, time: time),
+    );
+    // Do not let an unexpected callback failure permanently block later GPS fixes.
+    _fixQueue = operation.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stackTrace) {},
+    );
+    return operation;
+  }
+
+  Future<void> _processFix({
     required double lat,
     required double lng,
     required double accuracy,
@@ -85,7 +105,9 @@ class HistoryRecorder {
       if (before != null && !identical(before, after)) {
         await _write(before); // persist the finished day (its open visit was closed)
       }
-      if (changed) _dirty = true;
+      // Persist lastSeen on the normal flush cadence even while stationary; TrackBuilder can
+      // update it without changing the thinned route or visit list.
+      if (changed || after?.lastSeen == time.millisecondsSinceEpoch) _dirty = true;
       final sig = _visitSignature(after);
       final visitChanged = sig != _signature;
       _signature = sig;
@@ -143,6 +165,9 @@ class HistoryRecorder {
 
   /// Called when sharing stops/pauses: close the current stop and store what we have.
   Future<void> dispose() async {
+    // Sharing shutdown cancels the stream first; drain queued callbacks before closing the
+    // active visit so no pending fix can mutate the track after its final flush.
+    await _fixQueue;
     if (!_keep || _builder.current == null) return;
     try {
       _builder.closeOpenVisit();
