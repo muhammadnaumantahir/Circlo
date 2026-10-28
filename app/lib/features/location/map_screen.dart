@@ -177,7 +177,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 }
 
-class _MapBody extends ConsumerWidget {
+class _MapBody extends ConsumerStatefulWidget {
   const _MapBody({
     required this.circles,
     required this.circle,
@@ -197,7 +197,42 @@ class _MapBody extends ConsumerWidget {
   final void Function(String) markFitted;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MapBody> createState() => _MapBodyState();
+}
+
+enum _MemberFilter { all, sharing, paused, unavailable, notSharing }
+
+class _MapBodyState extends ConsumerState<_MapBody> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+  _MemberFilter _filter = _MemberFilter.all;
+
+  List<Circle> get circles => widget.circles;
+  Circle get circle => widget.circle;
+  MapController get controller => widget.controller;
+  VoidCallback get onReady => widget.onReady;
+  void Function(List<LatLng>) get onFit => widget.onFit;
+  String? get fittedFor => widget.fittedFor;
+  void Function(String) get markFitted => widget.markFitted;
+
+  @override
+  void didUpdateWidget(covariant _MapBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.circle.id != widget.circle.id) {
+      _searchController.clear();
+      _query = '';
+      _filter = _MemberFilter.all;
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final uid = ref.watch(currentUidProvider);
     final membersAsync = ref.watch(membersProvider(circle.id));
     final locationsAsync = ref.watch(locationsProvider(circle.id));
@@ -207,8 +242,16 @@ class _MapBody extends ConsumerWidget {
     final members = membersAsync.valueOrNull ?? const <Member>[];
     final locations = locationsAsync.valueOrNull ?? const <String, MemberLocation>{};
     final views = [for (final m in members) _MemberView(m, locations[m.uid], now)];
-    final located = [for (final v in views) if (v.location != null) v];
-    final points = [for (final v in located) LatLng(v.location!.lat, v.location!.lng)];
+    final allLocated = [for (final v in views) if (v.location != null) v];
+    final points = [for (final v in allLocated) LatLng(v.location!.lat, v.location!.lng)];
+    final normalizedQuery = _query.trim().toLowerCase();
+    final visibleViews = [
+      for (final v in views)
+        if (_matchesFilter(v.status) &&
+            (normalizedQuery.isEmpty || v.member.displayName.toLowerCase().contains(normalizedQuery)))
+          v,
+    ];
+    final located = [for (final v in visibleViews) if (v.location != null) v];
 
     // Fit the camera once per circle as soon as there is something to show.
     if (points.isNotEmpty && fittedFor != circle.id) {
@@ -216,13 +259,14 @@ class _MapBody extends ConsumerWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) => onFit(points));
     }
 
-    final mapWidget = _buildMap(context, ref, views, located, uid, places);
-    final list = _buildList(context, ref, views, uid, now, membersAsync.isLoading, membersAsync.hasError);
+    final mapWidget = _buildMap(context, ref, visibleViews, located, uid, places);
+    final list = _buildList(context, ref, visibleViews, uid, now, membersAsync.isLoading, membersAsync.hasError);
     final peopleOnly = ref.watch(_peopleListModeProvider);
 
     return Column(
       children: [
         _Header(circles: circles, selected: circle),
+        _buildPeopleSearchFilters(context, views),
         if (kIsWeb)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -294,6 +338,112 @@ class _MapBody extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  bool _matchesFilter(ShareStatus status) {
+    switch (_filter) {
+      case _MemberFilter.all:
+        return true;
+      case _MemberFilter.sharing:
+        return status == ShareStatus.sharing;
+      case _MemberFilter.paused:
+        return status == ShareStatus.paused;
+      case _MemberFilter.unavailable:
+        return status == ShareStatus.unavailable;
+      case _MemberFilter.notSharing:
+        return status == ShareStatus.notSharing;
+    }
+  }
+
+  Widget _buildPeopleSearchFilters(BuildContext context, List<_MemberView> views) {
+    final scheme = Theme.of(context).colorScheme;
+    int countFor(ShareStatus status) => views.where((v) => v.status == status).length;
+
+    Widget chip(String label, int count, _MemberFilter filter) => Padding(
+          padding: const EdgeInsets.only(right: 7),
+          child: ChoiceChip(
+            label: Text('$label $count'),
+            selected: _filter == filter,
+            onSelected: (_) => setState(() => _filter = filter),
+            visualDensity: VisualDensity.compact,
+          ),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _query = value),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Search people in this circle',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear people search',
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _query = '');
+                      },
+                      icon: const Icon(Icons.close),
+                    ),
+              filled: true,
+              fillColor: scheme.surfaceContainerHighest.withValues(alpha: .45),
+              isDense: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                chip('All', views.length, _MemberFilter.all),
+                chip('Sharing', countFor(ShareStatus.sharing), _MemberFilter.sharing),
+                chip('Paused', countFor(ShareStatus.paused), _MemberFilter.paused),
+                chip('Unavailable', countFor(ShareStatus.unavailable), _MemberFilter.unavailable),
+                chip('Not sharing', countFor(ShareStatus.notSharing), _MemberFilter.notSharing),
+              ],
+            ),
+          ),
+          if (_query.trim().isNotEmpty || _filter != _MemberFilter.all)
+            Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Showing ${views.where((v) => _matchesFilter(v.status) && (_query.trim().isEmpty || v.member.displayName.toLowerCase().contains(_query.trim().toLowerCase()))).length} of ${views.length} people',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {
+                          _query = '';
+                          _filter = _MemberFilter.all;
+                        });
+                      },
+                      style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                      child: const Text('Clear'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -383,7 +533,19 @@ class _MapBody extends ConsumerWidget {
             const RichAttributionWidget(attributions: [TextSourceAttribution(kMapAttribution)]),
           ],
         ),
-        if (located.isEmpty)
+        if (views.isEmpty && (_query.trim().isNotEmpty || _filter != _MemberFilter.all))
+          const Positioned(
+            top: 12,
+            left: 12,
+            right: 12,
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Text('No people match the current search or status filter. Clear the search or choose All to see everyone.'),
+              ),
+            ),
+          )
+        else if (located.isEmpty)
           const Positioned(
             top: 12,
             left: 12,
@@ -426,6 +588,30 @@ class _MapBody extends ConsumerWidget {
       DateTime now, bool loading, bool hasError) {
     if (loading && views.isEmpty) return const LoadingView();
     if (hasError) return const MessageView(icon: Icons.lock_outline, title: 'Could not load members');
+    if (views.isEmpty) {
+      final filtering = _query.trim().isNotEmpty || _filter != _MemberFilter.all;
+      return MessageView(
+        icon: filtering ? Icons.search_off_rounded : Icons.groups_outlined,
+        title: filtering ? 'No matching people' : 'No members to show',
+        message: filtering
+            ? 'Try another name or status, or clear your filters to see everyone in this circle.'
+            : 'Circle members will appear here when available.',
+        actions: filtering
+            ? [
+                OutlinedButton(
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _query = '';
+                      _filter = _MemberFilter.all;
+                    });
+                  },
+                  child: const Text('Clear search and filters'),
+                ),
+              ]
+            : const [],
+      );
+    }
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
       itemCount: views.length,
