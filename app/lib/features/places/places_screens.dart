@@ -16,7 +16,8 @@ import 'geocoder.dart';
 import 'notifications_screen.dart';
 import 'place_models.dart';
 
-String _alertSummary(PlaceSubscription? s) {
+String _alertSummary(PlaceSubscription? s, {bool loading = false, bool unavailable = false}) {
+  if (loading) return unavailable ? 'Alert settings unavailable' : 'Loading alert settings';
   if (s == null || !s.enabled) return 'Alerts off';
   final what = s.arrive && s.leave ? 'arrivals & departures' : (s.arrive ? 'arrivals' : 'departures');
   return 'Alerts: $what${s.allMembers ? '' : ' (selected members)'}';
@@ -60,17 +61,39 @@ class PlacesScreen extends ConsumerWidget {
   }
 }
 
-class _PlacesBody extends ConsumerWidget {
+class _PlacesBody extends ConsumerStatefulWidget {
   const _PlacesBody({required this.circles, required this.circle});
   final List<Circle> circles;
   final Circle circle;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PlacesBody> createState() => _PlacesBodyState();
+}
+
+enum _PlaceFilter { all, alertsOn, alertsOff }
+
+class _PlacesBodyState extends ConsumerState<_PlacesBody> {
+  _PlaceFilter _filter = _PlaceFilter.all;
+
+  @override
+  Widget build(BuildContext context) {
+    final circle = widget.circle;
     final placesAsync = ref.watch(placesProvider(circle.id));
-    final subs = ref.watch(mySubscriptionsProvider).valueOrNull ?? const <PlaceSubscription>[];
+    final subscriptionsAsync = ref.watch(mySubscriptionsProvider);
+    final subs = subscriptionsAsync.valueOrNull ?? const <PlaceSubscription>[];
+    final alertsReady = subscriptionsAsync.hasValue;
     final subByPlace = {for (final s in subs) if (s.circleId == circle.id) s.placeId: s};
-    final count = placesAsync.valueOrNull?.length ?? 0;
+    final places = placesAsync.valueOrNull ?? const <Place>[];
+    final count = places.length;
+    final alertsOn = places.where((p) => subByPlace[p.id]?.enabled ?? false).length;
+    final alertsOff = count - alertsOn;
+    final visiblePlaces = [
+      for (final p in places)
+        if (_filter == _PlaceFilter.all ||
+            (_filter == _PlaceFilter.alertsOn && (subByPlace[p.id]?.enabled ?? false)) ||
+            (_filter == _PlaceFilter.alertsOff && !(subByPlace[p.id]?.enabled ?? false)))
+          p,
+    ];
 
     return Column(
       children: [
@@ -80,17 +103,18 @@ class _PlacesBody extends ConsumerWidget {
             isExpanded: true,
             value: circle.id,
             underline: const SizedBox.shrink(),
-            items: [for (final c in circles) DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))],
+            items: [
+              for (final c in widget.circles)
+                DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis)),
+            ],
             onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Row(
             children: [
-              Expanded(
-                child: Text('Saved places', style: Theme.of(context).textTheme.titleMedium),
-              ),
+              Expanded(child: Text('Saved places', style: Theme.of(context).textTheme.titleMedium)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
@@ -98,7 +122,7 @@ class _PlacesBody extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${placesAsync.valueOrNull == null ? '—' : count} / $kMaxPlacesPerCircle',
+                  (placesAsync.valueOrNull == null ? '—' : count.toString()) + ' / ' + kMaxPlacesPerCircle.toString(),
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
@@ -107,6 +131,114 @@ class _PlacesBody extends ConsumerWidget {
             ],
           ),
         ),
+        if (placesAsync.valueOrNull != null && places.isNotEmpty && !alertsReady)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: Icon(subscriptionsAsync.hasError ? Icons.warning_amber_rounded : Icons.sync),
+                title: Text(subscriptionsAsync.hasError ? 'Alert settings unavailable' : 'Loading alert settings'),
+                subtitle: Text(subscriptionsAsync.hasError
+                    ? 'Your existing preferences are protected. Retry to load them before changing alerts.'
+                    : 'Saved preferences are being loaded before quick controls are enabled.'),
+                trailing: subscriptionsAsync.hasError
+                    ? IconButton(
+                        tooltip: 'Retry loading alert settings',
+                        onPressed: () => ref.invalidate(mySubscriptionsProvider),
+                        icon: const Icon(Icons.refresh),
+                      )
+                    : const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+            ),
+          ),
+        if (placesAsync.valueOrNull != null && places.isNotEmpty && alertsReady) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    PremiumIconChip(
+                      icon: Icons.notifications_active_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 42,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Your place alerts', style: Theme.of(context).textTheme.titleSmall),
+                          const SizedBox(height: 3),
+                          Text(
+                            alertsOn.toString() + ' of ' + count.toString() + ' places have alerts enabled',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      alertsOn.toString() + '/' + count.toString(),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  ChoiceChip(
+                    label: Text('All ' + count.toString()),
+                    selected: _filter == _PlaceFilter.all,
+                    onSelected: (_) => setState(() => _filter = _PlaceFilter.all),
+                  ),
+                  ChoiceChip(
+                    label: Text('Alerts on ' + alertsOn.toString()),
+                    selected: _filter == _PlaceFilter.alertsOn,
+                    onSelected: (_) => setState(() => _filter = _PlaceFilter.alertsOn),
+                  ),
+                  ChoiceChip(
+                    label: Text('Alerts off ' + alertsOff.toString()),
+                    selected: _filter == _PlaceFilter.alertsOff,
+                    onSelected: (_) => setState(() => _filter = _PlaceFilter.alertsOff),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                Icon(Icons.touch_app_outlined, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Tap the bell to quickly pause or resume both alert types.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         Expanded(
           child: Stack(
             children: [
@@ -115,47 +247,54 @@ class _PlacesBody extends ConsumerWidget {
                 error: (_, __) => MessageView(
                   icon: Icons.lock_outline,
                   title: 'Could not load places',
-                  actions: [FilledButton(onPressed: () => ref.invalidate(placesProvider(circle.id)), child: const Text('Retry'))],
+                  actions: [
+                    FilledButton(
+                      onPressed: () => ref.invalidate(placesProvider(circle.id)),
+                      child: const Text('Retry'),
+                    ),
+                  ],
                 ),
-                data: (places) {
-                  if (places.isEmpty) {
+                data: (loadedPlaces) {
+                  if (loadedPlaces.isEmpty) {
                     return MessageView(
                       icon: Icons.add_location_alt_outlined,
                       title: 'No saved places yet',
                       message: 'Save places like home, school or work to get arrival and departure alerts for this circle.',
-                      actions: [FilledButton(onPressed: () => _add(context, count), child: const Text('Add a place'))],
+                      actions: [
+                        FilledButton(onPressed: () => _add(context, count), child: const Text('Add a place')),
+                      ],
                     );
                   }
-                  final scheme = Theme.of(context).colorScheme;
+                  if (visiblePlaces.isEmpty) {
+                    final showingOn = _filter == _PlaceFilter.alertsOn;
+                    return MessageView(
+                      icon: showingOn ? Icons.notifications_off_outlined : Icons.filter_alt_off_outlined,
+                      title: showingOn ? 'No alerts enabled' : 'All places have alerts on',
+                      message: showingOn
+                          ? 'Turn alerts on for a place, or switch back to see every saved place.'
+                          : 'Every saved place currently has alerts enabled.',
+                      actions: [
+                        OutlinedButton(
+                          onPressed: () => setState(() => _filter = _PlaceFilter.all),
+                          child: const Text('Show all places'),
+                        ),
+                      ],
+                    );
+                  }
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 96),
-                    itemCount: places.length,
+                    itemCount: visiblePlaces.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, i) {
-                      final p = places[i];
-                      final alert = subByPlace[p.id];
-                      final alertsOn = alert?.enabled ?? false;
-                      return Card(
-                        margin: EdgeInsets.zero,
-                        child: ListTile(
-                          minVerticalPadding: 12,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          leading: PremiumIconChip(
-                            icon: Icons.location_on_rounded,
-                            color: CircloPalette.accent(i),
-                            size: 48,
-                          ),
-                          title: Text(p.name, style: Theme.of(context).textTheme.titleMedium),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text('${p.radiusM.round()} m radius · ${_alertSummary(alert)}'),
-                          ),
-                          trailing: Icon(
-                            alertsOn ? Icons.notifications_active_outlined : Icons.chevron_right_rounded,
-                            color: alertsOn ? scheme.primary : scheme.onSurfaceVariant,
-                          ),
-                          onTap: () => context.push('/places/${circle.id}/${p.id}'),
-                        ),
+                      final place = visiblePlaces[i];
+                      return _PlaceListTile(
+                        place: place,
+                        circleId: circle.id,
+                        subscription: subByPlace[place.id],
+                        alertsReady: alertsReady,
+                        alertsUnavailable: subscriptionsAsync.hasError,
+                        colorIndex: i,
+                        onOpen: () => context.push('/places/' + circle.id + '/' + place.id),
                       );
                     },
                   );
@@ -183,7 +322,106 @@ class _PlacesBody extends ConsumerWidget {
       showSnack(context, 'A circle can have up to $kMaxPlacesPerCircle places. Delete one to add another.');
       return;
     }
-    context.push('/places/new?circle=${circle.id}');
+    context.push('/places/new?circle=' + widget.circle.id);
+  }
+}
+
+class _PlaceListTile extends ConsumerStatefulWidget {
+  const _PlaceListTile({
+    required this.place,
+    required this.circleId,
+    required this.subscription,
+    required this.alertsReady,
+    required this.alertsUnavailable,
+    required this.colorIndex,
+    required this.onOpen,
+  });
+
+  final Place place;
+  final String circleId;
+  final PlaceSubscription? subscription;
+  final bool alertsReady;
+  final bool alertsUnavailable;
+  final int colorIndex;
+  final VoidCallback onOpen;
+
+  @override
+  ConsumerState<_PlaceListTile> createState() => _PlaceListTileState();
+}
+
+class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
+  bool _saving = false;
+
+  Future<void> _toggleAlerts() async {
+    if (_saving || !widget.alertsReady) return;
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) {
+      showSnack(context, 'Sign in to update your place alerts.');
+      return;
+    }
+
+    final current = widget.subscription;
+    final enable = !(current?.enabled ?? false);
+    final next = PlaceSubscription(
+      circleId: widget.circleId,
+      placeId: widget.place.id,
+      arrive: enable,
+      leave: enable,
+      allMembers: current?.allMembers ?? true,
+      memberUids: current?.memberUids ?? const <String>[],
+    );
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(placesRepositoryProvider).saveSubscription(
+            circleId: widget.circleId,
+            uid: uid,
+            placeId: widget.place.id,
+            subscription: next,
+          );
+    } catch (_) {
+      if (mounted) showSnack(context, 'Could not update alerts. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subscription = widget.subscription;
+    final alertsOn = subscription?.enabled ?? false;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        minVerticalPadding: 12,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: PremiumIconChip(
+          icon: Icons.location_on_rounded,
+          color: CircloPalette.accent(widget.colorIndex),
+          size: 48,
+        ),
+        title: Text(widget.place.name, style: Theme.of(context).textTheme.titleMedium),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(widget.place.radiusM.round().toString() + ' m radius · ' +
+              _alertSummary(subscription, loading: !widget.alertsReady, unavailable: widget.alertsUnavailable)),
+        ),
+        trailing: IconButton.filledTonal(
+          tooltip: _saving
+              ? 'Saving alert settings'
+              : !widget.alertsReady
+                  ? 'Alert settings not ready'
+                  : alertsOn
+                  ? 'Turn all alerts off'
+                  : 'Turn arrival and departure alerts on',
+          onPressed: (_saving || !widget.alertsReady) ? null : _toggleAlerts,
+          icon: _saving
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : Icon(alertsOn ? Icons.notifications_active_rounded : Icons.notifications_off_outlined),
+        ),
+        onTap: widget.onOpen,
+      ),
+    );
   }
 }
 

@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Changed
+- Upgraded Saved Places with a per-circle alert dashboard, filters for all/alerts on/alerts off, and one-tap pause/resume of arrival and departure alerts while preserving each user's member-selection preferences.
 - Refreshed the visual identity with an indigo-to-teal palette, a branded Circlo map header, family-map member name markers, tap-to-open member detail sheets, and a mobile people-preview dock with quick access to saved places and sharing settings.
 - Reworked the Circles screen with a private-by-design overview card and clearer member cards, while keeping existing circle actions and Firebase-only behavior.
 ### Fixed

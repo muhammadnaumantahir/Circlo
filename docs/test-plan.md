@@ -39,6 +39,7 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-072, FR-093 | Directions URL (no key), data export content | `app/test/directions_export_test.dart` | `flutter test` | Not run (CI) |
 | FR-080–083 | Feed: kinds, mute, unread badge, unavailable notice after 15 min, join-request notice (owner) | manual (emulator + 2 users) | manual | **Not run — required** |
 | UX | Family map dashboard: marker tap opens member details; people preview taps; saved places/sharing shortcuts; Circles hero and member cards; no overflow in light/dark mode | manual Android/iOS/web | Check widths 320, 360, 768 and 1280 px; test no location/paused/stale states and tap all quick actions | Not run — required |
+| UX | Saved Places alert dashboard: counts, All/Alerts on/Alerts off filters, empty filtered states, quick alert pause/resume retains member targeting; write failures show feedback | manual Android/iOS/web + two users | Toggle alerts for a test place, switch filters, confirm Firestore preferences and verify selected-member targeting remains selected after resume | Not run — required |
 | Static | `flutter analyze`, `flutter test` | `.github/workflows/flutter_ci.yml` (manual `workflow_dispatch`) | CI job `verify` | Not run here |
 | Security | Secret scan | CI | gitleaks | Not run |
 
