@@ -369,8 +369,6 @@ class _DayViewState extends State<_DayView> {
   Widget build(BuildContext context) {
     final t = widget.track;
     final route = [for (final p in t.route) LatLng(p.lat, p.lng)];
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-
     return LayoutBuilder(builder: (context, c) {
       final map = Stack(
         clipBehavior: Clip.hardEdge,
@@ -459,7 +457,7 @@ class _DayViewState extends State<_DayView> {
               title: 'No recorded stops',
               message: 'Stops shorter than 10 minutes are not included in travel history.',
             ),
-          for (var i = 0; i < t.visits.length; i++) _VisitTile(index: i + 1, visit: t.visits[i], track: t, nowMs: nowMs),
+          for (var i = 0; i < t.visits.length; i++) _VisitTile(index: i + 1, visit: t.visits[i], track: t),
         ],
       );
 
@@ -493,12 +491,10 @@ class _HistoryNotice extends StatelessWidget {
 }
 
 class _VisitTile extends StatelessWidget {
-  const _VisitTile({required this.index, required this.visit, required this.track, required this.nowMs});
+  const _VisitTile({required this.index, required this.visit, required this.track});
   final int index;
   final Visit visit;
   final DayTrack track;
-  final int nowMs;
-
   Widget _timePill(BuildContext context, IconData icon, String label, {bool emphasized = false}) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -570,10 +566,10 @@ class _VisitTile extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF16A34A).withValues(alpha: .12),
+                            color: scheme.secondaryContainer.withValues(alpha: .8),
                             borderRadius: BorderRadius.circular(9),
                           ),
-                          child: const Text('HERE', style: TextStyle(color: Color(0xFF15803D), fontSize: 10, fontWeight: FontWeight.w900)),
+                          child: Text('HERE', style: TextStyle(color: scheme.onSecondaryContainer, fontSize: 10, fontWeight: FontWeight.w900)),
                         ),
                     ],
                   ),
