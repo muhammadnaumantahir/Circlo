@@ -190,7 +190,9 @@ service cloud.firestore {
 
       match /locations/{uid} {
         // Direct reads re-check the member's current consent, even if an old document is left behind.
-        allow get: if isMember(cid) && canSeeLocation(uid);
+        allow get: if isMember(cid)
+          && resource.data.get('sharing', false) == true
+          && canSeeLocation(uid);
         // The client queries only sharing=true documents. The member-update rules below enforce
         // atomic deletion when sharing is paused/off, so inactive members cannot retain new documents.
         allow list: if isMember(cid) && resource.data.get('sharing', false) == true;
