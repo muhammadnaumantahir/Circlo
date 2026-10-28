@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Ignore malformed travel-history route points and visits when restoring a day, so one corrupt nested record cannot crash the whole history timeline.
 - Reject malformed saved-place subscription boolean flags instead of silently disabling alerts or treating a malformed pause flag as resumed; legacy documents that omit these fields keep their defaults.
 - Reject malformed saved-place subscription `allMembers` values rather than accidentally interpreting them as enabled; legacy documents without the field still default to all members.
 - Reject shared-location documents with malformed accuracy values instead of treating them as zero-accuracy GPS fixes; legacy documents with no accuracy field remain compatible.
