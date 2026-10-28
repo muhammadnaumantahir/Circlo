@@ -99,6 +99,9 @@ class PlaceSubscription {
     final rawPlaceId = d['placeId'];
     if (rawPlaceId is! String || rawPlaceId.trim().isEmpty) return null;
 
+    final rawAllMembers = d['allMembers'];
+    if (rawAllMembers != null && rawAllMembers is! bool) return null;
+
     final rawMembers = d['memberUids'];
     if (rawMembers != null && rawMembers is! List) return null;
     final members = <String>[];
@@ -112,7 +115,7 @@ class PlaceSubscription {
       placeId: rawPlaceId,
       arrive: d['arrive'] == true,
       leave: d['leave'] == true,
-      allMembers: d['allMembers'] != false,
+      allMembers: rawAllMembers as bool? ?? true,
       memberUids: members,
       // Older subscription documents did not have this field.
       paused: d['paused'] == true,
