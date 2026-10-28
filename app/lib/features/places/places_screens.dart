@@ -127,16 +127,6 @@ class _PlacesBody extends ConsumerWidget {
                     );
                   }
                   final scheme = Theme.of(context).colorScheme;
-                  final backgrounds = [
-                    scheme.primaryContainer,
-                    scheme.secondaryContainer,
-                    scheme.tertiaryContainer,
-                  ];
-                  final foregrounds = [
-                    scheme.onPrimaryContainer,
-                    scheme.onSecondaryContainer,
-                    scheme.onTertiaryContainer,
-                  ];
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 96),
                     itemCount: places.length,
@@ -150,18 +140,10 @@ class _PlacesBody extends ConsumerWidget {
                         child: ListTile(
                           minVerticalPadding: 12,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          leading: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: backgrounds[i % backgrounds.length],
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: Icon(
-                              Icons.location_on_rounded,
-                              color: foregrounds[i % foregrounds.length],
-                              size: 25,
-                            ),
+                          leading: PremiumIconChip(
+                            icon: Icons.location_on_rounded,
+                            color: CircloPalette.accent(i),
+                            size: 48,
                           ),
                           title: Text(p.name, style: Theme.of(context).textTheme.titleMedium),
                           subtitle: Padding(
