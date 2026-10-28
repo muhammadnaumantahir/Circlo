@@ -30,6 +30,9 @@ This audit reflects a static review of the current Flutter source and project re
 - Added rules regression tests for pause/stop-without-delete, legacy locations, orphaned data and parent-circle deletion; the manual CI workflow now includes a Firestore Emulator test job.
 - Fixed place-alert restoration so the latest departure resets stale “inside” state; added a regression test for the next visit.
 - Places display used capacity and whether their arrival/departure alerts are enabled.
+- Place-alert listeners now use generation guards when sharing scope changes and discard queued events for circles that stop sharing, avoiding stale listeners/events after pause or revoke.
+- Circle deletion removes location projections before deleting member documents in small batches to stay within Firestore security-rule access-call limits.
+- Sharing heartbeats use the current session generation across circle switches; late upload responses cannot replace the status of a newer sharing session.
 
 ## Important gaps before release
 
