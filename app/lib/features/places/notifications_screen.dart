@@ -11,7 +11,7 @@ import 'place_models.dart';
 IconData _iconFor(FeedItem i) {
   switch (i.kind) {
     case FeedKind.place:
-      return i.isArrival ? Icons.login : Icons.logout;
+      return i.isCheckIn ? Icons.check_circle_outline_rounded : (i.isArrival ? Icons.login : Icons.logout);
     case FeedKind.membership:
       return Icons.group;
     case FeedKind.sharing:
@@ -300,14 +300,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 }
 
-class _NotificationTile extends StatelessWidget {
+class _NotificationTile extends ConsumerWidget {
   const _NotificationTile({required this.item, required this.isNew});
 
   final FeedItem item;
   final bool isNew;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final unavailable = item.kind == FeedKind.unavailable;
@@ -341,7 +341,36 @@ class _NotificationTile extends StatelessWidget {
               ],
             ),
           ),
-          trailing: isNew
+          trailing: item.isCheckIn && item.actorUid == ref.watch(currentUidProvider) && item.eventId != null
+              ? IconButton(
+                  tooltip: 'Delete your check-in',
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Delete this check-in?'),
+                        content: const Text('This removes your manual check-in from the circle activity feed.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Keep it')),
+                          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true || !context.mounted) return;
+                    try {
+                      await ref.read(placesRepositoryProvider).deleteOwnCheckIn(
+                            circleId: item.circleId,
+                            uid: item.actorUid!,
+                            eventId: item.eventId!,
+                          );
+                      if (context.mounted) showSnack(context, 'Check-in deleted.');
+                    } catch (_) {
+                      if (context.mounted) showSnack(context, 'Could not delete this check-in. Try again.');
+                    }
+                  },
+                  icon: const Icon(Icons.delete_outline_rounded),
+                )
+              : isNew
               ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                   decoration: BoxDecoration(
