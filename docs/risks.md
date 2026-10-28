@@ -29,7 +29,7 @@
 - The data export is shown/copied in the app; it is not a downloadable file and is limited to data the app can read for the user.
 
 ## Increment 5 additions
-- **Account/circle deletion is best-effort and client-side.** It cannot list other people's data about you (for example orphaned history copies in a circle you were removed from) and an interrupted run leaves partial deletion; re-running completes it. Needs privacy/legal review (GDPR erasure) before launch.
+- **Account/circle deletion is best-effort and client-side.** Account deletion now chunks bulk document cleanup into batches of 400 and keeps the private master history keys until reachable circle copies are handled, making ordinary mid-run retries safer. It still cannot list other people's data about you (for example orphaned history copies in a circle you were removed from), and no server guarantees complete recursive deletion. Needs privacy/legal review (GDPR erasure) before launch.
 - Deleting a circle costs many writes (members × places subscription ids, plus 93 history ids per member who shared history).
 - Approval flow needs the requester's app to be opened after approval to finish joining (no server to create the membership).
 - A requester cannot read the circle, so the app tries an open join first and falls back to a request; error messages stay generic on purpose.
