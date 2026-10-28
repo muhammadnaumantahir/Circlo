@@ -30,33 +30,55 @@ class MessageView extends StatelessWidget {
   final List<Widget> actions;
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(height: 16),
-              Text(title,
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center),
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Icon(icon, size: 40, color: scheme.onPrimaryContainer),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                title,
+                style: theme.textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
               if (message != null) ...[
-                const SizedBox(height: 8),
-                Text(message!, textAlign: TextAlign.center),
+                const SizedBox(height: 10),
+                Text(
+                  message!,
+                  style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
               ],
               if (actions.isNotEmpty) ...[
-                const SizedBox(height: 24),
+                const SizedBox(height: 26),
                 Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: actions),
+                  spacing: 12,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
+                  children: actions,
+                ),
               ],
             ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 Future<bool> confirmAction(
