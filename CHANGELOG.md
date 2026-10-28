@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Location sharing recovery: the permission card refreshes when Circlo resumes after system Settings and offers retry if permission status cannot be checked. The screen also retries loading circles after a connection error.
+
 ### Added
 - Circle invitations: show a QR code, share invites through the system share sheet, and open web invite links with the join code prefilled. Web invite destinations are preserved through login, email verification and new-user profile setup. Invite/QR actions are disabled while expiry is loading, cannot be checked, or the code is expired.
 - Increment 1 (foundation): Flutter app skeleton (web/Android/iOS), email/password sign-up/log-in/log-out/password-reset with age gate (13+), profile setup and edit, create circle, join with code, member list, leave circle, owner removes members, owner rotates join code.
