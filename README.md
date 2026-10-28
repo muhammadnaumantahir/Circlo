@@ -2,7 +2,7 @@
 
 Private, consent-based location sharing for families and friends: circles, live map, place arrival/departure alerts, and travel history.
 
-**Status:** Development started (Increment 1: accounts + circles). See [project-status.md](project-status.md) and [CHANGELOG.md](CHANGELOG.md). Not production-ready; location features are not built yet.
+**Status:** Development / hardening. Account, circle, location-sharing, saved-place, history, and in-app notification flows exist in source, but the app is not release-verified. See [project-status.md](project-status.md), [CHANGELOG.md](CHANGELOG.md), and the [feature audit](docs/feature-audit-2026-10-28.md).
 
 ## Stack ($0 budget, no billing account)
 Flutter (web, Android, iOS) · Firebase Authentication · Cloud Firestore · FCM (later). See [architecture.md](architecture.md).
