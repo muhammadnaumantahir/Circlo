@@ -4,18 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router.dart';
 
 ThemeData _theme(Brightness brightness) {
-  const forest = Color(0xFF246B56);
-  const honey = Color(0xFFE2AC6A);
+  const brand = Color(0xFF2563EB);
+  const mint = Color(0xFF17C7A1);
   final isLight = brightness == Brightness.light;
   final scheme = ColorScheme.fromSeed(
-    seedColor: forest,
-    secondary: honey,
-    tertiary: const Color(0xFF6E88C8),
+    seedColor: brand,
+    secondary: mint,
+    tertiary: const Color(0xFF8B7CFF),
     brightness: brightness,
   );
-  final background = isLight ? const Color(0xFFF4F6F2) : const Color(0xFF101814);
-  final surface = isLight ? const Color(0xFFFFFEFC) : const Color(0xFF19231E);
-  final border = isLight ? const Color(0xFFE4E9E2) : const Color(0xFF2B3A32);
+  final background = isLight ? const Color(0xFFF6F8FC) : const Color(0xFF0D1524);
+  final surface = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF111C2D);
+  final border = isLight ? const Color(0xFFE3E8F0) : const Color(0xFF29364A);
   final base = ThemeData(useMaterial3: true, colorScheme: scheme);
   final radius = BorderRadius.circular(16);
 
@@ -69,7 +69,7 @@ ThemeData _theme(Brightness brightness) {
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         side: BorderSide(color: border),
       ),
     ),
@@ -127,9 +127,9 @@ ThemeData _theme(Brightness brightness) {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: surface,
-      indicatorColor: scheme.primaryContainer,
+      indicatorColor: scheme.primary.withValues(alpha: .12),
       elevation: 0,
-      height: 76,
+      height: 78,
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
     navigationRailTheme: NavigationRailThemeData(
