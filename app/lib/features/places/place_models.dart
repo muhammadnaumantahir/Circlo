@@ -102,6 +102,7 @@ class PlaceEvent {
   final DateTime? occurredAt;
 
   bool get isArrival => type == 'arrive';
+  bool get isCheckIn => type == 'checkIn';
 
   factory PlaceEvent.fromMap(String circleId, String id, Map<String, dynamic> d) =>
       PlaceEvent(
@@ -125,7 +126,7 @@ String feedKindName(FeedKind k) => k.name;
 String feedKindLabel(FeedKind k) {
   switch (k) {
     case FeedKind.place:
-      return 'Arrivals and departures at places';
+      return 'Place arrivals, departures and manual check-ins';
     case FeedKind.membership:
       return 'Members joining, leaving or removed';
     case FeedKind.sharing:
@@ -147,6 +148,9 @@ class FeedItem {
     required this.text,
     required this.at,
     this.isArrival = false,
+    this.isCheckIn = false,
+    this.actorUid,
+    this.eventId,
   });
 
   final String id;
@@ -156,4 +160,7 @@ class FeedItem {
   final String text;
   final DateTime at;
   final bool isArrival; // only meaningful for FeedKind.place
+  final bool isCheckIn; // manual check-in; not a GPS-verified arrival
+  final String? actorUid;
+  final String? eventId; // placeEvents document id, available for deleting own check-ins
 }
