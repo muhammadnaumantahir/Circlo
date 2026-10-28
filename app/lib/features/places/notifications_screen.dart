@@ -41,6 +41,8 @@ class NotificationsBell extends ConsumerWidget {
   }
 }
 
+enum _ActivityFilter { all, places, people, location }
+
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
   @override
@@ -50,12 +52,20 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   DateTime? _seenWhenOpened;
   bool _captured = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+  _ActivityFilter _filter = _ActivityFilter.all;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final feed = ref.watch(notificationFeedProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
-    final now = DateTime.now();
 
     // Remember what was already read when the screen opened, then mark everything as read.
     if (!_captured && profile != null) {
@@ -83,48 +93,174 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       body: feed.when(
         loading: () => const LoadingView(),
         error: (_, __) => const MessageView(icon: Icons.cloud_off, title: 'Could not load notifications'),
-        data: (items) => ListView(
-          children: [
-            const Card(
-              margin: EdgeInsets.all(12),
-              child: ListTile(
-                leading: Icon(Icons.info_outline),
-                title: Text('Notifications appear here while Circlo is open.'),
-                subtitle: Text('Phone push notifications about other people are not available yet.'),
+        data: (items) {
+          final query = _query.trim().toLowerCase();
+          bool matchesCategory(FeedItem item) {
+            switch (_filter) {
+              case _ActivityFilter.all:
+                return true;
+              case _ActivityFilter.places:
+                return item.kind == FeedKind.place;
+              case _ActivityFilter.people:
+                return item.kind == FeedKind.membership || item.kind == FeedKind.requests;
+              case _ActivityFilter.location:
+                return item.kind == FeedKind.sharing || item.kind == FeedKind.unavailable;
+            }
+          }
+
+          final placeCount = items.where((i) => i.kind == FeedKind.place).length;
+          final peopleCount = items.where((i) => i.kind == FeedKind.membership || i.kind == FeedKind.requests).length;
+          final locationCount = items.where((i) => i.kind == FeedKind.sharing || i.kind == FeedKind.unavailable).length;
+          final visibleItems = items.where((item) {
+            final matchesSearch = query.isEmpty ||
+                item.text.toLowerCase().contains(query) ||
+                item.circleName.toLowerCase().contains(query) ||
+                feedKindLabel(item.kind).toLowerCase().contains(query);
+            return matchesCategory(item) && matchesSearch;
+          }).toList();
+
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              const Card(
+                margin: EdgeInsets.all(12),
+                child: ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('Notifications appear here while Circlo is open.'),
+                  subtitle: Text('Phone push notifications about other people are not available yet.'),
+                ),
               ),
-            ),
-            if (items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(
-                  child: Text('Nothing new.\nArrivals, membership changes and sharing updates will show up here.', textAlign: TextAlign.center),
-                ),
-              )
-            else ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text('Recent activity', style: Theme.of(context).textTheme.titleMedium),
+              if (items.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      'Nothing new yet.\nArrivals, membership changes and sharing updates will show up here.',
+                      textAlign: TextAlign.center,
                     ),
-                    Text(
-                      '${items.length} items',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                  ),
+                )
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _query = value),
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'Search activity or circle',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Clear search',
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _query = '');
+                              },
+                              icon: const Icon(Icons.close),
+                            ),
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              for (final i in items)
-                _NotificationTile(
-                  item: i,
-                  isNew: _seenWhenOpened == null || i.at.isAfter(_seenWhenOpened!),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        ChoiceChip(
+                          label: Text('All ${items.length}'),
+                          selected: _filter == _ActivityFilter.all,
+                          onSelected: (_) => setState(() => _filter = _ActivityFilter.all),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: Text('Places $placeCount'),
+                          selected: _filter == _ActivityFilter.places,
+                          onSelected: (_) => setState(() => _filter = _ActivityFilter.places),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: Text('People $peopleCount'),
+                          selected: _filter == _ActivityFilter.people,
+                          onSelected: (_) => setState(() => _filter = _ActivityFilter.people),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: Text('Location $locationCount'),
+                          selected: _filter == _ActivityFilter.location,
+                          onSelected: (_) => setState(() => _filter = _ActivityFilter.location),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text('Recent activity', style: Theme.of(context).textTheme.titleMedium),
+                      ),
+                      Text(
+                        '${visibleItems.length} of ${items.length}',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (visibleItems.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.filter_alt_off_outlined,
+                          size: 40,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 10),
+                        Text('No matching activity', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Try another category or search term.',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _query = '';
+                              _filter = _ActivityFilter.all;
+                            });
+                          },
+                          icon: const Icon(Icons.clear_all),
+                          label: const Text('Clear filters'),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  for (final item in visibleItems)
+                    _NotificationTile(
+                      item: item,
+                      isNew: _seenWhenOpened == null || item.at.isAfter(_seenWhenOpened!),
+                    ),
+              ],
             ],
-          ],
-        ),
+          );
+        },
       ),
     );
   }

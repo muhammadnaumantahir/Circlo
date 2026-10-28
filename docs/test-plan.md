@@ -1,6 +1,6 @@
 # Test Plan (Increment 1)
 
-Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects what was actually executed when this file was last updated (2026-10-13, authoring environment without Flutter SDK or Firestore emulator access).
+Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are manual/automated checklists; rows marked Not run remain unverified. This authoring pass has not run Flutter or Firestore tests.
 
 | Req | Check | Where | Command | Status |
 |---|---|---|---|---|
@@ -38,6 +38,7 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-080, FR-081, FR-082, FR-083, FR-094, FR-038 | Rules: activity events bound to the actor's own batch (joined/left/removed/sharing), names must match, immutable, member-only reads; notification prefs bounds; timed pause field | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
 | FR-072, FR-093 | Directions URL (no key), data export content | `app/test/directions_export_test.dart` | `flutter test` | Not run (CI) |
 | FR-080–083 | Feed: kinds, mute, unread badge, unavailable notice after 15 min, join-request notice (owner) | manual (emulator + 2 users) | manual | **Not run — required** |
+| UX | Notifications activity feed: search by event text/circle/category; filter All / Places / People / Location; count accuracy; clear filters when results are empty; existing unread labels and settings link remain correct | manual Android/iOS/web | Exercise each event kind, matching/non-matching searches, category chips, clear filters, and layouts at 320/360/768/1280 px in light/dark mode | Not run — required |
 | UX | Family map dashboard: marker tap opens member details; people preview taps; saved places/sharing shortcuts; Circles hero and member cards; no overflow in light/dark mode | manual Android/iOS/web | Check widths 320, 360, 768 and 1280 px; test no location/paused/stale states and tap all quick actions | Not run — required |
 | UX | Saved Places dashboard: alert counts, All/Alerts on/Alerts off filters, name search combined with filters, clear/reset empty states, quick alert pause/resume retains member targeting, write-failure feedback | manual Android/iOS/web + two users | Search place names with and without filters; clear search; toggle alerts; confirm Firestore preferences and verify selected-member targeting remains selected after resume | Not run — required |
 | Static | `flutter analyze`, `flutter test` | `.github/workflows/flutter_ci.yml` (manual `workflow_dispatch`) | CI job `verify` | Not run here |
