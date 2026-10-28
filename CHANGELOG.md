@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Prevent relative-time labels from presenting materially future-dated check-ins or location updates as current; allow minor clock skew and label larger discrepancies as unavailable.
 - Clarified the timed location-sharing pause choice as “Until 6:00 AM”; it can resume at 6:00 AM today when selected before 6:00 AM, or the next day when selected later.
 
 ### Changed
