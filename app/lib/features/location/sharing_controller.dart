@@ -369,7 +369,8 @@ class SharingController extends Notifier<SharingState> {
 
   Future<void> _publish(Position p, {bool force = false}) async {
     final uid = ref.read(currentUidProvider);
-    final ids = state.activeCircleIds;
+    final ids = List<String>.of(state.activeCircleIds);
+    final generation = _syncGeneration;
     if (uid == null || ids.isEmpty) return;
     final now = DateTime.now();
     if (!force && !_throttle.allow(now)) return;
@@ -382,8 +383,10 @@ class SharingController extends Notifier<SharingState> {
             lng: p.longitude,
             accuracy: p.accuracy,
           );
+      if (generation != _syncGeneration) return;
       state = state.copyWith(lastPublished: now, clearError: true);
     } on FirebaseException {
+      if (generation != _syncGeneration) return;
       state = state.copyWith(error: 'Sync delayed. We will retry with the next update.');
     }
   }
