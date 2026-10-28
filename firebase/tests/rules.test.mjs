@@ -678,6 +678,7 @@ describe('circle lifecycle (Increment 5)', () => {
 
   it('owner can delete the circle with everything under it in one batch; others cannot', async () => {
     await seed({ bob: true });
+    // Deleting only the parent would strand subcollection data, so it is denied.
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'circles/c1/places/p1'), { name: 'School', lat: 31.5, lng: 74.3, radiusM: 150, createdBy: 'bob', createdAt: Timestamp.now() });
       await setDoc(doc(ctx.firestore(), 'circles/c1/placeSubscriptions/bob_p1'), { subscriberUid: 'bob', placeId: 'p1', arrive: true, leave: true, allMembers: true, memberUids: [], updatedAt: Timestamp.now() });
@@ -686,6 +687,7 @@ describe('circle lifecycle (Increment 5)', () => {
     });
     await assertFails(deleteDoc(doc(db('bob'), 'circles/c1')));
     await assertFails(deleteDoc(doc(db('mallory'), 'circles/c1')));
+    await assertFails(deleteDoc(doc(db('alice'), 'circles/c1'))); // parent cannot be removed alone
     const f = db('alice'); const b = writeBatch(f);
     b.delete(doc(f, 'circles/c1/placeEvents/bob_p1_1_arrive'));
     b.delete(doc(f, 'circles/c1/placeSubscriptions/bob_p1'));
@@ -696,6 +698,29 @@ describe('circle lifecycle (Increment 5)', () => {
     b.delete(doc(f, `joinCodes/${CODE_A}`));
     b.delete(doc(f, 'circles/c1'));
     await assertSucceeds(b.commit());
+  });
+
+  it('orphaned child location documents are unreadable when the parent circle is missing', async () => {
+    await seed({ bob: true });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const f = ctx.firestore();
+      await updateDoc(doc(f, 'circles/c1/members/bob'), { sharesLocation: true, paused: false });
+      await setDoc(locRef(f, 'c1', 'bob'), {
+        uid: 'bob',
+        lat: 31.5204,
+        lng: 74.3587,
+        accuracy: 12,
+        sharing: true,
+        updatedAt: Timestamp.now(),
+      });
+      await deleteDoc(doc(f, 'circles/c1')); // simulate an out-of-band / legacy orphan
+    });
+
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+    await assertFails(getDocs(query(
+      collection(db('alice'), 'circles/c1/locations'),
+      where('sharing', '==', true),
+    )));
   });
 
   it('the owner cannot leave on their own while the circle still exists', async () => {
