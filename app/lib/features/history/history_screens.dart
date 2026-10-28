@@ -17,6 +17,13 @@ String _dateLabel(DateTime d) {
   return isToday ? 'Today' : '${d.day} ${months[d.month - 1]} ${d.year}';
 }
 
+bool _sameCalendarDate(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+
+DateTime _calendarDateOffset(int daysAgo) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day).subtract(Duration(days: daysAgo));
+}
+
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
   @override
@@ -113,7 +120,10 @@ class _Body extends ConsumerWidget {
     final key = (circle.id, effectiveMember, dayKey(date));
     final trackAsync = (isMe && !keepHistory) || !shared ? null : ref.watch(dayTrackProvider(key));
     final today = DateTime.now();
-    final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
+    final isToday = _sameCalendarDate(date, today);
+    final isYesterday = _sameCalendarDate(date, _calendarDateOffset(1));
+    final isWeekAgo = _sameCalendarDate(date, _calendarDateOffset(7));
+    final dayTrack = trackAsync?.valueOrNull;
 
     Widget content;
     if (isMe && !keepHistory) {
@@ -208,10 +218,111 @@ class _Body extends ConsumerWidget {
               ),
           ],
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('Today'),
+                  selected: isToday,
+                  onSelected: (_) => onDate(_calendarDateOffset(0)),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Yesterday'),
+                  selected: isYesterday,
+                  onSelected: (_) => onDate(_calendarDateOffset(1)),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('7 days ago'),
+                  selected: isWeekAgo,
+                  onSelected: (_) => onDate(_calendarDateOffset(7)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (dayTrack != null && (dayTrack.visits.isNotEmpty || dayTrack.route.isNotEmpty))
+          _HistoryDaySummary(track: dayTrack),
         Expanded(child: content),
       ],
     );
   }
+}
+
+class _HistoryDaySummary extends StatelessWidget {
+  const _HistoryDaySummary({required this.track});
+
+  final DayTrack track;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final lastFix = track.lastSeen > 0 ? formatClock(track.lastSeen, track.tzOffsetMin) : '—';
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.insights_rounded, color: scheme.primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Day at a glance', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                ),
+                Text(
+                  'SIMPLIFIED',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        letterSpacing: .7,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _HistoryMetric(label: 'Stops', value: track.visits.length.toString())),
+                Expanded(child: _HistoryMetric(label: 'Route points', value: track.route.length.toString())),
+                Expanded(child: _HistoryMetric(label: 'Last recorded', value: lastFix)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Stops shorter than 10 minutes are not included. The route is simplified to limit stored detail.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryMetric extends StatelessWidget {
+  const _HistoryMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 2),
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        ],
+      );
 }
 
 class _DayView extends StatefulWidget {
