@@ -54,6 +54,8 @@ class PlaceAlertEngine {
         _detector.forget(place.id);
       }
       _names.remove(id);
+      // Pending events from a circle that stopped sharing must not be replayed after resume.
+      _pending.removeWhere((event) => event.place.circleId == id);
       await sub?.cancel();
     }
 
