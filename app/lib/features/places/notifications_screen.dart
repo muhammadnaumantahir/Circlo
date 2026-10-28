@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'activity_time_group.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
 import '../location/sharing_status.dart';
+import 'activity_time_group.dart';
 import 'place_models.dart';
 
 IconData _iconFor(FeedItem i) {
