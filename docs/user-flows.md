@@ -7,8 +7,9 @@ flowchart TD
   B -- Yes --> F[Main map]
   E --> F
   F --> G[My Circles]
-  G --> H[Create circle] --> I[Share join code]
-  G --> J[Join with code] --> K{Approval required?}
+  G --> H[Create circle] --> I[Share invite by code, QR or share sheet]
+  I --> I2[Web invite opens join screen with code prefilled] --> J
+  G --> J[Join with code or prefilled web invite] --> K{Approval required?}
   K -- Yes --> L[Pending → owner accepts] --> F
   K -- No --> F
   F --> M[Tap member] --> N[Directions / History]
