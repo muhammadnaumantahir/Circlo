@@ -238,15 +238,33 @@ class SharingController extends Notifier<SharingState> {
   }
 
   Future<void> _stop() async {
-    await _history?.dispose();
-    _history = null;
-    await _engine?.dispose();
-    _engine = null;
-    await _sub?.cancel();
-    _sub = null;
+    // Cancel publishing first so no stale heartbeat can run during async cleanup.
     _heartbeat?.cancel();
     _heartbeat = null;
+    final sub = _sub;
+    _sub = null;
     _last = null;
+    try {
+      await sub?.cancel();
+    } catch (_) {
+      // Continue cleanup even when the platform stream fails to cancel cleanly.
+    }
+
+    final history = _history;
+    _history = null;
+    try {
+      await history?.dispose();
+    } catch (_) {
+      // History is best-effort on offline/quota failures; it must not keep location tracking alive.
+    }
+
+    final engine = _engine;
+    _engine = null;
+    try {
+      await engine?.dispose();
+    } catch (_) {
+      // Dispose remaining resources even if one listener has already failed.
+    }
   }
 
   Future<void> _publish(Position p, {bool force = false}) async {
