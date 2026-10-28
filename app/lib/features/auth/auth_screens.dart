@@ -43,55 +43,96 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    // Google accounts must still complete Circlo's required birth-year profile step.
+    ref.read(signupBirthYearProvider.notifier).state = null;
+    try {
+      await ref.read(authRepositoryProvider).signInWithGoogle();
+    } on AuthFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Could not sign in with Google. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: FormPage(children: [
-          Align(
-            alignment: Alignment.center,
-            child: Container(
-              width: 78,
-              height: 78,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.55),
+          PremiumHeroCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const PremiumBrandMark(size: 52),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'CIRCLO',
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                  color: Colors.white.withValues(alpha: .85),
+                                  letterSpacing: 2,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Your people, closer.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 21,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              child: Icon(
-                Icons.hub_rounded,
-                size: 40,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  'Stay connected with the people you care about, while staying in control of your location.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .88),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Row(
+                  children: [
+                    Icon(Icons.shield_rounded, color: Colors.white, size: 17),
+                    SizedBox(width: 7),
+                    Text(
+                      'Private by choice',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 20),
+          GoogleSignInButton(
+            busy: _busy,
+            onPressed: _busy ? null : _signInWithGoogle,
+          ),
+          const SizedBox(height: 16),
+          const _AuthDivider(label: 'OR CONTINUE WITH EMAIL'),
           const SizedBox(height: 18),
-          Text(
-            'CIRCLO',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  letterSpacing: 2.4,
-                  fontWeight: FontWeight.w800,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 9),
-          Text(
-            'Welcome back',
-            style: Theme.of(context).textTheme.displaySmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Stay connected with the people you care about.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
           Form(
             key: _form,
             child: Column(children: [
@@ -99,7 +140,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
                 autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded), border: OutlineInputBorder()),
                 validator: validateEmail,
               ),
               const SizedBox(height: 16),
@@ -109,6 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 autofillHints: const [AutofillHints.password],
                 decoration: InputDecoration(
                   labelText: 'Password',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     tooltip: _hide ? 'Show password' : 'Hide password',
@@ -130,10 +172,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             onPressed: _busy ? null : _submit,
             child: _busy
                 ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Log in'),
+                : const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.login_rounded),
+                      SizedBox(width: 9),
+                      Text('Log in'),
+                    ],
+                  ),
           ),
-          TextButton(onPressed: () => context.go('/reset'), child: const Text('Forgot password?')),
-          TextButton(onPressed: () => context.go('/signup'), child: const Text('Create an account')),
+          TextButton.icon(
+            onPressed: () => context.go('/reset'),
+            icon: const Icon(Icons.lock_reset_rounded, size: 18),
+            label: const Text('Forgot password?'),
+          ),
+          TextButton.icon(
+            onPressed: () => context.go('/signup'),
+            icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+            label: const Text('Create an account'),
+          ),
         ]),
       ),
     );
@@ -180,6 +237,26 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    // Do not carry a birth year from a previous email/password sign-up attempt.
+    ref.read(signupBirthYearProvider.notifier).state = null;
+    try {
+      await ref.read(authRepositoryProvider).signInWithGoogle();
+    } on AuthFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Could not sign in with Google. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -189,6 +266,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       ),
       body: SafeArea(
         child: FormPage(children: [
+          PremiumSectionHeader(
+            title: 'Create your Circlo',
+            subtitle: 'Start with Google or enter your details below.',
+          ),
+          const SizedBox(height: 18),
+          GoogleSignInButton(
+            busy: _busy,
+            onPressed: _busy ? null : _signInWithGoogle,
+          ),
+          const SizedBox(height: 14),
+          const _AuthDivider(label: 'OR SIGN UP WITH EMAIL'),
+          const SizedBox(height: 18),
           Form(
             key: _form,
             child: Column(children: [
@@ -207,7 +296,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
                 autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded), border: OutlineInputBorder()),
                 validator: validateEmail,
               ),
               const SizedBox(height: 16),
@@ -215,14 +304,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 controller: _password,
                 obscureText: true,
                 autofillHints: const [AutofillHints.newPassword],
-                decoration: const InputDecoration(labelText: 'Password', helperText: 'At least 8 characters', border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline_rounded), helperText: 'At least 8 characters', border: OutlineInputBorder()),
                 validator: validatePassword,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _confirm,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'Confirm password', border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: 'Confirm password', prefixIcon: Icon(Icons.lock_reset_rounded), border: OutlineInputBorder()),
                 validator: (v) => v == _password.text ? null : 'Passwords do not match',
               ),
             ]),
@@ -305,7 +394,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               child: TextFormField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded), border: OutlineInputBorder()),
                 validator: validateEmail,
                 onFieldSubmitted: (_) => _submit(),
               ),
@@ -326,4 +415,30 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       ),
     );
   }
+}
+
+
+class _AuthDivider extends StatelessWidget {
+  const _AuthDivider({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          const Expanded(child: Divider()),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    letterSpacing: .8,
+                    fontWeight: FontWeight.w800,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
+          const Expanded(child: Divider()),
+        ],
+      );
 }
