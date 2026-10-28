@@ -2,7 +2,7 @@
 
 ## Single Flutter SDK pin
 
-The repository root `.fvmrc` is the single source of truth for Flutter SDK version **3.47.2**. The manual Flutter CI job reads the version from it before installing the SDK. `build-cloudflare.sh` reads the same file, only reuses a PATH SDK if it matches exactly, and replaces a mismatched or incomplete `/tmp/flutter` checkout. Both paths fail instead of silently building with a different SDK.
+The Flutter package root `app/.fvmrc` is the single source of truth for Flutter SDK version **3.47.2**. The manual Flutter CI job reads the version from it before installing the SDK. `build-cloudflare.sh` reads the same file, only reuses a PATH SDK if it matches exactly, and replaces a mismatched or incomplete `/tmp/flutter` checkout. Both paths fail instead of silently building with a different SDK.
 
 ## Native Android versions
 
@@ -21,7 +21,7 @@ The Android versions follow the common AGP, Gradle, Kotlin, and Java configurati
 
 ## App release version is separate
 
-Circlo's `app/pubspec.yaml` stays at its own `version: 0.1.0+1) until a Circlo release is intentionally versioned. The semantic app version and build number should advance according to Circlo release changes; they should not be set equal to unrelated apps' release numbers.
+Circlo's `app/pubspec.yaml` keeps its own version `0.1.0+1` until a Circlo release is intentionally versioned. The semantic app version and build number should advance according to Circlo release changes; they should not be set equal to unrelated apps' release numbers.
 
 ## Validation
 
