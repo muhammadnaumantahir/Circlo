@@ -57,6 +57,27 @@ class HistoryRepository {
     return [for (final d in s.docs) d.id];
   }
 
+  /// Reads every stored day key without deleting data while paging.
+  /// Account deletion uses this snapshot to remove circle copies before deleting the master keys,
+  /// so an interrupted cleanup can be retried without losing the list of days to clean up.
+  Future<List<String>> allMyDays(String uid, {int pageSize = 200}) async {
+    if (pageSize < 1) {
+      throw ArgumentError.value(pageSize, 'pageSize', 'must be greater than zero');
+    }
+    final days = <String>[];
+    Query<Map<String, dynamic>> query =
+        _master(uid).orderBy('day', descending: true).limit(pageSize);
+    while (true) {
+      final page = await query.get();
+      days.addAll(page.docs.map((d) => d.id));
+      if (page.docs.length < pageSize) return days;
+      query = _master(uid)
+          .orderBy('day', descending: true)
+          .startAfterDocument(page.docs.last)
+          .limit(pageSize);
+    }
+  }
+
   /// Day keys older than the cutoff (yyyymmdd string comparison works for this format).
   Future<List<String>> myDaysBefore(String uid, String cutoffDay) async {
     final s = await _master(uid).where('day', isLessThan: cutoffDay).limit(200).get();
