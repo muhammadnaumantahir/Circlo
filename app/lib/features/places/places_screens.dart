@@ -98,7 +98,7 @@ class _PlacesBody extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '$count / $kMaxPlacesPerCircle',
+                  '${placesAsync.valueOrNull == null ? '—' : count} / $kMaxPlacesPerCircle',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
@@ -183,7 +183,8 @@ class _PlacesBody extends ConsumerWidget {
                 right: 16,
                 bottom: 16,
                 child: FloatingActionButton.extended(
-                  onPressed: () => _add(context, count),
+                  onPressed: placesAsync.valueOrNull == null ? null : () => _add(context, count),
+                  tooltip: placesAsync.valueOrNull == null ? 'Wait for saved places to load' : 'Add a place',
                   icon: const Icon(Icons.add_location_alt),
                   label: const Text('Add place'),
                 ),
