@@ -337,7 +337,7 @@ class _MapBody extends ConsumerWidget {
             child: Card(
               child: Padding(
                 padding: EdgeInsets.all(12),
-                child: Text('Nobody is sharing a location with this circle right now.'),
+                child: Text('No location updates to show yet. Members may be offline, paused, or still waiting for a GPS fix.'),
               ),
             ),
           ),
