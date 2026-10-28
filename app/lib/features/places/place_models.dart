@@ -99,8 +99,14 @@ class PlaceSubscription {
     final rawPlaceId = d['placeId'];
     if (rawPlaceId is! String || rawPlaceId.trim().isEmpty) return null;
 
+    final rawArrive = d['arrive'];
+    final rawLeave = d['leave'];
     final rawAllMembers = d['allMembers'];
+    final rawPaused = d['paused'];
+    if (rawArrive != null && rawArrive is! bool) return null;
+    if (rawLeave != null && rawLeave is! bool) return null;
     if (rawAllMembers != null && rawAllMembers is! bool) return null;
+    if (rawPaused != null && rawPaused is! bool) return null;
 
     final rawMembers = d['memberUids'];
     if (rawMembers != null && rawMembers is! List) return null;
@@ -113,12 +119,12 @@ class PlaceSubscription {
     return PlaceSubscription(
       circleId: circleId,
       placeId: rawPlaceId,
-      arrive: d['arrive'] == true,
-      leave: d['leave'] == true,
+      arrive: rawArrive as bool? ?? false,
+      leave: rawLeave as bool? ?? false,
       allMembers: rawAllMembers as bool? ?? true,
       memberUids: members,
       // Older subscription documents did not have this field.
-      paused: d['paused'] == true,
+      paused: rawPaused as bool? ?? false,
     );
   }
 
