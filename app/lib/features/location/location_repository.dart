@@ -105,13 +105,16 @@ class LocationRepository {
     required double lng,
     required double accuracy,
   }) {
+    if (!isValidLocationSample(lat: lat, lng: lng, accuracy: accuracy)) {
+      throw ArgumentError('Cannot publish an invalid location sample.');
+    }
     final batch = _db.batch();
     for (final id in circleIds) {
       batch.set(_location(id, uid), {
         'uid': uid,
         'lat': lat,
         'lng': lng,
-        'accuracy': accuracy < 0 ? 0 : accuracy,
+        'accuracy': accuracy,
         'sharing': true,
         'updatedAt': FieldValue.serverTimestamp(),
       });

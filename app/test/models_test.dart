@@ -22,6 +22,21 @@ void main() {
     });
   });
 
+  group('isValidLocationSample', () {
+    test('accepts valid coordinates and accuracy', () {
+      expect(isValidLocationSample(lat: 31.52, lng: 74.35, accuracy: 8), isTrue);
+      expect(isValidLocationSample(lat: -90, lng: 180, accuracy: 0), isTrue);
+    });
+
+    test('rejects invalid coordinates and accuracy before publishing', () {
+      expect(isValidLocationSample(lat: 91, lng: 0, accuracy: 5), isFalse);
+      expect(isValidLocationSample(lat: 0, lng: -181, accuracy: 5), isFalse);
+      expect(isValidLocationSample(lat: double.nan, lng: 0, accuracy: 5), isFalse);
+      expect(isValidLocationSample(lat: 0, lng: 0, accuracy: double.infinity), isFalse);
+      expect(isValidLocationSample(lat: 0, lng: 0, accuracy: -1), isFalse);
+    });
+  });
+
   group('Place.tryFromMap', () {
     test('accepts valid saved place coordinates and radius', () {
       final place = Place.tryFromMap('c1', 'p1', {

@@ -1,5 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Validates a GPS sample before it is written or displayed.
+bool isValidLocationSample({required double lat, required double lng, required double accuracy}) =>
+    lat.isFinite && lng.isFinite && accuracy.isFinite &&
+    lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && accuracy >= 0;
+
 /// Latest shared position of one member inside one circle.
 class MemberLocation {
   const MemberLocation({
