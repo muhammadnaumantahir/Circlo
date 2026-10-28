@@ -324,12 +324,12 @@ service cloud.firestore {
       // Written by the person who acts (or by the owner for removals); names must match member documents.
       // Client-written and untrusted beyond this feed. Immutable; deletable by the actor or the owner.
       function validActivity(d, circleId) {
-        return d.keys().hasOnly(['type', 'actorUid', 'actorName', 'subjectUid', 'subjectName', 'checkInStatus', 'occurredAt'])
+        return d.keys().hasOnly(['type', 'actorUid', 'actorName', 'subjectUid', 'subjectName', 'checkInStatus', 'checkInPlaceId', 'checkInPlaceName', 'occurredAt'])
           && d.keys().hasAll(['type', 'actorUid', 'actorName', 'occurredAt'])
           && d.actorUid == request.auth.uid
           && d.occurredAt == request.time
           && d.type in ['joined', 'left', 'removed', 'sharing_started', 'sharing_stopped', 'checked_in']
-          && (d.type == 'checked_in' || !('checkInStatus' in d))
+          && (d.type == 'checked_in' || (!('checkInStatus' in d) && !('checkInPlaceId' in d) && !('checkInPlaceName' in d)))
           && (
             (d.type == 'checked_in'
               && isMember(circleId)
@@ -337,6 +337,14 @@ service cloud.firestore {
               && d.keys().hasAll(['checkInStatus'])
               && d.checkInStatus is string
               && d.checkInStatus in ['im_okay', 'arrived_safely', 'on_my_way', 'running_late']
+              && (
+                (!('checkInPlaceId' in d) && !('checkInPlaceName' in d))
+                || ('checkInPlaceId' in d && 'checkInPlaceName' in d
+                  && d.checkInPlaceId is string && d.checkInPlaceId.size() > 0 && d.checkInPlaceId.size() <= 128
+                  && nameOk(d.checkInPlaceName, 50)
+                  && exists(placePath(circleId, d.checkInPlaceId))
+                  && get(placePath(circleId, d.checkInPlaceId)).data.name == d.checkInPlaceName)
+              )
               && !('subjectUid' in d)
               && !('subjectName' in d))
             ||
