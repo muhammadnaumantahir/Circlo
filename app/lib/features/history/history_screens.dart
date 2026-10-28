@@ -777,7 +777,8 @@ class HistorySettingsScreen extends ConsumerWidget {
     final repo = ref.read(historyRepositoryProvider);
     final memberships = ref.read(myMembershipsProvider).valueOrNull ?? const [];
     try {
-      final days = pick(await repo.myDays(uid, limit: 200));
+      // Deletion actions must use every stored day key, not only the history screen's display limit.
+      final days = pick(await repo.allMyDays(uid));
       if (days.isEmpty) {
         if (context.mounted) showSnack(context, 'No history in that range.');
         return;
