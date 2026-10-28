@@ -4,7 +4,7 @@
 - **Baseline:** v0.3, Firebase-only, $0/no-billing scope.
 - **Current implementation status (2026-10-28):** Main account, circle, location-sharing, places, history and in-app notification flows are represented in source code. New UI/reliability improvements are on branch `ui/circlo-premium-refresh` in PR #1.
 - **Verification status:** Not release-verified. Flutter analyze/tests and Firebase Emulator rules tests have not been run for the current branch; Android/iOS background location has not been tested on real devices.
-- **Latest hardening:** Live-location reads now require the active-sharing marker and current per-circle consent for direct gets; pause/stop/removal require atomic deletion. Heartbeats reject stale fixes, and async sharing/place-listener operations are guarded against stale generations.
+- **Latest hardening:** Live-location reads require the active-sharing marker and current per-circle consent for direct gets; pause/stop/removal require atomic deletion. Heartbeats reject stale fixes, async sharing/place-listener operations are generation-guarded, and queued place events retry their member-name lookup after offline recovery.
 - **Still deferred by the owner's current scope:** remote cross-user push, scheduled cleanup, guaranteed complete account/circle deletion, trusted server-side validation of place events.
 - **Last reviewed:** 2026-10-28. See [the current feature audit](docs/feature-audit-2026-10-28.md) for the feature inventory, recent improvements, and release blockers.
 
