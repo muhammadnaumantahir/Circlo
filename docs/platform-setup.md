@@ -4,7 +4,7 @@
 
 ## Shared build versions
 
-- Flutter SDK: **3.47.2**, pinned once in the root `.fvmrc`; GitHub Actions and the Cloudflare build script read that pin.
+- Flutter SDK: **3.47.2**, pinned once in the project-root `app/.fvmrc`; GitHub Actions and the Cloudflare build script read that pin.
 - Android Gradle Plugin: **9.4.0**.
 - Gradle wrapper: **9.8.0**.
 - Kotlin Gradle plugin: **2.4.10**.
@@ -23,7 +23,7 @@ In `app/ios/Runner/Info.plist`, add `NSLocationWhenInUseUsageDescription`, `NSLo
 
 ## Web
 
-Location works only while the tab is open; HTTPS (or localhost) is required by browsers. Cloudflare Pages uses `bash build-cloudflare.sh`; the script verifies the Flutter SDK version against `.fvmrc` and outputs to repository-root `build/web`.
+Location works only while the tab is open; HTTPS (or localhost) is required by browsers. Cloudflare Pages uses `bash build-cloudflare.sh`; the script verifies the Flutter SDK version against `app/.fvmrc` and outputs to repository-root `build/web`.
 
 ## Maps
 
