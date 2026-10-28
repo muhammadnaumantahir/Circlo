@@ -4,11 +4,6 @@ import 'history_models.dart';
 import 'history_repository.dart';
 import 'track_builder.dart';
 
-/// Turns the live location stream into the user's daily history and stores it with few writes:
-/// at most one write batch every [flushEvery] (plus one when a visit starts or ends).
-///
-/// History is only recorded while location sharing is running AND the user switched on
-/// "Keep my travel history". Copies go to a circle only if history sharing is on for it.
 typedef HistoryDayLoader = Future<DayTrack?> Function(String uid, String day);
 typedef HistoryDayWriter = Future<void> Function(
   String uid,
@@ -16,6 +11,11 @@ typedef HistoryDayWriter = Future<void> Function(
   Iterable<String> sharedCircleIds,
 );
 
+/// Turns the live location stream into the user's daily history and stores it with few writes:
+/// at most one write batch every [flushEvery] (plus one when a visit starts or ends).
+///
+/// History is only recorded while location sharing is running AND the user switched on
+/// "Keep my travel history". Copies go to a circle only if history sharing is on for it.
 class HistoryRecorder {
   HistoryRecorder({
     HistoryRepository? repository,
