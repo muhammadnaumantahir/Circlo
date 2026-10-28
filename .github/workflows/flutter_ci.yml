@@ -22,10 +22,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Read pinned Flutter version
+        id: flutter-version
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -nE 's/.*"flutter"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' .fvmrc | head -n 1)"
+          if [[ -z "$version" ]]; then
+            echo "::error::Could not read Flutter version from .fvmrc"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Pinned Flutter version: $version"
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ steps.flutter-version.outputs.version }}
           cache: true
 
       - name: Show Flutter version
@@ -39,6 +54,7 @@ jobs:
 
       - name: Run tests
         run: flutter test
+
   firestore-rules:
     name: Firestore security rules
     runs-on: ubuntu-latest
