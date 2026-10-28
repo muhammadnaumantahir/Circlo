@@ -19,6 +19,8 @@ void main() {
       expect(MemberLocation.tryFromMap('u1', {'lat': 0, 'lng': 181}), isNull);
       expect(MemberLocation.tryFromMap('u1', {'lat': double.nan, 'lng': 0}), isNull);
       expect(MemberLocation.tryFromMap('u1', {'lat': 0, 'lng': 0, 'accuracy': -1}), isNull);
+      expect(MemberLocation.tryFromMap('u1', {'lat': 0, 'lng': 0, 'accuracy': 'unknown'}), isNull);
+      expect(MemberLocation.tryFromMap('u1', {'lat': 0, 'lng': 0, 'accuracy': double.nan}), isNull);
     });
   });
 
