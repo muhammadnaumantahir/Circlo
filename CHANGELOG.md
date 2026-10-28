@@ -17,6 +17,8 @@
 - Hardened sharing shutdown so a failed position stream cannot keep the heartbeat publishing stale coordinates.
 - Serialized notification preference saves to prevent rapid switch changes from overwriting one another; failed saves roll back locally.
 - History recording retries a failed initial restore from Firestore instead of proceeding without the prior daily track.
+- Hardened Firestore live-location privacy: list queries filter `sharing == true`, direct reads require the marker and current per-circle consent, pause/stop/removal require atomic location deletion, and orphaned child data is unreadable when a parent circle is missing.
+- Added Firestore Emulator regression tests for pause/stop-without-delete, legacy locations, orphaned circle data and safe parent-circle deletion; added a manual CI job for the emulator rules suite.
 
 ### Deferred / unverified release blockers
 - Remote phone push notifications are deferred under the current $0/no-billing decision; the feed is in-app only.
