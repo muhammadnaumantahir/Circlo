@@ -589,7 +589,7 @@ class _JoinCodeCard extends ConsumerWidget {
 
   Future<void> _showQr(BuildContext context) async {
     final link = _inviteLink();
-    final data = link.isNotEmpty ? link : 'CIRCLO:${normalizeJoinCode(circle.joinCode)}';
+    final data = link.isNotEmpty ? link : normalizeJoinCode(circle.joinCode);
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
