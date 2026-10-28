@@ -12,12 +12,15 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-010, FR-011 | Create circle batch rules | same | same | Blocked here; CI |
 | FR-013, FR-020 | Join with valid/invalid/revoked/expired code; rotate code | same | same | Blocked here; CI |
 | FR-017, FR-019, FR-090, FR-092 | Membership-scoped reads; leave/remove revokes access | same | same | Blocked here; CI |
-| FR-030–035, FR-090 | Location rules: write only when sharing on & not paused for that circle; no cross-circle writes; member-only reads; stop-sharing batch removes data; removed member loses read | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
-| FR-031, FR-032, NFR-016 | Status derivation, "ago" text, upload throttle | `app/test/sharing_status_test.dart` | `flutter test` | Not run (CI) |
+| FR-030–035, FR-090 | Location rules: writes require active consent; list query requires `sharing == true`; direct get checks the marker and current per-circle consent; pausing/stopping/removal requires atomic location deletion; legacy/orphan documents are denied | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Added on 2026-10-28; Not run here |
+| Privacy regression | A member cannot pause/stop sharing while leaving a location document behind; location data becomes unreadable when the parent circle is missing | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Added on 2026-10-28; Not run here |
+| CI | Flutter analyze/unit tests plus Firestore Emulator rules tests | `.github/workflows/flutter_ci.yml` (manual dispatch) | GitHub Actions → Flutter CI → Run workflow | Updated on 2026-10-28; Not run here |
+| FR-031, FR-032, NFR-016 | Status derivation, "ago" text, upload throttle, freshness validation for stale/future-dated fixes | `app/test/sharing_status_test.dart` | `flutter test` | Freshness tests added on 2026-10-28; Not run here |
 | FR-033, FR-037, NFR-004 | Background sharing, notification/indicator, battery | real devices (docs/platform-setup.md) | manual | **Not run — required** |
 | FR-036, FR-034, FR-035 | Consent dialog, pause, per-circle switches, permission states | manual with emulator/real device | manual | Not run |
 | FR-040–051, FR-090 | Place/subscription/event rules: member-only reads, creator/owner edits, own-only subscriptions, forged/duplicate/paused/not-sharing events rejected, immutable events | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
 | FR-048, FR-050 | Detector: arrival/departure confirmation, boundary jitter, one event per visit, restore after restart, inaccurate fixes | `app/test/place_detector_test.dart` | `flutter test` | Not run (CI) |
+| Regression | Latest departure restores the detector to outside state; reactivated tracking must not emit a duplicate departure for the old visit | `app/test/place_detector_test.dart` | `cd app && flutter test test/place_detector_test.dart` | Added on 2026-10-28; Not run here |
 | FR-040 | Geocoder parsing, short-query guard | `app/test/geocoder_test.dart` | `flutter test` | Not run (CI) |
 | FR-045/046/047/044 | End-to-end alert flow (two devices, real GPS movement), in-app feed filtering by member/arrive/leave | manual, 2 devices + emulator | manual | **Not run — required** |
 | FR-060–067, FR-090, FR-092 | History rules: master copy owner-only & requires keepHistory; circle copy requires sharing on/not paused/historyShared; member-only single reads; revoke and sharing-off hide it; batch-safe deletes; removed members lose access; separate opt-in | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
@@ -29,7 +32,7 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-080, FR-081, FR-082, FR-083, FR-094, FR-038 | Rules: activity events bound to the actor's own batch (joined/left/removed/sharing), names must match, immutable, member-only reads; notification prefs bounds; timed pause field | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
 | FR-072, FR-093 | Directions URL (no key), data export content | `app/test/directions_export_test.dart` | `flutter test` | Not run (CI) |
 | FR-080–083 | Feed: kinds, mute, unread badge, unavailable notice after 15 min, join-request notice (owner) | manual (emulator + 2 users) | manual | **Not run — required** |
-| Static | `flutter analyze`, `flutter build web` | CI (not enabled yet: copy docs/ci/ci.yml to .github/workflows/) | CI job `flutter` | Not run |
+| Static | `flutter analyze`, `flutter test` | `.github/workflows/flutter_ci.yml` (manual `workflow_dispatch`) | CI job `verify` | Not run here |
 | Security | Secret scan | CI | gitleaks | Not run |
 
-Not covered yet (later increments): location sharing, places, history, notifications, account deletion, accessibility audit, real-device background tracking.
+Not verified yet: full end-to-end location sharing, places/history/notification workflows across two devices, account deletion, accessibility audit, and real-device background tracking. Automated coverage exists for several core flows but has not been run in this authoring environment.

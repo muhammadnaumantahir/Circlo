@@ -22,10 +22,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate build helper syntax
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n build-cloudflare.sh
+          python3 -m py_compile tools/apply_platform_config.py
+
+      - name: Read pinned Flutter version
+        id: flutter-version
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -nE 's/.*"flutter"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' app/.fvmrc | head -n 1)"
+          if [[ -z "$version" ]]; then
+            echo "::error::Could not read Flutter version from app/.fvmrc"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Pinned Flutter version: $version"
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ steps.flutter-version.outputs.version }}
           cache: true
 
       - name: Show Flutter version
@@ -39,3 +62,33 @@ jobs:
 
       - name: Run tests
         run: flutter test
+
+  firestore-rules:
+    name: Firestore security rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: firebase/package-lock.json
+
+      - name: Set up Java for the Firestore Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install test dependencies
+        run: npm ci
+
+      - name: Run Firestore Emulator rules tests
+        run: npm test

@@ -29,42 +29,72 @@ class PlaceAlertEngine {
   final Map<String, StreamSubscription<List<Place>>> _subs = {};
   final List<_PendingEvent> _pending = [];
   final Map<String, String> _names = {}; // circleId -> my display name in that circle
+  Set<String> _desiredCircleIds = {};
+  int _generation = 0;
 
   /// Saved places of the circles currently followed.
   List<Place> get places => [for (final l in _placesByCircle.values) ...l];
 
   /// Follows exactly the given circles (those with sharing on and not paused).
+  ///
+  /// Circle membership snapshots can change while a Firestore read is in flight. A generation
+  /// token prevents a stale async call from attaching listeners for a circle that is no longer
+  /// sharing, while preserving listeners for circles that remain active.
   Future<void> setCircles(Set<String> circleIds) async {
+    final generation = ++_generation;
+    _desiredCircleIds = Set<String>.of(circleIds);
+
     for (final id in _subs.keys.toList()) {
-      if (!circleIds.contains(id)) {
-        await _subs.remove(id)?.cancel();
-        _placesByCircle.remove(id);
-        _names.remove(id);
+      if (generation != _generation) return;
+      if (_desiredCircleIds.contains(id)) continue;
+
+      final sub = _subs.remove(id);
+      final removedPlaces = _placesByCircle.remove(id) ?? const <Place>[];
+      for (final place in removedPlaces) {
+        _detector.forget(place.id);
       }
+      _names.remove(id);
+      // Pending events from a circle that stopped sharing must not be replayed after resume.
+      _pending.removeWhere((event) => event.place.circleId == id);
+      await sub?.cancel();
     }
+
     for (final id in circleIds) {
-      if (_subs.containsKey(id)) continue;
+      if (generation != _generation) return;
+      if (!_desiredCircleIds.contains(id) || _subs.containsKey(id)) continue;
+
       try {
-        final n = await repository.myMemberName(id, uid);
-        if (n != null) _names[id] = n;
+        final name = await repository.myMemberName(id, uid);
+        if (generation != _generation || !_desiredCircleIds.contains(id)) return;
+        if (name != null) _names[id] = name;
       } on FirebaseException {
-        // events for this circle are skipped until the name is known
+        // Events for this circle are skipped until the member name is known.
       }
-      // Restore "inside" state from our own latest events before judging new fixes.
+      if (generation != _generation || !_desiredCircleIds.contains(id)) return;
+
+      // Restore the newest known visit state before judging new fixes.
       try {
         final events = await repository.myLatestEvents(id, uid);
+        if (generation != _generation || !_desiredCircleIds.contains(id)) return;
         final seen = <String>{};
         for (final e in events) {
-          if (!seen.add(e.placeId)) continue; // newest event per place wins
-          if (e.isArrival) _detector.restoreInside(e.placeId, e.visitId);
+          if (!seen.add(e.placeId)) continue;
+          _detector.restoreState(
+            e.placeId,
+            inside: e.isArrival,
+            visitId: e.isArrival ? e.visitId : null,
+          );
         }
       } on FirebaseException {
-        // Without restore we might repeat an "arrived"; acceptable, rules reject exact duplicates.
+        // Without restore we might repeat an arrival; rule-enforced document IDs deduplicate retries.
       }
+      if (generation != _generation || !_desiredCircleIds.contains(id)) return;
+
       _subs[id] = repository.watchPlaces(id).listen(
         (places) {
+          if (!_desiredCircleIds.contains(id)) return;
           _placesByCircle[id] = places;
-          _detector.retainOnly({for (final l in _placesByCircle.values) for (final p in l) p.id});
+          _detector.retainOnly({for (final list in _placesByCircle.values) for (final place in list) place.id});
         },
         onError: (_) {},
       );
@@ -90,8 +120,18 @@ class PlaceAlertEngine {
 
   Future<void> _flush() async {
     for (final e in List<_PendingEvent>.of(_pending)) {
-      final name = _names[e.place.circleId];
-      if (name == null) continue; // retry once the member name has been loaded
+      var name = _names[e.place.circleId];
+      if (name == null) {
+        // If the first lookup happened while offline, retry on the next location fix rather
+        // than keeping this event stuck until the user toggles sharing.
+        try {
+          name = await repository.myMemberName(e.place.circleId, uid);
+          if (name != null) _names[e.place.circleId] = name;
+        } on FirebaseException {
+          continue;
+        }
+      }
+      if (name == null) continue;
       try {
         await repository.publishEvent(
           circleId: e.place.circleId,
@@ -113,13 +153,16 @@ class PlaceAlertEngine {
   }
 
   Future<void> dispose() async {
-    for (final s in _subs.values) {
-      await s.cancel();
-    }
+    ++_generation;
+    _desiredCircleIds = {};
+    final subscriptions = _subs.values.toList();
     _subs.clear();
     _placesByCircle.clear();
     _names.clear();
     _pending.clear();
     _detector.reset();
+    for (final subscription in subscriptions) {
+      await subscription.cancel();
+    }
   }
 }

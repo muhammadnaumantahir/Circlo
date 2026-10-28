@@ -3,6 +3,15 @@ enum ShareStatus { sharing, paused, unavailable, notSharing }
 
 const Duration kStaleAfter = Duration(minutes: 10);
 
+/// A location fix is fresh only when it is recent and not implausibly far in the future.
+bool isLocationFixFresh({
+  required DateTime capturedAt,
+  required DateTime now,
+  Duration maxAge = kStaleAfter,
+  Duration futureTolerance = const Duration(minutes: 2),
+}) =>
+    !capturedAt.isAfter(now.add(futureTolerance)) && now.difference(capturedAt) <= maxAge;
+
 ShareStatus deriveStatus({
   required bool sharesLocation,
   required bool paused,

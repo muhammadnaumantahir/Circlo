@@ -238,9 +238,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _phone.text = p.phone ?? '';
             _loaded = true;
           }
+          final theme = Theme.of(context);
+          final scheme = theme.colorScheme;
+          final displayName = p.displayName.trim();
+          final initial = displayName.isEmpty ? '?' : displayName.substring(0, 1).toUpperCase();
           return FormPage(children: [
-            Text(email, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: scheme.outlineVariant.withOpacity(0.65)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 29,
+                    backgroundColor: scheme.primaryContainer,
+                    foregroundColor: scheme.onPrimaryContainer,
+                    child: Text(
+                      initial,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: scheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(displayName.isEmpty ? 'Your profile' : displayName, style: theme.textTheme.titleLarge),
+                        const SizedBox(height: 4),
+                        Text(
+                          email,
+                          style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Personal account',
+                          style: theme.textTheme.labelMedium?.copyWith(color: scheme.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 24),
+            Text('Personal details', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 12),
             Form(
               key: _form,
               child: Column(children: [
@@ -266,6 +314,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Save changes'),
             ),
+            const SizedBox(height: 28),
+            Text('Privacy & data', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () => context.push('/history/settings'),

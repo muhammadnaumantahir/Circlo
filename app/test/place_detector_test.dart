@@ -98,6 +98,25 @@ void main() {
     expect(a2.visitId, isNot(a1.visitId));
   });
 
+
+  test('restoring a latest departure clears stale inside state and visit id', () {
+    final d = PlaceDetector()..restoreInside('school', 'old-visit');
+    expect(d.isInside('school'), isTrue);
+
+    d.restoreState('school', inside: false);
+    expect(d.isInside('school'), isFalse);
+
+    // Outside fixes after restoration must not emit a second departure for old-visit.
+    expect(d.process(at(400, 0), [school]), isEmpty);
+    expect(d.process(at(420, 30), [school]), isEmpty);
+
+    // A later visit begins as a completely new visit.
+    expect(d.process(at(80, 60), [school]), isEmpty);
+    final arrive = d.process(at(70, 90), [school]).single;
+    expect(arrive.type, TransitionType.arrive);
+    expect(arrive.visitId, isNot('old-visit'));
+  });
+
   test('retainOnly drops state of deleted places', () {
     final d = PlaceDetector()..restoreInside('school', '1');
     d.retainOnly({});

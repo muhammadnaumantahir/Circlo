@@ -48,9 +48,11 @@ class HistoryRecorder {
     if (!_keep) return;
     try {
       if (!_restored) {
-        _restored = true;
+        // Mark restored only after the read succeeds. If Firestore is offline on startup,
+        // retry on a later fix instead of overwriting an existing day's history with a blank track.
         final existing = await repository.getMine(uid, dayKey(time));
         if (existing != null) _builder.restore(existing);
+        _restored = true;
       }
       final before = _builder.current;
       final changed = _builder.process(

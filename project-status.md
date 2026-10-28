@@ -1,11 +1,14 @@
 # Project Status
 
-- **Current phase:** Phase 6 — Development, Increment 1 (accounts + circles).
-- **Approved baseline:** v0.3 (Firebase-only). **Approval date: 2026-10-13** — owner instruction "I have updated the documents, read them and start the development".
-- **Approval scope/interpretation:** start development with work that does not depend on the P0 trusted-server blocker. Remote cross-user push, scheduled cleanup, complete account deletion and server-dependent flows stay **deferred** until the owner chooses a no-cost trusted mechanism or formally accepts the reduced scope.
-- **Scope decision (2026-10-13, owner):** accept a **smaller scope without the P0 server-dependent features**: no remote cross-user push notifications, no scheduled/automatic cleanup, no complete recursive account deletion guarantee, no server-side validation of events. Alerts and notices are therefore **in-app only** (visible when the app is open/synced) until a trusted no-cost mechanism is approved. Increment 2 (location sharing) proceeds on this basis.
-- **Implementation code:** Increment 1 written (see below); not yet executed in the authoring environment.
-- **Last updated:** 2026-10-13.
+- **Current phase:** Hardening and release preparation.
+- **Baseline:** v0.3, Firebase-only, $0/no-billing scope.
+- **Current implementation status (2026-10-28):** Main account, circle, location-sharing, places, history and in-app notification flows are represented in source code. New UI/reliability improvements are on branch `ui/circlo-premium-refresh` in PR #1.
+- **Verification status:** Not release-verified. Flutter analyze/tests and Firebase Emulator rules tests have not been run for the current branch; Android/iOS background location has not been tested on real devices.
+- **Latest hardening:** Live-location reads require the active-sharing marker and current per-circle consent for direct gets; pause/stop/removal require atomic deletion. Heartbeats reject stale fixes, async sharing/place-listener operations are generation-guarded, and queued place events retry their member-name lookup after offline recovery.
+- **Still deferred by the owner's current scope:** remote cross-user push, scheduled cleanup, guaranteed complete account/circle deletion, trusted server-side validation of place events.
+- **Last reviewed:** 2026-10-28. See [the current feature audit](docs/feature-audit-2026-10-28.md) for the feature inventory, recent improvements, and release blockers.
+
+> Historical note: the increment-by-increment sections below are dated snapshots from 2026-10-13/14. Their “not built” and “next steps” statements describe the state at that time and are not the current feature inventory. The feature audit above is the current summary.
 
 ## Owner decisions (2026-10-12/13)
 - Flutter app for web, Android and iOS.

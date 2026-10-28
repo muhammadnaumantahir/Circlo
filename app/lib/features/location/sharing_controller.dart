@@ -35,11 +35,12 @@ class SharingState {
     DateTime? lastPublished,
     String? error,
     bool clearError = false,
+    bool clearLastPublished = false,
   }) =>
       SharingState(
         tracking: tracking ?? this.tracking,
         activeCircleIds: activeCircleIds ?? this.activeCircleIds,
-        lastPublished: lastPublished ?? this.lastPublished,
+        lastPublished: clearLastPublished ? null : (lastPublished ?? this.lastPublished),
         error: clearError ? null : (error ?? this.error),
       );
 }
@@ -58,6 +59,8 @@ class SharingController extends Notifier<SharingState> {
   HistoryRecorder? _history;
   Timer? _resumeTimer;
   List<MyMembership> _memberships = const [];
+  int _syncGeneration = 0;
+  int _streamGeneration = 0;
   static const Duration _heartbeatEvery = Duration(minutes: 5);
 
   @override
@@ -88,6 +91,17 @@ class SharingController extends Notifier<SharingState> {
     );
   }
 
+  /// Re-check permissions and restart location listeners, including when a native stream
+  /// becomes silent without issuing an error. A membership change cancels this retry.
+  Future<void> retry() async {
+    final generation = ++_syncGeneration;
+    final memberships = List<MyMembership>.unmodifiable(_memberships);
+    state = state.copyWith(tracking: false, clearError: true, clearLastPublished: true);
+    await _stop();
+    if (generation != _syncGeneration) return;
+    await _sync(memberships);
+  }
+
   /// Timed pauses end by themselves while the app is running (FR-038).
   void _handleTimedPauses(List<MyMembership> memberships) {
     final uid = ref.read(currentUidProvider);
@@ -115,26 +129,67 @@ class SharingController extends Notifier<SharingState> {
   }
 
   Future<void> _sync(List<MyMembership> memberships) async {
-    _memberships = memberships;
+    final generation = ++_syncGeneration;
+    _memberships = List<MyMembership>.unmodifiable(memberships);
     _handleTimedPauses(memberships);
     final active = [for (final m in memberships) if (m.isActive) m.circleId];
     if (active.isEmpty) {
       await _stop();
+      if (generation != _syncGeneration) return;
       state = const SharingState();
       return;
     }
+
     final access = await currentLocationAccess();
+    if (generation != _syncGeneration) return;
     if (access != LocationAccess.granted) {
       await _stop();
+      if (generation != _syncGeneration) return;
       state = SharingState(
         activeCircleIds: active,
         error: 'Location permission is needed to share. Open Location sharing to fix this.',
       );
       return;
     }
-    state = state.copyWith(activeCircleIds: active, clearError: true);
-    await _start();
+
+    final scopeChanged = !setEquals(state.activeCircleIds.toSet(), active.toSet());
+    final wasRunning = _sub != null;
+    state = state.copyWith(
+      activeCircleIds: active,
+      clearError: true,
+      clearLastPublished: scopeChanged,
+    );
+    await _start(generation: generation);
+    if (generation != _syncGeneration) return;
     await _engine?.setCircles(active.toSet());
+    if (generation != _syncGeneration) return;
+
+    // When sharing is enabled/disabled for a circle while the stream is already running,
+    // immediately refresh the location scope rather than waiting for the next movement/heartbeat.
+    if (scopeChanged && wasRunning && _sub != null) {
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        ).timeout(const Duration(seconds: 20));
+        if (generation != _syncGeneration || _sub == null) return;
+        if (!isLocationFixFresh(capturedAt: position.timestamp, now: DateTime.now())) {
+          state = state.copyWith(
+            error: 'Could not refresh location after the sharing change. Check GPS and retry.',
+          );
+          return;
+        }
+        _last = position;
+        _feedEngine(position, now: true);
+        await _publish(position, force: true);
+      } catch (_) {
+        if (generation == _syncGeneration && _sub != null) {
+          state = state.copyWith(
+            error: 'Could not refresh location after the sharing change. Check GPS and retry.',
+          );
+        }
+      }
+    }
+    if (generation != _syncGeneration) return;
     _configureHistory();
   }
 
@@ -171,8 +226,9 @@ class SharingController extends Notifier<SharingState> {
     }
   }
 
-  Future<void> _start() async {
+  Future<void> _start({required int generation}) async {
     if (_sub != null) return;
+    final streamGeneration = ++_streamGeneration;
     _throttle.reset();
     final uid = ref.read(currentUidProvider);
     if (uid != null) {
@@ -181,30 +237,79 @@ class SharingController extends Notifier<SharingState> {
     }
     _sub = Geolocator.getPositionStream(locationSettings: _settings()).listen(
       (p) {
+        if (!isLocationFixFresh(capturedAt: p.timestamp, now: DateTime.now())) {
+          state = state.copyWith(
+            error: 'The device returned an old location fix. Check GPS before sharing again.',
+          );
+          return;
+        }
         _last = p;
         _feedEngine(p);
         _publish(p);
       },
       onError: (Object e) {
-        state = state.copyWith(error: 'Could not read your location. Check location settings.');
+        // Do not keep the heartbeat publishing a stale position after the OS revokes location
+        // access or the position stream fails. Stop the stream and engines; the user can retry.
+        unawaited(_handleLocationStreamError(streamGeneration));
       },
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) {
-      final p = _last;
-      if (p != null) {
-        _feedEngine(p, now: true); // a stationary phone still confirms arrivals by elapsed time
-        _publish(p, force: true); // keeps "last updated" fresh while stationary
-      }
+      // The stream may survive membership/share changes, so use the current sync generation.
+      unawaited(_refreshHeartbeat(_syncGeneration));
     });
     state = state.copyWith(tracking: true, clearError: true);
     try {
       final first = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       ).timeout(const Duration(seconds: 20));
+      if (generation != _syncGeneration || _sub == null) return;
+      if (!isLocationFixFresh(capturedAt: first.timestamp, now: DateTime.now())) {
+        state = state.copyWith(
+          error: 'The device returned an old location fix. Check GPS before sharing again.',
+        );
+        return;
+      }
       _last = first;
       await _publish(first, force: true);
     } catch (_) {
-      // The stream will deliver the first fix; nothing to do.
+      // Do not leave the sharing screen in an endless "connecting" state when neither the
+      // stream nor getCurrentPosition can provide a first fix. Surface a retry action instead.
+      if (generation == _syncGeneration && _sub != null && state.lastPublished == null) {
+        state = state.copyWith(
+          error: 'Could not get your location. Check location permission, GPS and device settings.',
+        );
+      }
+    }
+  }
+
+  /// Refreshes a stationary device with a new fix. Never re-stamp an old cached coordinate
+  /// as fresh: other members rely on updatedAt to decide whether the position is current.
+  Future<void> _refreshHeartbeat(int generation) async {
+    if (generation != _syncGeneration || _sub == null) return;
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+      ).timeout(const Duration(seconds: 20));
+      if (generation != _syncGeneration || _sub == null) return;
+
+      if (!isLocationFixFresh(
+        capturedAt: position.timestamp,
+        now: DateTime.now(),
+      )) {
+        state = state.copyWith(
+          error: 'The device returned an old location fix. Check GPS and retry before sharing again.',
+        );
+        return;
+      }
+
+      _last = position;
+      _feedEngine(position, now: true);
+      await _publish(position, force: true);
+    } catch (_) {
+      if (generation != _syncGeneration || _sub == null) return;
+      state = state.copyWith(
+        error: 'Could not refresh your location. Check GPS and connection; retry if it persists.',
+      );
     }
   }
 
@@ -220,21 +325,58 @@ class SharingController extends Notifier<SharingState> {
     ));
   }
 
+  Future<void> _handleLocationStreamError(int streamGeneration) async {
+    // A late error from a cancelled stream must not stop its replacement.
+    if (streamGeneration != _streamGeneration) return;
+    try {
+      await _stop();
+    } catch (_) {
+      // Preserve the actionable location error even if best-effort flush/cleanup also fails.
+    }
+    // A newer stream may have started while cleanup was in flight.
+    if (_streamGeneration != streamGeneration + 1) return;
+    state = state.copyWith(
+      tracking: false,
+      error: 'Could not read your location. Check location permission and device settings.',
+    );
+  }
+
   Future<void> _stop() async {
-    await _history?.dispose();
-    _history = null;
-    await _engine?.dispose();
-    _engine = null;
-    await _sub?.cancel();
-    _sub = null;
+    // Invalidate callbacks belonging to the stream being detached.
+    ++_streamGeneration;
+    // Detach every resource before the first await. A newer sync may start fresh resources
+    // while cancellation/flush below is still finishing; this cleanup must never dispose those.
     _heartbeat?.cancel();
     _heartbeat = null;
+    final sub = _sub;
+    final history = _history;
+    final engine = _engine;
+    _sub = null;
+    _history = null;
+    _engine = null;
     _last = null;
+
+    try {
+      await sub?.cancel();
+    } catch (_) {
+      // Continue cleanup even when the platform stream fails to cancel cleanly.
+    }
+    try {
+      await history?.dispose();
+    } catch (_) {
+      // History is best-effort on offline/quota failures; it must not keep location tracking alive.
+    }
+    try {
+      await engine?.dispose();
+    } catch (_) {
+      // Dispose remaining resources even if one listener has already failed.
+    }
   }
 
   Future<void> _publish(Position p, {bool force = false}) async {
     final uid = ref.read(currentUidProvider);
-    final ids = state.activeCircleIds;
+    final ids = List<String>.of(state.activeCircleIds);
+    final generation = _syncGeneration;
     if (uid == null || ids.isEmpty) return;
     final now = DateTime.now();
     if (!force && !_throttle.allow(now)) return;
@@ -247,8 +389,10 @@ class SharingController extends Notifier<SharingState> {
             lng: p.longitude,
             accuracy: p.accuracy,
           );
+      if (generation != _syncGeneration) return;
       state = state.copyWith(lastPublished: now, clearError: true);
     } on FirebaseException {
+      if (generation != _syncGeneration) return;
       state = state.copyWith(error: 'Sync delayed. We will retry with the next update.');
     }
   }

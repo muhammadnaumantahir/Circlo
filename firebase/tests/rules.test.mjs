@@ -242,7 +242,7 @@ describe('join code management', () => {
 });
 
 describe('live location sharing (circle-scoped)', () => {
-  const loc = (uid, over = {}) => ({ uid, lat: 31.5204, lng: 74.3587, accuracy: 12, updatedAt: serverTimestamp(), ...over });
+  const loc = (uid, over = {}) => ({ uid, lat: 31.5204, lng: 74.3587, accuracy: 12, sharing: true, updatedAt: serverTimestamp(), ...over });
   const locRef = (f, cid, uid) => doc(f, `circles/${cid}/locations/${uid}`);
   const setSharing = (uid, cid, over) => env.withSecurityRulesDisabled(async (ctx) => {
     await updateDoc(doc(ctx.firestore(), `circles/${cid}/members/${uid}`), over);
@@ -284,11 +284,58 @@ describe('live location sharing (circle-scoped)', () => {
     await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
     await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
     await assertSucceeds(getDoc(locRef(db('alice'), 'c1', 'bob')));
-    await assertSucceeds(getDocs(collection(db('alice'), 'circles/c1/locations')));
+    await assertSucceeds(getDocs(query(collection(db('alice'), 'circles/c1/locations'), where('sharing', '==', true))));
+    await assertFails(getDocs(collection(db('alice'), 'circles/c1/locations'))); // query must constrain active sharing
     await assertFails(getDoc(locRef(db('carol'), 'c1', 'bob')));              // member of c2 only
     await assertFails(getDocs(collection(db('carol'), 'circles/c1/locations')));
     await assertFails(getDoc(locRef(db('mallory'), 'c1', 'bob')));
   });
+  it('does not allow a user to turn sharing off or pause while leaving a location document behind', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+
+    // The member flag cannot be changed to off independently of location deletion.
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { sharesLocation: false }));
+    const stop = writeBatch(db('bob'));
+    stop.update(doc(db('bob'), 'circles/c1/members/bob'), { sharesLocation: false, paused: false });
+    stop.delete(locRef(db('bob'), 'c1', 'bob'));
+    await assertSucceeds(stop.commit());
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+
+    // Pausing has the same atomic deletion requirement.
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { paused: true }));
+    const pause = writeBatch(db('bob'));
+    pause.update(doc(db('bob'), 'circles/c1/members/bob'), { paused: true });
+    pause.delete(locRef(db('bob'), 'c1', 'bob'));
+    await assertSucceeds(pause.commit());
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+  });
+
+  it('legacy location documents without the active-sharing marker are not readable or queried', async () => {
+    await seed({ bob: true });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const f = ctx.firestore();
+      // Simulate a legacy doc whose member has since enabled sharing again.
+      await updateDoc(doc(f, 'circles/c1/members/bob'), { sharesLocation: true, paused: false });
+      await setDoc(locRef(f, 'c1', 'bob'), {
+        uid: 'bob',
+        lat: 31.5204,
+        lng: 74.3587,
+        accuracy: 12,
+        updatedAt: Timestamp.now(),
+      });
+    });
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+    const activeOnly = await getDocs(query(
+      collection(db('alice'), 'circles/c1/locations'),
+      where('sharing', '==', true),
+    ));
+    if (!activeOnly.empty) throw new Error('legacy location must be excluded from the active query');
+  });
+
   it('stopping sharing (member flag + delete in one batch) removes the location', async () => {
     await seed({ bob: true });
     await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
@@ -330,6 +377,16 @@ describe('live location sharing (circle-scoped)', () => {
     await assertFails(deleteDoc(locRef(db('mallory'), 'c1', 'bob')));
     await assertSucceeds(deleteDoc(locRef(db('alice'), 'c1', 'bob')));
   });
+  it('membership removal requires the member location to be deleted first', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+
+    await assertFails(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
+    await assertSucceeds(deleteDoc(locRef(db('alice'), 'c1', 'bob')));
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
+  });
+
   it('a removed member can no longer read locations', async () => {
     await seed({ bob: true });
     await setSharing('alice', 'c1', { sharesLocation: true, paused: false });
@@ -634,6 +691,7 @@ describe('circle lifecycle (Increment 5)', () => {
 
   it('owner can delete the circle with everything under it in one batch; others cannot', async () => {
     await seed({ bob: true });
+    // Deleting only the parent would strand subcollection data, so it is denied.
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'circles/c1/places/p1'), { name: 'School', lat: 31.5, lng: 74.3, radiusM: 150, createdBy: 'bob', createdAt: Timestamp.now() });
       await setDoc(doc(ctx.firestore(), 'circles/c1/placeSubscriptions/bob_p1'), { subscriberUid: 'bob', placeId: 'p1', arrive: true, leave: true, allMembers: true, memberUids: [], updatedAt: Timestamp.now() });
@@ -642,6 +700,7 @@ describe('circle lifecycle (Increment 5)', () => {
     });
     await assertFails(deleteDoc(doc(db('bob'), 'circles/c1')));
     await assertFails(deleteDoc(doc(db('mallory'), 'circles/c1')));
+    await assertFails(deleteDoc(doc(db('alice'), 'circles/c1'))); // parent cannot be removed alone
     const f = db('alice'); const b = writeBatch(f);
     b.delete(doc(f, 'circles/c1/placeEvents/bob_p1_1_arrive'));
     b.delete(doc(f, 'circles/c1/placeSubscriptions/bob_p1'));
@@ -652,6 +711,29 @@ describe('circle lifecycle (Increment 5)', () => {
     b.delete(doc(f, `joinCodes/${CODE_A}`));
     b.delete(doc(f, 'circles/c1'));
     await assertSucceeds(b.commit());
+  });
+
+  it('orphaned child location documents are unreadable when the parent circle is missing', async () => {
+    await seed({ bob: true });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const f = ctx.firestore();
+      await updateDoc(doc(f, 'circles/c1/members/bob'), { sharesLocation: true, paused: false });
+      await setDoc(locRef(f, 'c1', 'bob'), {
+        uid: 'bob',
+        lat: 31.5204,
+        lng: 74.3587,
+        accuracy: 12,
+        sharing: true,
+        updatedAt: Timestamp.now(),
+      });
+      await deleteDoc(doc(f, 'circles/c1')); // simulate an out-of-band / legacy orphan
+    });
+
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+    await assertFails(getDocs(query(
+      collection(db('alice'), 'circles/c1/locations'),
+      where('sharing', '==', true),
+    )));
   });
 
   it('the owner cannot leave on their own while the circle still exists', async () => {

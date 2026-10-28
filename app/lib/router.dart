@@ -170,19 +170,128 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     const paths = ['/map', '/places', '/history', '/circles', '/profile'];
     var index = paths.indexWhere((p) => widget.location.startsWith(p));
     if (index < 0) index = 0;
-    return Scaffold(
-      body: widget.child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) => context.go(paths[i]),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Map'),
-          NavigationDestination(icon: Icon(Icons.place_outlined), selectedIcon: Icon(Icons.place), label: 'Places'),
-          NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history), label: 'History'),
-          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Circles'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 1000;
+        final scheme = Theme.of(context).colorScheme;
+        final destinations = const [
+          NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Map'),
+          NavigationDestination(icon: Icon(Icons.place_outlined), selectedIcon: Icon(Icons.place_rounded), label: 'Places'),
+          NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history_rounded), label: 'History'),
+          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Circles'),
+          NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
+        ];
+        return Scaffold(
+          body: wide
+              ? Row(
+                  children: [
+                    Container(
+                      width: 238,
+                      decoration: BoxDecoration(
+                        color: scheme.surface,
+                        border: Border(
+                          right: BorderSide(color: scheme.outlineVariant.withOpacity(0.65)),
+                        ),
+                      ),
+                      child: SafeArea(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 18, 16, 20),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: scheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Icon(Icons.hub_rounded, color: scheme.onPrimaryContainer),
+                                  ),
+                                  const SizedBox(width: 11),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Circlo',
+                                        style: Theme.of(context).textTheme.titleLarge,
+                                      ),
+                                      Text(
+                                        'STAY IN SYNC',
+                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                              letterSpacing: 1.25,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(22, 0, 0, 8),
+                              child: Text(
+                                'YOUR SPACE',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      letterSpacing: 1.2,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                            Expanded(
+                              child: NavigationRail(
+                                extended: true,
+                                minExtendedWidth: 218,
+                                selectedIndex: index,
+                                onDestinationSelected: (i) => context.go(paths[i]),
+                                destinations: [
+                                  for (final destination in destinations)
+                                    NavigationRailDestination(
+                                      icon: destination.icon,
+                                      selectedIcon: destination.selectedIcon,
+                                      label: Text(destination.label),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 12, 16, 18),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.shield_outlined, size: 18, color: scheme.primary),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Your location. Your choice.',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(child: widget.child),
+                  ],
+                )
+              : widget.child,
+          bottomNavigationBar: wide
+              ? null
+              : NavigationBar(
+                  selectedIndex: index,
+                  onDestinationSelected: (i) => context.go(paths[i]),
+                  destinations: destinations,
+                ),
+        );
+      },
     );
   }
 }

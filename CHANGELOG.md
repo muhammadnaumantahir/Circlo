@@ -9,5 +9,23 @@
 - Increment 4 (travel history): opt-in "Keep my travel history", daily compact history (visits ≥10 min + thinned route) recorded while sharing is on, History tab (member/date pickers, route + timeline with stay durations), per-circle history sharing with consent, retention 7/30/90 days (client-side cleanup), delete range/all, copies removed when switching off/leaving/logging out; rules + tests.
 - Increment 5 (circle lifecycle): email verification gate (also enforced by rules), optional join-code expiry (24 h / 7 d), approval-required circles with request → approve → join, ownership transfer, circle deletion, best-effort account deletion with re-authentication and owner checks; rules + tests.
 - Increment 6 (notifications and polish): activity events (member joined/left/removed, sharing started/stopped), one in-app feed with place alerts, "location unavailable" (15+ min, once per outage) and join requests, notification settings per kind and per circle, unread badge/read state, directions link, timed pause (1 h / until 6:00 / manual, auto-resume while the app is open), export my data (JSON); rules + tests.
-### Not yet implemented
-push notifications (deferred by owner decision), approval flow, ownership transfer, circle/account deletion.
+### UI and reliability polish (2026-10-28)
+- Premium forest-green/warm-neutral light and dark themes, polished shared cards/forms/empty states, responsive desktop navigation, and refreshed login/profile presentation.
+- Map/People full-screen toggle on compact screens, visible web-tab tracking limitation, stale-sync warning with retry, and circle role cards that avoid extra per-circle listeners.
+- Improved places and notification feed cards with capacity/alert states.
+- Fixed place-alert restoration to reset completed visits correctly and prevent stale duplicate departure events; added a regression test.
+- Hardened sharing shutdown so a failed position stream cannot keep the heartbeat publishing stale coordinates.
+- Heartbeats now request a fresh medium-accuracy position; initial, streamed and heartbeat fixes with stale timestamps are not republished as fresh.
+- Serialized notification preference saves to prevent rapid switch changes from overwriting one another; failed saves roll back locally.
+- History recording retries a failed initial restore from Firestore instead of proceeding without the prior daily track.
+- Hardened Firestore live-location privacy: list queries filter `sharing == true`, direct reads require the marker and current per-circle consent, pause/stop/removal require atomic location deletion, and orphaned child data is unreadable when a parent circle is missing.
+- Added Firestore Emulator regression tests for pause/stop-without-delete, legacy locations, orphaned circle data and safe parent-circle deletion; added a manual CI job for the emulator rules suite.
+- Place-alert listeners use generation guards and discard queued alerts when a circle stops sharing; circle deletion removes locations first and deletes memberships in small batches to respect Firestore rule limits.
+- Fixed a heartbeat generation race after share-scope changes, prevent late native-stream errors from stopping a newer session, and ignore late location-upload results from an older sharing session.
+- Pending place events now retry the member-name lookup on later location fixes if the initial lookup failed while offline.
+
+### Deferred / unverified release blockers
+- Remote phone push notifications are deferred under the current $0/no-billing decision; the feed is in-app only.
+- Background tracking on Android/iOS, platform setup script, security rules, and all Flutter tests remain unverified in this authoring environment.
+- Profile/circle pictures and a server-enforced member cap are not implemented under the current constraints.
+- Scheduled retention, complete recursive account deletion, and trusted server-side place-event validation remain best-effort/deferred.

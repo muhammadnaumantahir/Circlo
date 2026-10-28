@@ -55,17 +55,59 @@ class CirclesScreen extends ConsumerWidget {
               ],
             );
           }
+          final scheme = Theme.of(context).colorScheme;
+          const icons = [
+            Icons.home_rounded,
+            Icons.diversity_3_rounded,
+            Icons.group_work_rounded,
+          ];
+          final backgrounds = [
+            scheme.primaryContainer,
+            scheme.secondaryContainer,
+            scheme.tertiaryContainer,
+          ];
+          final foregrounds = [
+            scheme.onPrimaryContainer,
+            scheme.onSecondaryContainer,
+            scheme.onTertiaryContainer,
+          ];
           return ListView.separated(
-            padding: const EdgeInsets.only(bottom: 88),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 104),
             itemCount: list.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, i) {
               final c = list[i];
-              return ListTile(
-                leading: CircleAvatar(child: Text(c.name.isEmpty ? '?' : c.name[0].toUpperCase())),
-                title: Text(c.name),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/circles/${c.id}'),
+              final tone = i % backgrounds.length;
+              return Card(
+                margin: EdgeInsets.zero,
+                child: ListTile(
+                  minVerticalPadding: 12,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: backgrounds[tone],
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(icons[tone], color: foregrounds[tone], size: 25),
+                  ),
+                  title: Text(c.name, style: Theme.of(context).textTheme.titleMedium),
+                  subtitle: Text(
+                    '${c.ownerUid == ref.watch(currentUidProvider) ? 'Owner' : 'Member'} · Members and sharing settings',
+                  ),
+                  trailing: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: scheme.outlineVariant.withOpacity(0.65)),
+                    ),
+                    child: Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant, size: 20),
+                  ),
+                  onTap: () => context.push('/circles/${c.id}'),
+                ),
               );
             },
           );

@@ -2,7 +2,7 @@
 
 Private, consent-based location sharing for families and friends: circles, live map, place arrival/departure alerts, and travel history.
 
-**Status:** Development started (Increment 1: accounts + circles). See [project-status.md](project-status.md) and [CHANGELOG.md](CHANGELOG.md). Not production-ready; location features are not built yet.
+**Status:** Development / hardening. Account, circle, location-sharing, saved-place, history, and in-app notification flows exist in source, but the app is not release-verified. See [project-status.md](project-status.md), [CHANGELOG.md](CHANGELOG.md), and the [feature audit](docs/feature-audit-2026-10-28.md).
 
 ## Stack ($0 budget, no billing account)
 Flutter (web, Android, iOS) · Firebase Authentication · Cloud Firestore · FCM (later). See [architecture.md](architecture.md).
@@ -40,7 +40,7 @@ cd firebase && npm test            # Firestore rules tests (emulator)
 ## Documentation
 - [PROJECT_BRIEF.md](PROJECT_BRIEF.md) · [requirements.md](requirements.md) · [architecture.md](architecture.md) · [AGENTS.md](AGENTS.md)
 - Design: [design-system](design/design-system.md), [screens](design/screen-specification.md), [prompts](design/design-prompts.md), [user flows](docs/user-flows.md)
-- Docs: [data model](docs/data-model.md), [security & privacy](docs/security-privacy.md), [review findings](docs/review-findings.md), [test plan](docs/test-plan.md), [traceability](docs/traceability.md), [risks](docs/risks.md), [roadmap](docs/roadmap.md), [decisions](docs/decisions/)
+- Docs: [data model](docs/data-model.md), [security & privacy](docs/security-privacy.md), [feature audit and release blockers](docs/feature-audit-2026-10-28.md), [review findings](docs/review-findings.md), [test plan](docs/test-plan.md), [traceability](docs/traceability.md), [risks](docs/risks.md), [roadmap](docs/roadmap.md), [decisions](docs/decisions/)
 ## Web deployment
 
 Cloudflare Pages should use the repository root and these settings:

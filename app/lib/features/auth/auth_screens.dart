@@ -48,9 +48,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: FormPage(children: [
-          Text('Circlo', style: Theme.of(context).textTheme.displaySmall, textAlign: TextAlign.center),
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              width: 78,
+              height: 78,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.55),
+                ),
+              ),
+              child: Icon(
+                Icons.hub_rounded,
+                size: 40,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'CIRCLO',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  letterSpacing: 2.4,
+                  fontWeight: FontWeight.w800,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 9),
+          Text(
+            'Welcome back',
+            style: Theme.of(context).textTheme.displaySmall,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 8),
-          const Text('Stay connected with the people you care about.', textAlign: TextAlign.center),
+          Text(
+            'Stay connected with the people you care about.',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 32),
           Form(
             key: _form,

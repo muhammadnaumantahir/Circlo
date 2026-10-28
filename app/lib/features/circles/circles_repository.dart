@@ -356,9 +356,6 @@ class CirclesRepository {
         }
       }
     }
-    for (final m in members.docs) {
-      if (m.id != ownerUid) refs.add(m.reference);
-    }
     for (var i = 0; i < refs.length; i += 400) {
       final batch = _db.batch();
       for (final r in refs.skip(i).take(400)) {
@@ -366,6 +363,19 @@ class CirclesRepository {
       }
       await batch.commit();
     }
+
+    // Location documents are gone before membership deletion. Delete membership docs in small
+    // batches because the security rules check each member's location with existsAfter(), and
+    // Firestore has a per-request document-access-call limit.
+    final departingMembers = members.docs.where((m) => m.id != ownerUid).toList();
+    for (var i = 0; i < departingMembers.length; i += 10) {
+      final batch = _db.batch();
+      for (final m in departingMembers.skip(i).take(10)) {
+        batch.delete(m.reference);
+      }
+      await batch.commit();
+    }
+
     var codeExists = false;
     if (currentCode != null && currentCode.isNotEmpty) {
       codeExists = (await _codes.doc(currentCode).get()).exists;

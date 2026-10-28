@@ -4,7 +4,8 @@ rules_version = '2';
 // Default deny. Any path not matched below is inaccessible.
 // Scope notes (see docs/review-findings.md):
 //  - Join codes are validated here; there is no trusted server, so codes are long (10 chars, ~49 bits)
-//    and never listable. Approval flow, ownership transfer and circle deletion are NOT enabled yet.
+//    and never listable. Approval, ownership transfer and circle deletion use rule-checked client batches;
+//    regression tests exist in firebase/tests/rules.test.mjs but must run in the Emulator before release.
 //  - Minimum age is 13 (open question Q2b); keep in sync with app/lib/core/validators.dart.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -13,9 +14,13 @@ service cloud.firestore {
     function circlePath(cid) { return /databases/$(database)/documents/circles/$(cid); }
     function memberPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/members/$(uid); }
     function placePath(cid, pid) { return /databases/$(database)/documents/circles/$(cid)/places/$(pid); }
+    function locationPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/locations/$(uid); }
     function codePath(code) { return /databases/$(database)/documents/joinCodes/$(code); }
 
-    function isMember(cid) { return signedIn() && exists(memberPath(cid, request.auth.uid)); }
+    function isMember(cid) {
+      // Orphaned subcollection documents stop being visible as soon as the parent circle is gone.
+      return signedIn() && exists(circlePath(cid)) && exists(memberPath(cid, request.auth.uid));
+    }
     function isOwner(cid) { return isMember(cid) && get(circlePath(cid)).data.ownerUid == request.auth.uid; }
 
     function validCodeFormat(code) {
@@ -114,7 +119,10 @@ service cloud.firestore {
           && getAfter(memberPath(cid, request.resource.data.ownerUid)).data.role == 'owner'
           && getAfter(memberPath(cid, request.auth.uid)).data.role == 'member'));
       // Deleting a circle is the owner's call; the app deletes everything below it first (no server).
-      allow delete: if isOwner(cid);
+      allow delete: if isOwner(cid)
+        // Circle deletion must remove the owner's membership and location in the same final batch.
+        && !existsAfter(memberPath(cid, request.auth.uid))
+        && !existsAfter(locationPath(cid, request.auth.uid));
       // No list: members find circles via the members collection group.
 
       function validJoinCode(code, circleId) {
@@ -158,14 +166,23 @@ service cloud.firestore {
           );
       }
 
+      // A member can read another person's current location only while that exact
+      // member explicitly shares with this circle and has not paused sharing.
+      function canSeeLocation(memberUid) {
+        return exists(memberPath(cid, memberUid))
+          && get(memberPath(cid, memberUid)).data.get('sharesLocation', false) == true
+          && get(memberPath(cid, memberUid)).data.get('paused', false) == false;
+      }
+
       // ---- Circle-scoped live location projection (Increment 2) ----
       // One document per (circle, sharing member). The owner of the location writes it only while
       // sharing is ON and NOT paused for that exact circle; the app deletes it atomically when sharing
       // is switched off/paused/left, so viewers never keep seeing stale data after revocation.
       function validLocation(d, memberUid) {
-        return d.keys().hasOnly(['uid', 'lat', 'lng', 'accuracy', 'updatedAt'])
-          && d.keys().hasAll(['uid', 'lat', 'lng', 'accuracy', 'updatedAt'])
+        return d.keys().hasOnly(['uid', 'lat', 'lng', 'accuracy', 'sharing', 'updatedAt'])
+          && d.keys().hasAll(['uid', 'lat', 'lng', 'accuracy', 'sharing', 'updatedAt'])
           && d.uid == memberUid
+          && d.sharing == true
           && d.lat is number && d.lat >= -90 && d.lat <= 90
           && d.lng is number && d.lng >= -180 && d.lng <= 180
           && d.accuracy is number && d.accuracy >= 0 && d.accuracy <= 100000
@@ -173,7 +190,13 @@ service cloud.firestore {
       }
 
       match /locations/{uid} {
-        allow get, list: if isMember(cid);
+        // Direct reads re-check the member's current consent, even if an old document is left behind.
+        allow get: if isMember(cid)
+          && resource.data.get('sharing', false) == true
+          && canSeeLocation(uid);
+        // The client queries only sharing=true documents. The member-update rules below enforce
+        // atomic deletion when sharing is paused/off, so inactive members cannot retain new documents.
+        allow list: if isMember(cid) && resource.data.get('sharing', false) == true;
         allow create, update: if signedIn() && request.auth.uid == uid
           && isMember(cid)
           && get(memberPath(cid, uid)).data.get('sharesLocation', false) == true
@@ -349,7 +372,12 @@ service cloud.firestore {
           && request.resource.data.get('sharesLocation', false) is bool
           && request.resource.data.get('paused', false) is bool
           && request.resource.data.get('historyShared', false) is bool
-          && (!('pausedUntil' in request.resource.data) || request.resource.data.pausedUntil is timestamp);
+          && (!('pausedUntil' in request.resource.data) || request.resource.data.pausedUntil is timestamp)
+          // Turning sharing off or pausing must remove the live location in the same atomic batch.
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sharesLocation', 'paused'])
+              || (request.resource.data.get('sharesLocation', false) == true
+                  && request.resource.data.get('paused', false) == false)
+              || !existsAfter(locationPath(cid, uid)));
         // Role flips happen only as part of an ownership transfer batch (circle.ownerUid changes too).
         allow update: if signedIn() && isOwner(cid)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
@@ -360,7 +388,9 @@ service cloud.firestore {
         allow delete: if signedIn()
           && ((request.auth.uid == uid && resource.data.role != 'owner')
               || (request.auth.uid == uid && !existsAfter(circlePath(cid)))
-              || (request.auth.uid != uid && isOwner(cid)));
+              || (request.auth.uid != uid && isOwner(cid)))
+          // Leaving, removal, and circle deletion must not leave a query-visible location behind.
+          && !existsAfter(locationPath(cid, uid));
       }
     }
 
