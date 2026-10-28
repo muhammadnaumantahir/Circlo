@@ -62,3 +62,13 @@ In **Cloudflare Pages → Circlo → Settings → Environment variables**, add t
 - `FIREBASE_APP_ID_WEB`
 
 Copy the values from **Firebase Console → Project settings → General → Your apps → Web app → SDK setup and configuration**. These are Firebase client configuration values, not service-account credentials. The build script passes them into Flutter via `--dart-define`; without them the deployed app displays the Firebase setup screen. Never add service-account JSON or FCM server credentials to Cloudflare or the Flutter app.
+
+
+## Native Android and iOS Firebase setup
+
+- Firebase client options are selected in `app/lib/core/firebase_options.dart`. Android values currently match the registered Firebase app (`com.circlo.circlo`).
+- The repository does not commit generated `app/android/` or `app/ios/` platform folders yet. Generate them locally using the Setup command above before editing their Gradle/Xcode settings.
+- After Android platform generation, place the downloaded `google-services.json` at `app/android/app/google-services.json`. The repository ignores this file, so keep a local copy and do not add it to commits.
+- Circlo uses FlutterFire packages (`firebase_core`, `firebase_auth`, `cloud_firestore`). Do not add native Firebase BoM dependencies or Firebase Analytics manually; they are not needed for the current Flutter code.
+- Google sign-in is not configured yet. Enable Google as an Authentication provider, add the Android app's SHA-1 certificate fingerprint, then download a refreshed `google-services.json` containing the OAuth client details. The current file has an empty `oauth_client` list.
+- iOS remains unconfigured until the iOS app is registered in Firebase. After registration, keep `GoogleService-Info.plist` locally at `app/ios/Runner/GoogleService-Info.plist`; do not commit it. Fill the iOS app ID and API key in the compile-time options before running on iOS.
