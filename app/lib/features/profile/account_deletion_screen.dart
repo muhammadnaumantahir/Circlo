@@ -46,7 +46,13 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
       setState(() => _error = 'Type DELETE to confirm.');
       return;
     }
-    if (_password.text.isEmpty) {
+    final usesGoogle = ref
+            .read(authStateProvider)
+            .valueOrNull
+            ?.providerData
+            .any((provider) => provider.providerId == 'google.com') ??
+        false;
+    if (!usesGoogle && _password.text.isEmpty) {
       setState(() => _error = 'Enter your password.');
       return;
     }
@@ -56,7 +62,11 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     });
     final auth = ref.read(authRepositoryProvider);
     try {
-      await auth.reauthenticate(_password.text); // before touching any data
+      if (usesGoogle) {
+        await auth.reauthenticateWithGoogle();
+      } else {
+        await auth.reauthenticate(_password.text);
+      } // before touching any data
       await ref.read(sharingStopperProvider)(); // stop location sharing first
       await ref.read(accountDeletionServiceProvider).deleteAllData(uid);
       await auth.deleteAuthUser();
@@ -78,6 +88,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final blocking = ref.watch(_blockingCirclesProvider);
+    final usesGoogle = ref
+            .watch(authStateProvider)
+            .valueOrNull
+            ?.providerData
+            .any((provider) => provider.providerId == 'google.com') ??
+        false;
     return Scaffold(
       appBar: AppBar(title: const Text('Delete account')),
       body: SafeArea(
@@ -113,15 +129,52 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                 'by someone with access. If you lose your connection part-way, run this again.',
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Your password', border: OutlineInputBorder()),
-              ),
+              if (usesGoogle)
+                Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: .55),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: .65),
+                    ),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      PremiumIconChip(icon: Icons.verified_user_rounded, color: CircloPalette.brand, size: 44),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Google account detected', style: TextStyle(fontWeight: FontWeight.w800)),
+                            SizedBox(height: 4),
+                            Text('You will confirm your identity with Google before anything is deleted.'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                TextField(
+                  controller: _password,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Your password',
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               const SizedBox(height: 12),
               TextField(
                 controller: _confirm,
-                decoration: const InputDecoration(labelText: 'Type DELETE to confirm', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Type DELETE to confirm',
+                  prefixIcon: Icon(Icons.delete_forever_rounded),
+                  border: OutlineInputBorder(),
+                ),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -133,7 +186,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                 onPressed: _busy ? null : _delete,
                 child: _busy
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Delete my account'),
+                    : Text(usesGoogle ? 'Verify with Google & delete account' : 'Delete my account'),
               ),
             ]);
           },
