@@ -34,6 +34,11 @@ class PlacesScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Places'),
         actions: [
+          IconButton(
+            tooltip: 'Manual check-in',
+            onPressed: () => context.push('/check-in'),
+            icon: const Icon(Icons.add_location_alt_outlined),
+          ),
           const NotificationsBell(),
         ],
       ),
