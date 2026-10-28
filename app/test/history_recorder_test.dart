@@ -96,6 +96,38 @@ void main() {
     expect(firstTrack!.lastSeen, firstTime.add(const Duration(minutes: 1)).millisecondsSinceEpoch);
   });
 
+  test('stationary fixes flush lastSeen on the configured cadence', () async {
+    var writes = 0;
+    final recorder = HistoryRecorder(
+      uid: 'u1',
+      flushEvery: Duration.zero,
+      loadDay: (uid, day) async => null,
+      saveDay: (uid, track, sharedCircleIds) async {
+        writes++;
+      },
+    )..configure(
+        keepHistory: true,
+        sharedCircleIds: <String>{},
+        places: const [],
+      );
+
+    final start = DateTime(2026, 10, 29, 8);
+    await recorder.onFix(
+      lat: 31.52,
+      lng: 74.35,
+      accuracy: 10,
+      time: start,
+    );
+    await recorder.onFix(
+      lat: 31.52,
+      lng: 74.35,
+      accuracy: 10,
+      time: start.add(const Duration(minutes: 1)),
+    );
+
+    expect(writes, 2);
+  });
+
   test('a failed initial restore can be retried on a later fix', () async {
     var reads = 0;
     final recorder = HistoryRecorder(
