@@ -464,6 +464,30 @@ describe('saved places, subscriptions and events (Increment 3)', () => {
     await assertFails(setDoc(ref, evt('bob', 'p1')));    // retry/duplicate is rejected (no updates)
     await assertSucceeds(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1', '1760000000000', 'leave')}`), evt('bob', 'p1', { type: 'leave' })));
   });
+  it('members can manually check in at a saved place without enabling location sharing', async () => {
+    await seed({ bob: true }); await seedPlace();
+    const id = evtId('bob', 'p1', 'manual123', 'checkIn');
+    const ref = doc(db('bob'), `circles/c1/placeEvents/${id}`);
+    const checkIn = evt('bob', 'p1', { type: 'checkIn', visitId: 'manual123' });
+    // The user manually chose the saved place. This is not a GPS-verified event.
+    await assertSucceeds(setDoc(ref, checkIn));
+    await assertFails(setDoc(ref, checkIn)); // immutable, duplicate is rejected
+    await assertSucceeds(getDoc(doc(db('alice'), `circles/c1/placeEvents/${id}`)));
+    await assertSucceeds(deleteDoc(ref)); // the author can remove their own check-in
+
+    await assertFails(setDoc(
+      doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1', 'manual456', 'checkIn')}`),
+      evt('bob', 'p1', { type: 'checkIn', visitId: 'manual456', memberName: 'Alice' }),
+    ));
+    await assertFails(setDoc(
+      doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1', 'manual789', 'checkIn')}`),
+      evt('bob', 'p1', { type: 'checkIn', visitId: 'manual789', lat: 31.5 }),
+    )); // check-ins store no coordinates
+    await assertFails(setDoc(
+      doc(db('mallory'), `circles/c1/placeEvents/${evtId('mallory', 'p1', 'manual987', 'checkIn')}`),
+      evt('mallory', 'p1', { type: 'checkIn', visitId: 'manual987' }),
+    )); // not a circle member
+  });
   it('events cannot be forged: other member, not sharing, paused, bad id/name/place', async () => {
     await seed({ bob: true }); await seedPlace();
     await assertFails(setDoc(doc(db('bob'), `circles/c1/placeEvents/${evtId('bob', 'p1')}`), evt('bob', 'p1')));   // not sharing
