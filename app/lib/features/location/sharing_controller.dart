@@ -252,7 +252,8 @@ class SharingController extends Notifier<SharingState> {
       },
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) {
-      unawaited(_refreshHeartbeat(generation));
+      // The stream may survive membership/share changes, so use the current sync generation.
+      unawaited(_refreshHeartbeat(_syncGeneration));
     });
     state = state.copyWith(tracking: true, clearError: true);
     try {
