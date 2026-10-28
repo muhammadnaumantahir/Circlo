@@ -32,7 +32,7 @@ This audit reflects a static review of the current Flutter source and project re
 - Notification preference saves are serialized; controls are disabled during writes and local choices roll back if a save fails.
 - History restoration retries after a transient Firestore read failure instead of permanently proceeding without the existing daily track.
 - Tightened Firestore location authorization: active-sharing query marker, direct-read consent check, atomic location deletion for pause/stop/removal, and parent-circle existence checks against orphaned child data.
-- Circle-shared travel history now requires the user's master “Keep my travel history” setting for both reads and writes. Turning that setting off hides previously saved circle copies immediately under Firestore rules, even if per-circle history sharing was left enabled.
+- Circle-shared travel history now requires the user's master “Keep my travel history” setting for both Firestore reads and writes. Turning that setting off blocks subsequent server-side reads of existing circle copies even if per-circle sharing remains on; already cached data on a recipient's device cannot be remotely recalled.
 - Added rules regression tests for pause/stop-without-delete, legacy locations, orphaned data and parent-circle deletion; the manual CI workflow now includes a Firestore Emulator test job.
 - Fixed place-alert restoration so the latest departure resets stale “inside” state; added a regression test for the next visit.
 - Places display used capacity and whether their arrival/departure alerts are enabled.
