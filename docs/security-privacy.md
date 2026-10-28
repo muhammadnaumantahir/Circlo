@@ -5,7 +5,7 @@ Consent-based, transparent, revocable, least data, default deny. Extra care beca
 
 ## Controls
 - **Authentication:** Firebase Authentication manages user identity; Firestore Security Rules use the authenticated Firebase UID for every protected read/write. Anonymous access is denied.
-- **Authorization:** Firestore Security Rules with default-deny behavior; membership and `shares_location` must be checked for the exact circle. Emulator rule tests are mandatory. Never rely only on client-side checks.
+- **Authorization:** Firestore Security Rules with default-deny behavior; membership and `sharesLocation` / `paused` must be checked for the exact circle. Live-location list queries are restricted to `sharing == true`, location writes require active consent, and pausing/stopping/removal must delete the projection in the same atomic batch. Parent-circle existence is required for membership-scoped access so orphaned subcollection data becomes unreadable. Emulator rule tests are mandatory. Never rely only on client-side checks.
 - **Join codes:** ≥8 chars from an unambiguous alphabet, unguessable and revocable. Because trusted server-side rate limiting and privileged join flows are not available under Spark/no billing, these flows must be proven safe with Firestore Rules or deferred; never expose a public listing of valid codes.
 - **Transparency:** consent screen, persistent sharing indicator (Android foreground notification / iOS indicator), "Who sees me", notification when added to a circle or when sharing is switched on/off. No stealth mode, no hidden icon.
 - **Revocation:** leaving/removal deletes membership; Firestore Rules denies immediately.
