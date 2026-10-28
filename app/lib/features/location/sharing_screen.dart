@@ -44,12 +44,16 @@ class SharingScreen extends ConsumerWidget {
                   title: Text('On the web, location is shared only while this tab is open.'),
                 ),
               ),
+            _EngineStatusCard(
+              tracking: sharing.tracking,
+              error: sharing.error,
+              lastPublished: sharing.lastPublished,
+              sharingEnabled: sharingOn.isNotEmpty,
+              allPaused: allPaused,
+              activeCircleCount: sharing.activeCircleIds.length,
+            ),
+            const SizedBox(height: 12),
             _PermissionCard(ref: ref),
-            if (sharing.error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(sharing.error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              ),
             const SizedBox(height: 8),
             SwitchListTile(
               title: const Text('Pause sharing'),
@@ -95,6 +99,106 @@ Future<void> _run(BuildContext context, Future<void> Function() action) async {
     await action();
   } catch (_) {
     if (context.mounted) showSnack(context, 'Could not update sharing. Check your connection and try again.');
+  }
+}
+
+class _EngineStatusCard extends StatelessWidget {
+  const _EngineStatusCard({
+    required this.tracking,
+    required this.error,
+    required this.lastPublished,
+    required this.sharingEnabled,
+    required this.allPaused,
+    required this.activeCircleCount,
+  });
+
+  final bool tracking;
+  final String? error;
+  final DateTime? lastPublished;
+  final bool sharingEnabled;
+  final bool allPaused;
+  final int activeCircleCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final DateTime? synced = lastPublished?.toLocal();
+    final String title;
+    final String detail;
+    final IconData icon;
+    final Color tone;
+
+    if (error != null) {
+      title = 'Location sync needs attention';
+      detail = error!;
+      icon = Icons.warning_amber_rounded;
+      tone = scheme.error;
+    } else if (!sharingEnabled) {
+      title = 'Location sharing is off';
+      detail = 'Turn it on for a circle below when you are ready.';
+      icon = Icons.location_off_outlined;
+      tone = scheme.onSurfaceVariant;
+    } else if (allPaused) {
+      title = 'Sharing is paused';
+      detail = 'Your live location is hidden until sharing resumes.';
+      icon = Icons.pause_circle_outline_rounded;
+      tone = scheme.secondary;
+    } else if (!tracking || synced == null) {
+      title = 'Connecting to your location';
+      detail = 'Circlo will show the last successful sync here.';
+      icon = Icons.location_searching_rounded;
+      tone = scheme.primary;
+    } else {
+      final hour = synced.hour % 12 == 0 ? 12 : synced.hour % 12;
+      final minute = synced.minute.toString().padLeft(2, '0');
+      final period = synced.hour >= 12 ? 'PM' : 'AM';
+      title = 'Location sharing is active';
+      detail = 'Last synced at $hour:$minute $period · $activeCircleCount '
+          '${activeCircleCount == 1 ? 'circle' : 'circles'}';
+      icon = Icons.check_circle_rounded;
+      tone = scheme.primary;
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: tone.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: tone, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    detail,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: error != null ? scheme.error : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (sharingEnabled && !allPaused && error == null && (!tracking || synced == null)) ...[
+                    const SizedBox(height: 10),
+                    const LinearProgressIndicator(minHeight: 3),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
