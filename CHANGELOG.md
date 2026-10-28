@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Ignore malformed or out-of-range shared-location documents so a single invalid Firestore record cannot break the live-location stream; add parser regression tests.
 - Clarified the timed location-sharing pause choice as “Until 6:00 AM”; it can resume at 6:00 AM today when selected before 6:00 AM, or the next day when selected later.
 
 ### Changed
