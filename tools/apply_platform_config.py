@@ -12,6 +12,75 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent / "app"
 changed = []
 
+# ---- Stable native application identifiers ----
+# Firebase apps were registered with package/bundle ID com.circlo.app.
+for gradle_name in ("build.gradle.kts", "build.gradle"):
+    gradle = root / "android/app" / gradle_name
+    if gradle.exists():
+        source = gradle.read_text()
+        updated = re.sub(
+            r'(?m)^(\s*namespace\s*=\s*)["\'][^"\']+["\']',
+            r'\1"com.circlo.app"',
+            source,
+        )
+        updated = re.sub(
+            r'(?m)^(\s*applicationId\s*=\s*)["\'][^"\']+["\']',
+            r'\1"com.circlo.app"',
+            updated,
+        )
+        updated = re.sub(
+            r'(?m)^(\s*namespace\s+)["\'][^"\']+["\']',
+            r'\1"com.circlo.app"',
+            updated,
+        )
+        updated = re.sub(
+            r'(?m)^(\s*applicationId\s+)["\'][^"\']+["\']',
+            r'\1"com.circlo.app"',
+            updated,
+        )
+        if updated != source:
+            gradle.write_text(updated)
+            changed.append(str(gradle))
+        break
+
+# Keep the Kotlin/Java activity package and folder aligned with applicationId.
+for language in ("kotlin", "java"):
+    source_root = root / "android/app/src/main" / language
+    if not source_root.exists():
+        continue
+    for activity in source_root.rglob("MainActivity.kt") + source_root.rglob("MainActivity.java"):
+        source = activity.read_text()
+        updated = re.sub(
+            r"(?m)^package\s+[A-Za-z_][\w.]*\s*$",
+            "package com.circlo.app",
+            source,
+        )
+        target = source_root / "com" / "circlo" / "app" / activity.name
+        if updated != source or activity != target:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(updated)
+            if activity != target:
+                activity.unlink()
+            changed.append(str(target))
+
+# Set the iOS app bundle ID to the Firebase registration ID.
+pbxproj = root / "ios/Runner.xcodeproj/project.pbxproj"
+if pbxproj.exists():
+    source = pbxproj.read_text()
+    updated = re.sub(
+        r"(PRODUCT_BUNDLE_IDENTIFIER\s*=\s*)[^;]*\.RunnerTests;",
+        r"\1com.circlo.app.RunnerTests;",
+        source,
+    )
+    updated = re.sub(
+        r"(PRODUCT_BUNDLE_IDENTIFIER\s*=\s*)[^;]+;",
+        r"\1com.circlo.app;",
+        updated,
+    )
+    if updated != source:
+        pbxproj.write_text(updated)
+        changed.append(str(pbxproj))
+
 # ---- Android ----
 manifest = root / "android/app/src/main/AndroidManifest.xml"
 if manifest.exists():
