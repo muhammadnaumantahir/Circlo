@@ -1,8 +1,27 @@
 import 'package:circlo/features/circles/circle_models.dart';
+import 'package:circlo/features/location/location_models.dart';
 import 'package:circlo/features/places/place_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('MemberLocation.tryFromMap', () {
+    test('accepts valid coordinates and defaults missing accuracy', () {
+      final location = MemberLocation.tryFromMap('u1', {'lat': 31.52, 'lng': 74.35});
+      expect(location, isNotNull);
+      expect(location!.lat, 31.52);
+      expect(location.lng, 74.35);
+      expect(location.accuracy, 0);
+    });
+
+    test('rejects missing, non-finite, and out-of-range coordinates', () {
+      expect(MemberLocation.tryFromMap('u1', {'lat': 31.52}), isNull);
+      expect(MemberLocation.tryFromMap('u1', {'lat': 91, 'lng': 0}), isNull);
+      expect(MemberLocation.tryFromMap('u1', {'lat': 0, 'lng': 181}), isNull);
+      expect(MemberLocation.tryFromMap('u1', {'lat': double.nan, 'lng': 0}), isNull);
+      expect(MemberLocation.tryFromMap('u1', {'lat': 0, 'lng': 0, 'accuracy': -1}), isNull);
+    });
+  });
+
   test('Circle.fromMap reads approval flag with safe defaults', () {
     final c = Circle.fromMap('c1', {'name': 'Family', 'ownerUid': 'a', 'joinCode': 'ABCDEFGHJK', 'requiresApproval': true});
     expect(c.requiresApproval, isTrue);
