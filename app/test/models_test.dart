@@ -22,6 +22,34 @@ void main() {
     });
   });
 
+  group('MyMembership.fromMap', () {
+    test('reads sharing switches and a valid pause timestamp', () {
+      final until = DateTime(2026, 10, 30, 12);
+      final membership = MyMembership.fromMap('c1', {
+        'sharesLocation': true,
+        'paused': true,
+        'historyShared': true,
+        'pausedUntil': Timestamp.fromDate(until),
+      });
+      expect(membership.circleId, 'c1');
+      expect(membership.sharesLocation, isTrue);
+      expect(membership.paused, isTrue);
+      expect(membership.historyShared, isTrue);
+      expect(membership.pausedUntil, until);
+      expect(membership.isActive, isFalse);
+    });
+
+    test('ignores malformed optional pause timestamps instead of throwing', () {
+      final membership = MyMembership.fromMap('c1', {
+        'sharesLocation': true,
+        'paused': false,
+        'pausedUntil': 'not-a-timestamp',
+      });
+      expect(membership.pausedUntil, isNull);
+      expect(membership.isActive, isTrue);
+    });
+  });
+
   group('isValidLocationSample', () {
     test('accepts valid coordinates and accuracy', () {
       expect(isValidLocationSample(lat: 31.52, lng: 74.35, accuracy: 8), isTrue);

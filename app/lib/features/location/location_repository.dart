@@ -22,13 +22,7 @@ class LocationRepository {
       .map((snap) => [
             for (final d in snap.docs)
               if (d.reference.parent.parent != null)
-                MyMembership(
-                  circleId: d.reference.parent.parent!.id,
-                  sharesLocation: d.data()['sharesLocation'] == true,
-                  paused: d.data()['paused'] == true,
-                  historyShared: d.data()['historyShared'] == true,
-                  pausedUntil: (d.data()['pausedUntil'] as Timestamp?)?.toDate(),
-                ),
+                MyMembership.fromMap(d.reference.parent.parent!.id, d.data()),
           ]);
 
   Stream<Map<String, MemberLocation>> watchLocations(String circleId) => _db
