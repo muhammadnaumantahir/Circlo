@@ -324,12 +324,22 @@ service cloud.firestore {
       // Written by the person who acts (or by the owner for removals); names must match member documents.
       // Client-written and untrusted beyond this feed. Immutable; deletable by the actor or the owner.
       function validActivity(d, circleId) {
-        return d.keys().hasOnly(['type', 'actorUid', 'actorName', 'subjectUid', 'subjectName', 'occurredAt'])
+        return d.keys().hasOnly(['type', 'actorUid', 'actorName', 'subjectUid', 'subjectName', 'checkInStatus', 'occurredAt'])
           && d.keys().hasAll(['type', 'actorUid', 'actorName', 'occurredAt'])
           && d.actorUid == request.auth.uid
           && d.occurredAt == request.time
-          && d.type in ['joined', 'left', 'removed', 'sharing_started', 'sharing_stopped']
+          && d.type in ['joined', 'left', 'removed', 'sharing_started', 'sharing_stopped', 'checked_in']
+          && (d.type == 'checked_in' || !('checkInStatus' in d))
           && (
+            (d.type == 'checked_in'
+              && isMember(circleId)
+              && get(memberPath(circleId, request.auth.uid)).data.displayName == d.actorName
+              && d.keys().hasAll(['checkInStatus'])
+              && d.checkInStatus is string
+              && d.checkInStatus in ['im_okay', 'arrived_safely', 'on_my_way', 'running_late']
+              && !('subjectUid' in d)
+              && !('subjectName' in d))
+            ||
             (d.type == 'joined'
               && !exists(memberPath(circleId, request.auth.uid))
               && existsAfter(memberPath(circleId, request.auth.uid))
