@@ -107,21 +107,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const PremiumBrandMark(size: 38),
-            const SizedBox(width: 10),
+            PremiumBrandMark(size: MediaQuery.sizeOf(context).width < 380 ? 32 : 38),
+            SizedBox(width: MediaQuery.sizeOf(context).width < 380 ? 7 : 10),
             Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Circlo', style: Theme.of(context).textTheme.titleLarge),
-                Text(
-                  'YOUR PEOPLE, IN SYNC',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        letterSpacing: 1.05,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
+                if (MediaQuery.sizeOf(context).width >= 380)
+                  Text(
+                    'YOUR PEOPLE, IN SYNC',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          letterSpacing: 1.05,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
               ],
             ),
           ],
@@ -207,10 +208,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text('Share a quick check-in', style: Theme.of(sheetContext).textTheme.titleLarge),
@@ -249,7 +251,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       onTap: () => Navigator.of(sheetContext).pop(entry.key),
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
           ),
         );
