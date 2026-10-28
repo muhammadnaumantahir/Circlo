@@ -569,7 +569,7 @@ describe('travel history (Increment 4)', () => {
     await flags('bob', { historyShared: true, sharesLocation: false });            // sharing off also hides it
     await assertFails(getDoc(copy(db('alice'), 'bob')));
   });
-  it('master history off immediately hides and blocks circle history', async () => {
+  it('master history off blocks circle-history reads and writes', async () => {
     await seed({ bob: true });
     await seedUser('bob', { keepHistory: true });
     await flags('bob', { sharesLocation: true, paused: false, historyShared: true });
