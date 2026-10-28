@@ -125,11 +125,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Check in at a saved place',
-            onPressed: () => context.push('/check-in'),
-            icon: const Icon(Icons.add_location_alt_outlined),
-          ),
+          if (MediaQuery.sizeOf(context).width >= 420)
+            IconButton(
+              tooltip: 'Check in at a saved place',
+              onPressed: () => context.push('/check-in'),
+              icon: const Icon(Icons.add_location_alt_outlined),
+            ),
           const NotificationsBell(),
           const SizedBox(width: 4),
           Padding(
