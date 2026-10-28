@@ -5,6 +5,9 @@ const int kMaxRadiusM = 1000;
 const int kDefaultRadiusM = 150;
 const int kMaxPlacesPerCircle = 20; // enforced in the app only (rules cannot count)
 
+bool _validPlaceCoordinate(double lat, double lng) =>
+    lat.isFinite && lng.isFinite && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
 class Place {
   const Place({
     required this.id,
@@ -24,15 +27,36 @@ class Place {
   final double radiusM;
   final String createdBy;
 
-  factory Place.fromMap(String circleId, String id, Map<String, dynamic> d) => Place(
-        id: id,
-        circleId: circleId,
-        name: (d['name'] as String?) ?? '',
-        lat: (d['lat'] as num).toDouble(),
-        lng: (d['lng'] as num).toDouble(),
-        radiusM: (d['radiusM'] as num).toDouble(),
-        createdBy: (d['createdBy'] as String?) ?? '',
-      );
+  /// Parses a saved place only when its coordinates and radius are safe to use.
+  static Place? tryFromMap(String circleId, String id, Map<String, dynamic> d) {
+    final rawLat = d['lat'];
+    final rawLng = d['lng'];
+    final rawRadius = d['radiusM'];
+    if (rawLat is! num || rawLng is! num || rawRadius is! num) return null;
+
+    final lat = rawLat.toDouble();
+    final lng = rawLng.toDouble();
+    final radiusM = rawRadius.toDouble();
+    final name = (d['name'] as String?)?.trim() ?? '';
+    if (name.isEmpty || !_validPlaceCoordinate(lat, lng)) return null;
+    if (!radiusM.isFinite || radiusM < kMinRadiusM || radiusM > kMaxRadiusM) return null;
+
+    return Place(
+      id: id,
+      circleId: circleId,
+      name: name,
+      lat: lat,
+      lng: lng,
+      radiusM: radiusM,
+      createdBy: (d['createdBy'] as String?) ?? '',
+    );
+  }
+
+  factory Place.fromMap(String circleId, String id, Map<String, dynamic> d) {
+    final place = tryFromMap(circleId, id, d);
+    if (place == null) throw FormatException('Invalid saved place document $id');
+    return place;
+  }
 }
 
 /// The signed-in user's alert preferences for one place (in-app feed only; remote push deferred).
