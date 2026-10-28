@@ -48,7 +48,7 @@ for language in ("kotlin", "java"):
     source_root = root / "android/app/src/main" / language
     if not source_root.exists():
         continue
-    for activity in source_root.rglob("MainActivity.kt") + source_root.rglob("MainActivity.java"):
+    for activity in list(source_root.rglob("MainActivity.kt")) + list(source_root.rglob("MainActivity.java")):
         source = activity.read_text()
         updated = re.sub(
             r"(?m)^package\s+[A-Za-z_][\w.]*\s*$",
@@ -73,7 +73,7 @@ if pbxproj.exists():
         source,
     )
     updated = re.sub(
-        r"(PRODUCT_BUNDLE_IDENTIFIER\s*=\s*)[^;]+;",
+        r"(PRODUCT_BUNDLE_IDENTIFIER\s*=\s*)(?!com\.circlo\.app\.RunnerTests;)[^;]+;",
         r"\1com.circlo.app;",
         updated,
     )
