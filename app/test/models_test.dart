@@ -113,6 +113,47 @@ void main() {
     expect(const JoinFailure(JoinFailureKind.invalid).message, contains('not valid or has expired'));
   });
 
+  group('PlaceEvent.tryFromMap', () {
+    test('accepts valid arrival and departure events', () {
+      final arrival = PlaceEvent.tryFromMap('c1', 'e1', {
+        'placeId': 'p1',
+        'placeName': 'Home',
+        'memberUid': 'u1',
+        'memberName': 'Alex',
+        'type': 'arrive',
+        'visitId': 'visit-1',
+      });
+      expect(arrival, isNotNull);
+      expect(arrival!.isArrival, isTrue);
+      expect(arrival.occurredAt, isNull);
+      final departure = PlaceEvent.tryFromMap('c1', 'e2', {
+        'placeId': 'p1',
+        'placeName': 'Home',
+        'memberUid': 'u1',
+        'memberName': 'Alex',
+        'type': 'leave',
+        'visitId': 'visit-1',
+      });
+      expect(departure, isNotNull);
+      expect(departure!.isArrival, isFalse);
+    });
+
+    test('rejects malformed required fields, event types, and timestamps', () {
+      final valid = <String, dynamic>{
+        'placeId': 'p1',
+        'placeName': 'Home',
+        'memberUid': 'u1',
+        'memberName': 'Alex',
+        'type': 'arrive',
+        'visitId': 'visit-1',
+      };
+      expect(PlaceEvent.tryFromMap('c1', 'e1', {...valid, 'type': 'unknown'}), isNull);
+      expect(PlaceEvent.tryFromMap('c1', 'e1', {...valid, 'placeId': 9}), isNull);
+      expect(PlaceEvent.tryFromMap('c1', 'e1', {...valid, 'memberUid': ''}), isNull);
+      expect(PlaceEvent.tryFromMap('c1', 'e1', {...valid, 'occurredAt': 'yesterday'}), isNull);
+    });
+  });
+
   group('PlaceSubscription.wants', () {
     const all = PlaceSubscription(circleId: 'c', placeId: 'p', arrive: true, leave: false, allMembers: true, memberUids: []);
     const some = PlaceSubscription(circleId: 'c', placeId: 'p', arrive: true, leave: true, allMembers: false, memberUids: ['bob']);

@@ -149,18 +149,42 @@ class PlaceEvent {
 
   bool get isArrival => type == 'arrive';
 
-  factory PlaceEvent.fromMap(String circleId, String id, Map<String, dynamic> d) =>
-      PlaceEvent(
-        id: id,
-        circleId: circleId,
-        placeId: (d['placeId'] as String?) ?? '',
-        placeName: (d['placeName'] as String?) ?? '',
-        memberUid: (d['memberUid'] as String?) ?? '',
-        memberName: (d['memberName'] as String?) ?? 'Someone',
-        type: (d['type'] as String?) ?? 'arrive',
-        visitId: (d['visitId'] as String?) ?? '',
-        occurredAt: (d['occurredAt'] as Timestamp?)?.toDate(),
-      );
+  /// Parses an event defensively so malformed legacy documents cannot break the feed.
+  static PlaceEvent? tryFromMap(String circleId, String id, Map<String, dynamic> d) {
+    final placeId = d['placeId'];
+    final placeName = d['placeName'];
+    final memberUid = d['memberUid'];
+    final memberName = d['memberName'];
+    final type = d['type'];
+    final visitId = d['visitId'];
+    final rawTime = d['occurredAt'];
+
+    if (placeId is! String || placeId.trim().isEmpty) return null;
+    if (placeName is! String || placeName.trim().isEmpty) return null;
+    if (memberUid is! String || memberUid.trim().isEmpty) return null;
+    if (memberName is! String || memberName.trim().isEmpty) return null;
+    if (type != 'arrive' && type != 'leave') return null;
+    if (visitId is! String || visitId.trim().isEmpty) return null;
+    if (rawTime != null && rawTime is! Timestamp) return null;
+
+    return PlaceEvent(
+      id: id,
+      circleId: circleId,
+      placeId: placeId,
+      placeName: placeName,
+      memberUid: memberUid,
+      memberName: memberName,
+      type: type as String,
+      visitId: visitId,
+      occurredAt: (rawTime as Timestamp?)?.toDate(),
+    );
+  }
+
+  factory PlaceEvent.fromMap(String circleId, String id, Map<String, dynamic> d) {
+    final event = tryFromMap(circleId, id, d);
+    if (event == null) throw FormatException('Invalid place event document $id');
+    return event;
+  }
 }
 
 /// Notification categories the user can switch off (FR-081).
