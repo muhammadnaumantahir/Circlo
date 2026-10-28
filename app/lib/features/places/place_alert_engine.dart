@@ -32,6 +32,9 @@ class PlaceAlertEngine {
   Set<String> _desiredCircleIds = {};
   int _generation = 0;
 
+  /// Place IDs are only unique within a circle, so detector state must be scoped too.
+  String _trackingId(String circleId, String placeId) => '$circleId/$placeId';
+
   /// Saved places of the circles currently followed.
   List<Place> get places => [for (final l in _placesByCircle.values) ...l];
 
@@ -51,7 +54,7 @@ class PlaceAlertEngine {
       final sub = _subs.remove(id);
       final removedPlaces = _placesByCircle.remove(id) ?? const <Place>[];
       for (final place in removedPlaces) {
-        _detector.forget(place.id);
+        _detector.forget(_trackingId(id, place.id));
       }
       _names.remove(id);
       // Pending events from a circle that stopped sharing must not be replayed after resume.
@@ -80,7 +83,7 @@ class PlaceAlertEngine {
         for (final e in events) {
           if (!seen.add(e.placeId)) continue;
           _detector.restoreState(
-            e.placeId,
+            _trackingId(id, e.placeId),
             inside: e.isArrival,
             visitId: e.isArrival ? e.visitId : null,
           );
@@ -94,7 +97,7 @@ class PlaceAlertEngine {
         (places) {
           if (!_desiredCircleIds.contains(id)) return;
           _placesByCircle[id] = places;
-          _detector.retainOnly({for (final list in _placesByCircle.values) for (final place in list) place.id});
+          _detector.retainOnly({for (final entry in _placesByCircle.entries) for (final place in entry.value) _trackingId(entry.key, place.id)});
         },
         onError: (_) {},
       );
@@ -104,9 +107,15 @@ class PlaceAlertEngine {
   Future<void> onFix(Fix fix) async {
     final all = [for (final l in _placesByCircle.values) ...l];
     if (all.isNotEmpty) {
-      final byId = {for (final p in all) p.id: p};
+      final byId = {for (final p in all) _trackingId(p.circleId, p.id): p};
       final transitions = _detector.process(fix, [
-        for (final p in all) PlacePoint(id: p.id, lat: p.lat, lng: p.lng, radiusM: p.radiusM),
+        for (final p in all)
+          PlacePoint(
+            id: _trackingId(p.circleId, p.id),
+            lat: p.lat,
+            lng: p.lng,
+            radiusM: p.radiusM,
+          ),
       ]);
       for (final t in transitions) {
         final place = byId[t.placeId];
