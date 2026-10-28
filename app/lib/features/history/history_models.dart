@@ -1,5 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+const int _maxSafeEpochMs = 9007199254740991;
+
+int? _safeInt(Object? value) {
+  if (value is! num) return null;
+  final number = value.toDouble();
+  if (!number.isFinite || number < -_maxSafeEpochMs || number > _maxSafeEpochMs) {
+    return null;
+  }
+  return value.toInt();
+}
+
+bool _validCoordinates(double lat, double lng) =>
+    lat.isFinite && lng.isFinite && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+Map<String, dynamic>? _stringKeyedMap(Object? value) {
+  if (value is! Map) return null;
+  final result = <String, dynamic>{};
+  for (final entry in value.entries) {
+    if (entry.key is! String) return null;
+    result[entry.key as String] = entry.value;
+  }
+  return result;
+}
+
 class TrackPoint {
   const TrackPoint({required this.lat, required this.lng, required this.t});
   final double lat;
@@ -8,11 +32,23 @@ class TrackPoint {
 
   Map<String, dynamic> toMap() => {'lat': lat, 'lng': lng, 't': t};
 
-  factory TrackPoint.fromMap(Map<String, dynamic> m) => TrackPoint(
-        lat: (m['lat'] as num).toDouble(),
-        lng: (m['lng'] as num).toDouble(),
-        t: (m['t'] as num).toInt(),
-      );
+  static TrackPoint? tryFromMap(Map<String, dynamic> m) {
+    final rawLat = m['lat'];
+    final rawLng = m['lng'];
+    final t = _safeInt(m['t']);
+    if (rawLat is! num || rawLng is! num || t == null) return null;
+
+    final lat = rawLat.toDouble();
+    final lng = rawLng.toDouble();
+    if (!_validCoordinates(lat, lng)) return null;
+    return TrackPoint(lat: lat, lng: lng, t: t);
+  }
+
+  factory TrackPoint.fromMap(Map<String, dynamic> m) {
+    final point = tryFromMap(m);
+    if (point == null) throw const FormatException('Invalid history track point');
+    return point;
+  }
 }
 
 /// A stop of at least ~10 minutes. [placeId] is set when it happened at a saved place.
@@ -42,14 +78,40 @@ class Visit {
         'leftAt': leftAt,
       };
 
-  factory Visit.fromMap(Map<String, dynamic> m) => Visit(
-        placeId: m['placeId'] as String?,
-        name: (m['name'] as String?) ?? 'Unknown place',
-        lat: (m['lat'] as num).toDouble(),
-        lng: (m['lng'] as num).toDouble(),
-        arrivedAt: (m['arrivedAt'] as num).toInt(),
-        leftAt: (m['leftAt'] as num?)?.toInt(),
-      );
+  static Visit? tryFromMap(Map<String, dynamic> m) {
+    final rawPlaceId = m['placeId'];
+    final rawName = m['name'];
+    final rawLat = m['lat'];
+    final rawLng = m['lng'];
+    final arrivedAt = _safeInt(m['arrivedAt']);
+    final rawLeftAt = m['leftAt'];
+    final leftAt = rawLeftAt == null ? null : _safeInt(rawLeftAt);
+
+    if (rawPlaceId != null && rawPlaceId is! String) return null;
+    if (rawName != null && rawName is! String) return null;
+    if (rawLat is! num || rawLng is! num || arrivedAt == null) return null;
+    if (rawLeftAt != null && leftAt == null) return null;
+
+    final lat = rawLat.toDouble();
+    final lng = rawLng.toDouble();
+    if (!_validCoordinates(lat, lng)) return null;
+    if (leftAt != null && leftAt < arrivedAt) return null;
+
+    return Visit(
+      placeId: rawPlaceId as String?,
+      name: rawName as String? ?? 'Unknown place',
+      lat: lat,
+      lng: lng,
+      arrivedAt: arrivedAt,
+      leftAt: leftAt,
+    );
+  }
+
+  factory Visit.fromMap(Map<String, dynamic> m) {
+    final visit = tryFromMap(m);
+    if (visit == null) throw const FormatException('Invalid history visit');
+    return visit;
+  }
 }
 
 /// One member's history for one local calendar day (stored as a single compact document).
@@ -81,14 +143,40 @@ class DayTrack {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-  factory DayTrack.fromMap(Map<String, dynamic> m) => DayTrack(
-        day: (m['day'] as String?) ?? '',
-        tzOffsetMin: (m['tzOffsetMin'] as num?)?.toInt() ?? 0,
-        route: [for (final p in (m['route'] as List? ?? const [])) TrackPoint.fromMap(Map<String, dynamic>.from(p as Map))],
-        visits: [for (final v in (m['visits'] as List? ?? const [])) Visit.fromMap(Map<String, dynamic>.from(v as Map))],
-        lastSeen: (m['lastSeen'] as num?)?.toInt() ?? 0,
-        updatedAt: (m['updatedAt'] as Timestamp?)?.toDate(),
-      );
+  factory DayTrack.fromMap(Map<String, dynamic> m) {
+    final route = <TrackPoint>[];
+    final rawRoute = m['route'];
+    if (rawRoute is List) {
+      for (final item in rawRoute) {
+        final data = _stringKeyedMap(item);
+        if (data == null) continue;
+        final point = TrackPoint.tryFromMap(data);
+        if (point != null) route.add(point);
+      }
+    }
+
+    final visits = <Visit>[];
+    final rawVisits = m['visits'];
+    if (rawVisits is List) {
+      for (final item in rawVisits) {
+        final data = _stringKeyedMap(item);
+        if (data == null) continue;
+        final visit = Visit.tryFromMap(data);
+        if (visit != null) visits.add(visit);
+      }
+    }
+
+    final rawDay = m['day'];
+    final rawUpdatedAt = m['updatedAt'];
+    return DayTrack(
+      day: rawDay is String ? rawDay : '',
+      tzOffsetMin: _safeInt(m['tzOffsetMin']) ?? 0,
+      route: route,
+      visits: visits,
+      lastSeen: _safeInt(m['lastSeen']) ?? 0,
+      updatedAt: rawUpdatedAt is Timestamp ? rawUpdatedAt.toDate() : null,
+    );
+  }
 }
 
 /// yyyymmdd for a moment in the device's local time.
