@@ -11,7 +11,7 @@ Legend: **Written** = code exists in the repo but has **never been compiled or r
 | FR-007 | Written | Verify-email gate in the app and in the rules |
 | FR-010 | Partial | Name done; **circle picture not built** |
 | FR-011, 013, 015–017, 019 | Written | Codes, join, multiple circles, member list, remove, leave |
-| FR-012 | Partial | Copy to clipboard; OS share sheet not built |
+| FR-012 | Written | Copy to clipboard, OS share sheet, on-device QR invites, and web invite links that prefill the join code. The web link preserves its destination through sign-in/profile setup. |
 | FR-014 | Written | Approval toggle, requests, approve/reject, join completes when the requester's app opens |
 | FR-018, 022 | Written | Transfer ownership, delete circle, owner blockers for account deletion |
 | FR-020 | Written | Revoke/new code, optional expiry (24 h / 7 days) |
