@@ -781,6 +781,7 @@ describe('activity feed, notification prefs and timed pause (Increment 6)', () =
     await env.clearFirestore(); await seed({ bob: true });
     await assertFails(setDoc(aref(db('bob'), 'invalid-status'), act({ type: 'checked_in', checkInStatus: 'at_home' })));
     await assertFails(setDoc(aref(db('bob'), 'missing-status'), act({ type: 'checked_in' })));
+    await assertFails(setDoc(aref(db('bob'), 'spoofed-name'), act({ type: 'checked_in', actorName: 'Alice', checkInStatus: 'im_okay' })));
     await assertFails(setDoc(aref(db('bob'), 'gps-field'), act({ type: 'checked_in', checkInStatus: 'im_okay', lat: 31.5, lng: 74.3 })));
     await assertFails(setDoc(aref(db('carol'), 'non-member'), act({ type: 'checked_in', actorUid: 'carol', actorName: 'Carol', checkInStatus: 'im_okay' })));
   });
