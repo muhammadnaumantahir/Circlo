@@ -24,6 +24,7 @@ This audit reflects a static review of the current Flutter source and project re
 - Circle invites can be shared with the system share sheet and shown as a QR code. On web, scanning/opening the QR link pre-fills the join code and preserves the requested route through sign-in/profile setup; native QR codes contain a readable Circlo join-code payload.
 - Circle cards use a role label without starting a separate live member listener for every circle, avoiding extra reads.
 - The sharing screen shows tracking state, the last successful location sync, flags syncs older than 10 minutes, and offers retry.
+- The location-permission card rechecks when Circlo resumes after system Settings, so newly granted/revoked permission or re-enabled location services are reflected without manually restarting the app; a retry is available if the permission check itself errors.
 - A location-stream failure now cancels the heartbeat before cleanup. The five-minute heartbeat requests a fresh position, and initial/stream/heartbeat fixes are rejected when their timestamp is stale rather than being re-stamped as fresh.
 - The map clearly tells web users that sharing stops when the tab is closed, and compact screens can switch between a full map and a full-height People list.
 - The profile screen and in-app notification feed use clearer identity, privacy and activity cards.

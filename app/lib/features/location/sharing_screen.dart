@@ -54,7 +54,7 @@ class SharingScreen extends ConsumerWidget {
               onRetry: () => ref.read(sharingControllerProvider.notifier).retry(),
             ),
             const SizedBox(height: 12),
-            _PermissionCard(ref: ref),
+            const _PermissionCard(),
             const SizedBox(height: 8),
             SwitchListTile(
               title: const Text('Pause sharing'),
@@ -218,19 +218,69 @@ class _EngineStatusCard extends StatelessWidget {
   }
 }
 
-class _PermissionCard extends StatelessWidget {
-  const _PermissionCard({required this.ref});
-  final WidgetRef ref;
+class _PermissionCard extends ConsumerStatefulWidget {
+  const _PermissionCard();
+
+  @override
+  ConsumerState<_PermissionCard> createState() => _PermissionCardState();
+}
+
+class _PermissionCardState extends ConsumerState<_PermissionCard>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Device settings are outside the app. Re-check only once Circlo is visible again,
+    // otherwise the result may still reflect the permission state from before settings.
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(locationAccessProvider);
+    }
+  }
+
+  Future<void> _openSettings(Future<void> Function() openSettings) async {
+    try {
+      await openSettings();
+    } catch (_) {
+      if (mounted) {
+        showSnack(context, 'Could not open settings. Open your device settings to allow location.');
+      }
+    }
+    // Refresh immediately as a best effort; the lifecycle callback performs the post-settings check.
+    if (mounted) ref.invalidate(locationAccessProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
     final access = ref.watch(locationAccessProvider);
     return Card(
       child: access.when(
-        loading: () => const ListTile(title: Text('Checking location permission…')),
-        error: (_, __) => const ListTile(
-          leading: Icon(Icons.error_outline),
-          title: Text('Could not check location permission'),
+        loading: () => const ListTile(
+          leading: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          title: Text('Checking location permission…'),
+        ),
+        error: (_, __) => ListTile(
+          leading: const Icon(Icons.error_outline),
+          title: const Text('Could not check location permission'),
+          subtitle: const Text('Check your connection to device location services and retry.'),
+          trailing: TextButton(
+            onPressed: () => ref.invalidate(locationAccessProvider),
+            child: const Text('Retry'),
+          ),
         ),
         data: (a) {
           switch (a) {
@@ -244,10 +294,7 @@ class _PermissionCard extends StatelessWidget {
                 leading: const Icon(Icons.location_off),
                 title: const Text('Location services are turned off on this device'),
                 trailing: TextButton(
-                  onPressed: () async {
-                    await openDeviceLocationSettings();
-                    ref.invalidate(locationAccessProvider);
-                  },
+                  onPressed: () => _openSettings(openDeviceLocationSettings),
                   child: const Text('Open settings'),
                 ),
               );
@@ -257,10 +304,7 @@ class _PermissionCard extends StatelessWidget {
                 title: const Text('Location permission is blocked'),
                 subtitle: const Text('Allow it in your device settings to share.'),
                 trailing: TextButton(
-                  onPressed: () async {
-                    await openAppLocationSettings();
-                    ref.invalidate(locationAccessProvider);
-                  },
+                  onPressed: () => _openSettings(openAppLocationSettings),
                   child: const Text('Open settings'),
                 ),
               );
