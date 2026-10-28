@@ -89,17 +89,39 @@ class PlaceSubscription {
     return allMembers || memberUids.contains(memberUid);
   }
 
-  factory PlaceSubscription.fromMap(String circleId, Map<String, dynamic> d) =>
-      PlaceSubscription(
-        circleId: circleId,
-        placeId: (d['placeId'] as String?) ?? '',
-        arrive: d['arrive'] == true,
-        leave: d['leave'] == true,
-        allMembers: d['allMembers'] != false,
-        memberUids: [for (final u in (d['memberUids'] as List? ?? const [])) u.toString()],
-        // Older subscription documents did not have this field.
-        paused: d['paused'] == true,
-      );
+  /// Parses a subscription defensively so one malformed Firestore document cannot break
+  /// the collection-group stream for every other subscription.
+  static PlaceSubscription? tryFromMap(String circleId, Map<String, dynamic> d) {
+    final rawPlaceId = d['placeId'];
+    if (rawPlaceId is! String || rawPlaceId.trim().isEmpty) return null;
+
+    final rawMembers = d['memberUids'];
+    if (rawMembers != null && rawMembers is! List) return null;
+    final members = <String>[];
+    for (final uid in (rawMembers as List? ?? const [])) {
+      if (uid is! String || uid.trim().isEmpty) return null;
+      members.add(uid);
+    }
+
+    return PlaceSubscription(
+      circleId: circleId,
+      placeId: rawPlaceId,
+      arrive: d['arrive'] == true,
+      leave: d['leave'] == true,
+      allMembers: d['allMembers'] != false,
+      memberUids: members,
+      // Older subscription documents did not have this field.
+      paused: d['paused'] == true,
+    );
+  }
+
+  factory PlaceSubscription.fromMap(String circleId, Map<String, dynamic> d) {
+    final subscription = tryFromMap(circleId, d);
+    if (subscription == null) {
+      throw const FormatException('Invalid place subscription document');
+    }
+    return subscription;
+  }
 }
 
 class PlaceEvent {

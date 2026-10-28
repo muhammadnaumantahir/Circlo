@@ -109,11 +109,16 @@ class PlacesRepository {
       .collectionGroup('placeSubscriptions')
       .where('subscriberUid', isEqualTo: uid)
       .snapshots()
-      .map((s) => [
-            for (final d in s.docs)
-              if (d.reference.parent.parent != null)
-                PlaceSubscription.fromMap(d.reference.parent.parent!.id, d.data()),
-          ]);
+      .map((s) {
+        final subscriptions = <PlaceSubscription>[];
+        for (final d in s.docs) {
+          final circle = d.reference.parent.parent;
+          if (circle == null) continue;
+          final subscription = PlaceSubscription.tryFromMap(circle.id, d.data());
+          if (subscription != null) subscriptions.add(subscription);
+        }
+        return subscriptions;
+      });
 
   Stream<List<PlaceEvent>> watchRecentEvents(String circleId, {int limit = 50}) => _circle(circleId)
       .collection('placeEvents')

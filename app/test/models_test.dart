@@ -37,6 +37,34 @@ void main() {
     });
   });
 
+  group('PlaceSubscription.tryFromMap', () {
+    test('accepts valid and older subscription documents', () {
+      final subscription = PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'arrive': true,
+        'leave': false,
+        'memberUids': ['u1', 'u2'],
+      });
+      expect(subscription, isNotNull);
+      expect(subscription!.allMembers, isTrue);
+      expect(subscription.paused, isFalse);
+      expect(subscription.memberUids, ['u1', 'u2']);
+    });
+
+    test('rejects malformed IDs and member lists', () {
+      expect(PlaceSubscription.tryFromMap('c1', {'placeId': 12}), isNull);
+      expect(PlaceSubscription.tryFromMap('c1', {'placeId': ' '}), isNull);
+      expect(PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'memberUids': 'not-a-list',
+      }), isNull);
+      expect(PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'memberUids': ['u1', 42],
+      }), isNull);
+    });
+  });
+
   group('Place.tryFromMap', () {
     test('accepts valid saved place coordinates and radius', () {
       final place = Place.tryFromMap('c1', 'p1', {
