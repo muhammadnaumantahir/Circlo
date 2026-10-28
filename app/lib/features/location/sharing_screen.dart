@@ -54,7 +54,7 @@ class SharingScreen extends ConsumerWidget {
               onRetry: () => ref.read(sharingControllerProvider.notifier).retry(),
             ),
             const SizedBox(height: 12),
-            _PermissionCard(ref: ref),
+            const _PermissionCard(),
             const SizedBox(height: 8),
             SwitchListTile(
               title: const Text('Pause sharing'),
@@ -256,7 +256,7 @@ class _PermissionCardState extends ConsumerState<_PermissionCard>
         showSnack(context, 'Could not open settings. Open your device settings to allow location.');
       }
     }
-    // Also refresh on return for platforms where opening the settings route completes late.
+    // Refresh immediately as a best effort; the lifecycle callback performs the post-settings check.
     if (mounted) ref.invalidate(locationAccessProvider);
   }
 
