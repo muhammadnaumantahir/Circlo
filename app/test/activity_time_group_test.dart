@@ -19,9 +19,9 @@ void main() {
       );
     });
 
-    test('groups events from two to six days ago as This week', () {
-      expect(activityTimeGroupLabel(DateTime(2026, 10, 26), now: now), 'This week');
-      expect(activityTimeGroupLabel(DateTime(2026, 10, 22), now: now), 'This week');
+    test('groups events from two to six days ago as Last 7 days', () {
+      expect(activityTimeGroupLabel(DateTime(2026, 10, 26), now: now), 'Last 7 days');
+      expect(activityTimeGroupLabel(DateTime(2026, 10, 22), now: now), 'Last 7 days');
     });
 
     test('groups events seven or more days ago as Earlier', () {
