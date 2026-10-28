@@ -1,6 +1,6 @@
 # Circlo
 
-Private, consent-based location sharing for families and friends: circles, live map, place arrival/departure alerts, and travel history.
+Private, consent-based location sharing for families and friends: circles with shareable QR invites, live map, place arrival/departure alerts, and travel history.
 
 **Status:** Development / hardening. Account, circle, location-sharing, saved-place, history, and in-app notification flows exist in source, but the app is not release-verified. See [project-status.md](project-status.md), [CHANGELOG.md](CHANGELOG.md), and the [feature audit](docs/feature-audit-2026-10-28.md).
 
