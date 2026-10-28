@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Clarified the timed location-sharing pause choice as “Until 6:00 AM”; it can resume at 6:00 AM today when selected before 6:00 AM, or the next day when selected later.
+
 ### Changed
 - Extended the family map to surface each member's latest manual check-in in member details and the People list, including timestamp and optional saved-place context. It is explicitly labeled self-reported and not GPS-verified; existing activity data is reused.
 - Added manual circle check-ins (I'm okay, Arrived safely, On my way, Running late) from the map header. Users can optionally attach a saved-place name/ID, which is validated against the circle's saved place; check-ins remain self-reported and never include GPS coordinates. A dedicated notification category can be muted.
