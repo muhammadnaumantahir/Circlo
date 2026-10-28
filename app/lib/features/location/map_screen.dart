@@ -851,7 +851,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
               ],
             ),
             trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-            onTap: () => _showDetails(context, v, now),
+            onTap: () => _showDetails(context, v, now, latestCheckIn: latestCheckIns[v.member.uid]),
           ),
         );
       },
