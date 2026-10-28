@@ -4,6 +4,8 @@
 Run from the repo root AFTER `flutter create`. Idempotent and best-effort; generated
 platform projects still require a local build and real-device verification.
 """
+import json
+import plistlib
 import re
 import sys
 from pathlib import Path
@@ -95,6 +97,180 @@ def pin_android_toolchain() -> None:
         write_if_changed(gradle, updated)
 
 
+def _google_web_client_id() -> str | None:
+    """Read the web OAuth client ID from a downloaded Google Services JSON."""
+    config_path = root / "android/app/google-services.json"
+    if not config_path.is_file():
+        return None
+    try:
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"Could not read {config_path}: {exc}", file=sys.stderr)
+        return None
+
+    def find_web_client(value):
+        if isinstance(value, dict):
+            if str(value.get("client_type", "")) == "3" and value.get("client_id"):
+                return str(value["client_id"])
+            for child in value.values():
+                found = find_web_client(child)
+                if found:
+                    return found
+        elif isinstance(value, list):
+            for child in value:
+                found = find_web_client(child)
+                if found:
+                    return found
+        return None
+
+    return find_web_client(config)
+
+
+def _ensure_gradle_plugin(path: Path, declaration: str, plugin_id: str) -> bool:
+    """Insert a missing plugin declaration in the first flat Gradle plugins block."""
+    source = path.read_text(encoding="utf-8")
+    if plugin_id in source:
+        return False
+
+    match = re.search(r"(?m)^\s*plugins\s*\{", source)
+    if match is None:
+        updated = source.rstrip() + f"\n\nplugins {{\n    {declaration}\n}}\n"
+    else:
+        opening = source.find("{", match.start())
+        depth = 0
+        closing = None
+        for index in range(opening, len(source)):
+            if source[index] == "{":
+                depth += 1
+            elif source[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    closing = index
+                    break
+        if closing is None:
+            print(f"Could not locate end of plugins block in {path}", file=sys.stderr)
+            return False
+        updated = source[:closing] + f"    {declaration}\n" + source[closing:]
+
+    if updated != source:
+        path.write_text(updated, encoding="utf-8")
+        changed.append(str(path))
+        return True
+    return False
+
+
+def configure_android_google_signin() -> None:
+    """Apply Google Services only when the user's ignored client JSON is present."""
+    google_json = root / "android/app/google-services.json"
+    if not google_json.is_file():
+        print(
+            "Google Sign-In Android setup skipped: add app/android/app/google-services.json "
+            "from Firebase Console, then rerun this helper.",
+            file=sys.stderr,
+        )
+        return
+
+    settings = next(
+        (root / "android" / name for name in ("settings.gradle.kts", "settings.gradle")
+         if (root / "android" / name).exists()),
+        None,
+    )
+    if settings is not None:
+        if settings.suffix == ".kts":
+            declaration = 'id("com.google.gms.google-services") version "4.5.0" apply false'
+        else:
+            declaration = 'id "com.google.gms.google-services" version "4.5.0" apply false'
+        _ensure_gradle_plugin(settings, declaration, "com.google.gms.google-services")
+    else:
+        print("Android Gradle settings not found; cannot configure Google Sign-In.", file=sys.stderr)
+
+    app_gradle = next(
+        (root / "android/app" / name for name in ("build.gradle.kts", "build.gradle")
+         if (root / "android/app" / name).exists()),
+        None,
+    )
+    if app_gradle is not None:
+        declaration = (
+            'id("com.google.gms.google-services")'
+            if app_gradle.suffix == ".kts"
+            else "id 'com.google.gms.google-services'"
+        )
+        _ensure_gradle_plugin(app_gradle, declaration, "com.google.gms.google-services")
+    else:
+        print("Android app Gradle file not found; cannot apply Google Services.", file=sys.stderr)
+
+    if _google_web_client_id() is None:
+        print(
+            "Warning: google-services.json has no Web OAuth client (client_type 3). "
+            "Enable Google Authentication in Firebase and download the refreshed file, "
+            "or native Google Sign-In may not return a Firebase ID token.",
+            file=sys.stderr,
+        )
+
+
+def configure_ios_google_signin() -> None:
+    """Apply OAuth IDs and callback URL scheme from local Firebase configuration."""
+    info_plist = root / "ios/Runner/Info.plist"
+    firebase_plist = root / "ios/Runner/GoogleService-Info.plist"
+    if not info_plist.is_file():
+        return
+    if not firebase_plist.is_file():
+        print(
+            "Google Sign-In iOS setup skipped: add app/ios/Runner/GoogleService-Info.plist "
+            "from Firebase Console, then rerun this helper.",
+            file=sys.stderr,
+        )
+        return
+
+    try:
+        with firebase_plist.open("rb") as stream:
+            firebase_options = plistlib.load(stream)
+    except (OSError, plistlib.InvalidFileException) as exc:
+        print(f"Could not read {firebase_plist}: {exc}", file=sys.stderr)
+        return
+
+    ios_client_id = firebase_options.get("CLIENT_ID")
+    reversed_client_id = firebase_options.get("REVERSED_CLIENT_ID")
+    web_client_id = _google_web_client_id()
+    if not ios_client_id or not reversed_client_id:
+        print(
+            "Google Sign-In iOS setup skipped: the Firebase plist does not contain OAuth client IDs. "
+            "Enable Google Authentication and download the refreshed plist.",
+            file=sys.stderr,
+        )
+        return
+
+    try:
+        with info_plist.open("rb") as stream:
+            config = plistlib.load(stream)
+    except (OSError, plistlib.InvalidFileException) as exc:
+        print(f"Could not read {info_plist}: {exc}", file=sys.stderr)
+        return
+
+    config["GIDClientID"] = ios_client_id
+    if web_client_id:
+        config["GIDServerClientID"] = web_client_id
+
+    url_types = config.get("CFBundleURLTypes", [])
+    if not isinstance(url_types, list):
+        url_types = []
+    already_registered = any(
+        reversed_client_id in entry.get("CFBundleURLSchemes", [])
+        for entry in url_types
+        if isinstance(entry, dict) and isinstance(entry.get("CFBundleURLSchemes", []), list)
+    )
+    if not already_registered:
+        url_types.append({
+            "CFBundleTypeRole": "Editor",
+            "CFBundleURLSchemes": [reversed_client_id],
+        })
+    config["CFBundleURLTypes"] = url_types
+
+    with info_plist.open("wb") as stream:
+        plistlib.dump(config, stream, fmt=plistlib.FMT_XML, sort_keys=False)
+    changed.append(str(info_plist))
+
+
 # ---- Stable native application identifiers ----
 # Firebase apps were registered with package/bundle ID com.circlo.app.
 for gradle_name in ("build.gradle.kts", "build.gradle"):
@@ -162,6 +338,7 @@ if pbxproj.exists():
 
 # ---- Android ----
 pin_android_toolchain()
+configure_android_google_signin()
 
 manifest = root / "android/app/src/main/AndroidManifest.xml"
 if manifest.exists():
@@ -212,5 +389,7 @@ if plist.exists():
         changed.append(str(plist))
 else:
     print("iOS Info.plist not found (run flutter create first)", file=sys.stderr)
+
+configure_ios_google_signin()
 
 print("Updated:" if changed else "Nothing to change.", *changed, sep="\n  ")

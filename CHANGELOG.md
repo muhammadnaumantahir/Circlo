@@ -9,6 +9,13 @@
 - Increment 4 (travel history): opt-in "Keep my travel history", daily compact history (visits ≥10 min + thinned route) recorded while sharing is on, History tab (member/date pickers, route + timeline with stay durations), per-circle history sharing with consent, retention 7/30/90 days (client-side cleanup), delete range/all, copies removed when switching off/leaving/logging out; rules + tests.
 - Increment 5 (circle lifecycle): email verification gate (also enforced by rules), optional join-code expiry (24 h / 7 d), approval-required circles with request → approve → join, ownership transfer, circle deletion, best-effort account deletion with re-authentication and owner checks; rules + tests.
 - Increment 6 (notifications and polish): activity events (member joined/left/removed, sharing started/stopped), one in-app feed with place alerts, "location unavailable" (15+ min, once per outage) and join requests, notification settings per kind and per circle, unread badge/read state, directions link, timed pause (1 h / until 6:00 / manual, auto-resume while the app is open), export my data (JSON); rules + tests.
+### Authentication and premium UI (2026-10-28)
+- Added Firebase-backed Google Sign-In for web (Firebase popup) and Android/iOS (Google ID token exchanged for a Firebase credential), using the same google_sign_in 7.x flow as FinMate and Stockly.
+- Kept Circlo's age gate: Google-authenticated users without a profile must still provide a valid birth year; the profile name is prefilled from Google when available.
+- Added Google reauthentication before destructive account deletion for Google-authenticated users.
+- Documented Firebase provider/domain/OAuth setup and extended the platform helper to configure generated Android/iOS OAuth settings when local refreshed Firebase config files are present.
+- Switched the global palette to a premium blue/mint/violet scheme and added gradient brand cards, a branded Google button, reusable colored icon chips, and icon polish for circles, places, notifications, history, and navigation.
+
 ### UI and reliability polish (2026-10-28)
 - Premium forest-green/warm-neutral light and dark themes, polished shared cards/forms/empty states, responsive desktop navigation, and refreshed login/profile presentation.
 - Map/People full-screen toggle on compact screens, visible web-tab tracking limitation, stale-sync warning with retry, and circle role cards that avoid extra per-circle listeners.

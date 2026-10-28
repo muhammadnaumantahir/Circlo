@@ -61,16 +61,6 @@ class CirclesScreen extends ConsumerWidget {
             Icons.diversity_3_rounded,
             Icons.group_work_rounded,
           ];
-          final backgrounds = [
-            scheme.primaryContainer,
-            scheme.secondaryContainer,
-            scheme.tertiaryContainer,
-          ];
-          final foregrounds = [
-            scheme.onPrimaryContainer,
-            scheme.onSecondaryContainer,
-            scheme.onTertiaryContainer,
-          ];
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 104),
             itemCount: list.length,
@@ -83,14 +73,10 @@ class CirclesScreen extends ConsumerWidget {
                 child: ListTile(
                   minVerticalPadding: 12,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: backgrounds[tone],
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(icons[tone], color: foregrounds[tone], size: 25),
+                  leading: PremiumIconChip(
+                    icon: icons[tone],
+                    color: CircloPalette.accent(tone),
+                    size: 50,
                   ),
                   title: Text(c.name, style: Theme.of(context).textTheme.titleMedium),
                   subtitle: Text(

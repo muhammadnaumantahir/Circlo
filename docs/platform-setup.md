@@ -11,7 +11,7 @@
 - Java/Kotlin target: **17**.
 - Google Services Gradle plugin: **4.5.0** when its plugin declaration is present.
 
-The native Android/Gradle files are generated locally rather than committed in this repository. The helper normalizes generated Gradle settings and wrapper to the toolchain versions above; it does not replace an Android build or emulator test. The app release version in `app/pubspec.yaml` remains Circlo-specific and must not be copied from FinMate, Stockly, or Imaanly.
+The native Android/Gradle files are generated locally rather than committed in this repository. The helper normalizes generated Gradle settings and wrapper to the toolchain versions above; when the ignored Firebase Google configuration files are present, it also configures native Google Sign-In. It does not replace an Android build or emulator test. The app release version in `app/pubspec.yaml` remains Circlo-specific and must not be copied from FinMate, Stockly, or Imaanly.
 
 ## Android
 
@@ -24,6 +24,10 @@ In `app/ios/Runner/Info.plist`, add `NSLocationWhenInUseUsageDescription`, `NSLo
 ## Web
 
 Location works only while the tab is open; HTTPS (or localhost) is required by browsers. Cloudflare Pages uses `bash build-cloudflare.sh`; the script verifies the Flutter SDK version against `app/.fvmrc` and outputs to repository-root `build/web`.
+
+## Google Sign-In
+
+See [Google Sign-In setup](google-signin-setup.md) for enabling the Firebase provider, authorizing Cloudflare web domains, registering Android signing fingerprints, and configuring native OAuth IDs. After downloading refreshed local google-services.json and GoogleService-Info.plist files, rerun python3 tools/apply_platform_config.py from the repository root. These ignored files should never be committed. This configuration has not yet been verified on real devices or a deployed Cloudflare domain.
 
 ## Maps
 

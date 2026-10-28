@@ -6,7 +6,7 @@ This audit reflects a static review of the current Flutter source and project re
 
 | Area | Current implementation | Confidence / limit |
 |---|---|---|
-| Accounts | Email/password sign-up, login, password reset, email verification gate, birth-year age gate, profile edit | Source exists; end-to-end flow not run |
+| Accounts | Email/password and Google sign-up/sign-in, password reset, provider-aware verification, birth-year age gate, profile edit | Source exists; Firebase Console/OAuth and end-to-end Google flow not run |
 | Circles | Create/join by code, code rotation/expiry, pending join approval, member removal/leave, ownership transfer, circle deletion | Source and rules tests exist; emulator test suite not run |
 | Location sharing | Per-circle opt-in with consent, pause/resume (manual, 1 hour, or until 6:00), permission help, live-location documents and status derivation | Background behavior not verified on devices |
 | Map | Circle switcher, member markers/status, last-update details, saved-place overlays and external directions | Public tile provider must be chosen/validated before release |
@@ -19,6 +19,8 @@ This audit reflects a static review of the current Flutter source and project re
 ## Improvements made on the current UI branch
 
 - Added a consistent light/dark theme, reusable empty-state presentation, polished circle/place cards, and responsive desktop navigation.
+- Added Firebase-backed Google Sign-In entry points on login and sign-up, with web popup and native ID-token flows. Google users retain the age-gate/profile-setup requirement, and destructive account deletion reauthenticates Google users.
+- Added premium blue/mint/violet tokens, gradient brand cards, Google action styling and colorful icon chips for circles, places, notifications, history and navigation. Firebase OAuth provider/domain setup is documented, but Console configuration and live sign-in tests remain outstanding.
 - Circle cards use a role label without starting a separate live member listener for every circle, avoiding extra reads.
 - The sharing screen shows tracking state, the last successful location sync, flags syncs older than 10 minutes, and offers retry.
 - A location-stream failure now cancels the heartbeat before cleanup. The five-minute heartbeat requests a fresh position, and initial/stream/heartbeat fixes are rejected when their timestamp is stale rather than being re-stamped as fresh.

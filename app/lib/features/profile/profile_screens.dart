@@ -30,6 +30,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     super.initState();
     final y = ref.read(signupBirthYearProvider);
     _birthYear = TextEditingController(text: y?.toString() ?? '');
+    // Use the Google profile name as a convenience, while still requiring a birth year.
+    _name.text = ref.read(authRepositoryProvider).currentUser?.displayName ?? '';
   }
 
   @override
