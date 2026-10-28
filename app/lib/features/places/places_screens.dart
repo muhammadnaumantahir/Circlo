@@ -78,6 +78,16 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
   String _query = '';
 
   @override
+  void didUpdateWidget(covariant _PlacesBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.circle.id != widget.circle.id) {
+      _filter = _PlaceFilter.all;
+      _query = '';
+      _searchController.clear();
+    }
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
