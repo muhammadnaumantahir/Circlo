@@ -30,7 +30,7 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-080, FR-081, FR-082, FR-083, FR-094, FR-038 | Rules: activity events bound to the actor's own batch (joined/left/removed/sharing), names must match, immutable, member-only reads; notification prefs bounds; timed pause field | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); CI |
 | FR-072, FR-093 | Directions URL (no key), data export content | `app/test/directions_export_test.dart` | `flutter test` | Not run (CI) |
 | FR-080–083 | Feed: kinds, mute, unread badge, unavailable notice after 15 min, join-request notice (owner) | manual (emulator + 2 users) | manual | **Not run — required** |
-| Static | `flutter analyze`, `flutter build web` | CI (not enabled yet: copy docs/ci/ci.yml to .github/workflows/) | CI job `flutter` | Not run |
+| Static | `flutter analyze`, `flutter test` | `.github/workflows/flutter_ci.yml` (manual `workflow_dispatch`) | CI job `verify` | Not run here |
 | Security | Secret scan | CI | gitleaks | Not run |
 
 Not covered yet (later increments): location sharing, places, history, notifications, account deletion, accessibility audit, real-device background tracking.
