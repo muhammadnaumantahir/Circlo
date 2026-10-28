@@ -89,8 +89,15 @@ class SharingController extends Notifier<SharingState> {
     );
   }
 
-  /// Re-check permissions and restart location listeners after a recoverable stream error.
-  Future<void> retry() => _sync(_memberships);
+  /// Re-check permissions and restart location listeners, including when a native stream
+  /// becomes silent without issuing an error. A membership change cancels this retry.
+  Future<void> retry() async {
+    final generation = ++_syncGeneration;
+    final memberships = List<MyMembership>.unmodifiable(_memberships);
+    await _stop();
+    if (generation != _syncGeneration) return;
+    await _sync(memberships);
+  }
 
   /// Timed pauses end by themselves while the app is running (FR-038).
   void _handleTimedPauses(List<MyMembership> memberships) {
