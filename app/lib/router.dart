@@ -187,6 +187,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       final items = next.valueOrNull;
       if (items == null) return;
       for (final item in items) {
+        // The check-in screen already confirms the author's action; avoid a duplicate snackbar.
+        if (item.isCheckIn && item.actorUid == ref.read(currentUidProvider)) continue;
         if (item.at.isAfter(_startedAt) && _announced.add(item.id)) {
           showSnack(context, item.text);
         }
