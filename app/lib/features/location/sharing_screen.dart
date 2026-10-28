@@ -389,7 +389,7 @@ class _CircleSharingTile extends ConsumerWidget {
 
 enum _PauseChoice {
   hour('For 1 hour'),
-  tomorrow('Until tomorrow morning (6:00)'),
+  tomorrow('Until 6:00 AM'),
   manual('Until I resume');
 
   const _PauseChoice(this.label);
