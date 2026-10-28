@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Refreshed the visual identity with an indigo-to-teal palette, a branded Circlo map header, family-map member name markers, tap-to-open member detail sheets, and a mobile people-preview dock with quick access to saved places and sharing settings.
+- Reworked the Circles screen with a private-by-design overview card and clearer member cards, while keeping existing circle actions and Firebase-only behavior.
 ### Fixed
 - Travel-history privacy: Firestore now checks the master “Keep my travel history” switch before allowing circle-copy reads or writes, blocking subsequent server-side reads when the switch is off. Data already cached on recipients’ devices cannot be remotely recalled.
 - Location sharing recovery: the permission card refreshes when Circlo resumes after system Settings and offers retry if permission status cannot be checked. The screen also retries loading circles after a connection error.
