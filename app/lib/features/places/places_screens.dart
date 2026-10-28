@@ -16,7 +16,8 @@ import 'geocoder.dart';
 import 'notifications_screen.dart';
 import 'place_models.dart';
 
-String _alertSummary(PlaceSubscription? s) {
+String _alertSummary(PlaceSubscription? s, {bool loading = false, bool unavailable = false}) {
+  if (loading) return unavailable ? 'Alert settings unavailable' : 'Loading alert settings';
   if (s == null || !s.enabled) return 'Alerts off';
   final what = s.arrive && s.leave ? 'arrivals & departures' : (s.arrive ? 'arrivals' : 'departures');
   return 'Alerts: $what${s.allMembers ? '' : ' (selected members)'}';
@@ -78,7 +79,9 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
   Widget build(BuildContext context) {
     final circle = widget.circle;
     final placesAsync = ref.watch(placesProvider(circle.id));
-    final subs = ref.watch(mySubscriptionsProvider).valueOrNull ?? const <PlaceSubscription>[];
+    final subscriptionsAsync = ref.watch(mySubscriptionsProvider);
+    final subs = subscriptionsAsync.valueOrNull ?? const <PlaceSubscription>[];
+    final alertsReady = subscriptionsAsync.hasValue;
     final subByPlace = {for (final s in subs) if (s.circleId == circle.id) s.placeId: s};
     final places = placesAsync.valueOrNull ?? const <Place>[];
     final count = places.length;
@@ -128,7 +131,28 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
             ],
           ),
         ),
-        if (placesAsync.valueOrNull != null && places.isNotEmpty) ...[
+        if (placesAsync.valueOrNull != null && places.isNotEmpty && !alertsReady)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: Icon(subscriptionsAsync.hasError ? Icons.warning_amber_rounded : Icons.sync),
+                title: Text(subscriptionsAsync.hasError ? 'Alert settings unavailable' : 'Loading alert settings'),
+                subtitle: Text(subscriptionsAsync.hasError
+                    ? 'Your existing preferences are protected. Retry to load them before changing alerts.'
+                    : 'Saved preferences are being loaded before quick controls are enabled.'),
+                trailing: subscriptionsAsync.hasError
+                    ? IconButton(
+                        tooltip: 'Retry loading alert settings',
+                        onPressed: () => ref.invalidate(mySubscriptionsProvider),
+                        icon: const Icon(Icons.refresh),
+                      )
+                    : const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+            ),
+          ),
+        if (placesAsync.valueOrNull != null && places.isNotEmpty && alertsReady) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: Card(
@@ -267,6 +291,8 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
                         place: place,
                         circleId: circle.id,
                         subscription: subByPlace[place.id],
+                        alertsReady: alertsReady,
+                        alertsUnavailable: subscriptionsAsync.hasError,
                         colorIndex: i,
                         onOpen: () => context.push('/places/' + circle.id + '/' + place.id),
                       );
@@ -305,6 +331,8 @@ class _PlaceListTile extends ConsumerStatefulWidget {
     required this.place,
     required this.circleId,
     required this.subscription,
+    required this.alertsReady,
+    required this.alertsUnavailable,
     required this.colorIndex,
     required this.onOpen,
   });
@@ -312,6 +340,8 @@ class _PlaceListTile extends ConsumerStatefulWidget {
   final Place place;
   final String circleId;
   final PlaceSubscription? subscription;
+  final bool alertsReady;
+  final bool alertsUnavailable;
   final int colorIndex;
   final VoidCallback onOpen;
 
@@ -323,7 +353,7 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
   bool _saving = false;
 
   Future<void> _toggleAlerts() async {
-    if (_saving) return;
+    if (_saving || !widget.alertsReady) return;
     final uid = ref.read(currentUidProvider);
     if (uid == null) {
       showSnack(context, 'Sign in to update your place alerts.');
@@ -374,15 +404,18 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
         title: Text(widget.place.name, style: Theme.of(context).textTheme.titleMedium),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
-          child: Text(widget.place.radiusM.round().toString() + ' m radius · ' + _alertSummary(subscription)),
+          child: Text(widget.place.radiusM.round().toString() + ' m radius · ' +
+              _alertSummary(subscription, loading: !widget.alertsReady, unavailable: widget.alertsUnavailable)),
         ),
         trailing: IconButton.filledTonal(
           tooltip: _saving
               ? 'Saving alert settings'
-              : alertsOn
+              : !widget.alertsReady
+                  ? 'Alert settings not ready'
+                  : alertsOn
                   ? 'Turn all alerts off'
                   : 'Turn arrival and departure alerts on',
-          onPressed: _saving ? null : _toggleAlerts,
+          onPressed: (_saving || !widget.alertsReady) ? null : _toggleAlerts,
           icon: _saving
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
               : Icon(alertsOn ? Icons.notifications_active_rounded : Icons.notifications_off_outlined),
