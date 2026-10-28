@@ -82,6 +82,7 @@ class PlacesRepository {
         'leave': s.leave,
         'allMembers': s.allMembers,
         'memberUids': s.memberUids,
+        'paused': s.paused,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 

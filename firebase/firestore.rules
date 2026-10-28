@@ -238,7 +238,7 @@ service cloud.firestore {
       match /placeSubscriptions/{subId} {
         allow get: if signedIn() && resource.data.subscriberUid == request.auth.uid;
         allow create, update: if isMember(cid)
-          && request.resource.data.keys().hasOnly(['subscriberUid', 'placeId', 'arrive', 'leave', 'allMembers', 'memberUids', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['subscriberUid', 'placeId', 'arrive', 'leave', 'allMembers', 'memberUids', 'paused', 'updatedAt'])
           && request.resource.data.keys().hasAll(['subscriberUid', 'placeId', 'arrive', 'leave', 'allMembers', 'memberUids', 'updatedAt'])
           && request.resource.data.subscriberUid == request.auth.uid
           && subId == request.auth.uid + '_' + request.resource.data.placeId
@@ -246,6 +246,7 @@ service cloud.firestore {
           && request.resource.data.leave is bool
           && request.resource.data.allMembers is bool
           && request.resource.data.memberUids is list && request.resource.data.memberUids.size() <= 20
+          && (!('paused' in request.resource.data) || request.resource.data.paused is bool)
           && request.resource.data.updatedAt == request.time;
         // Id-based so batch deletes of absent docs work: own preferences, or owner cleanup on circle deletion.
         allow delete: if signedIn() && (subId.matches(request.auth.uid + '_.*') || isOwner(cid));

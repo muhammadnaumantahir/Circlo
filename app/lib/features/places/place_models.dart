@@ -44,6 +44,7 @@ class PlaceSubscription {
     required this.leave,
     required this.allMembers,
     required this.memberUids,
+    this.paused = false,
   });
 
   final String circleId;
@@ -52,10 +53,13 @@ class PlaceSubscription {
   final bool leave;
   final bool allMembers;
   final List<String> memberUids;
+  /// Temporarily suppresses both alert types without losing their configured choices.
+  final bool paused;
 
-  bool get enabled => arrive || leave;
+  bool get enabled => !paused && (arrive || leave);
 
   bool wants(String type, String memberUid) {
+    if (paused) return false;
     if (type == 'arrive' && !arrive) return false;
     if (type == 'leave' && !leave) return false;
     return allMembers || memberUids.contains(memberUid);
@@ -69,6 +73,8 @@ class PlaceSubscription {
         leave: d['leave'] == true,
         allMembers: d['allMembers'] != false,
         memberUids: [for (final u in (d['memberUids'] as List? ?? const [])) u.toString()],
+        // Older subscription documents did not have this field.
+        paused: d['paused'] == true,
       );
 }
 
