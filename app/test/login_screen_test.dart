@@ -12,5 +12,6 @@ void main() {
 
     expect(find.text('Enter your email address'), findsOneWidget);
     expect(find.text('Enter your password'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
   });
 }
