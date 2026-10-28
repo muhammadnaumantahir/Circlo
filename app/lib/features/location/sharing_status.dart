@@ -42,6 +42,8 @@ String statusLabel(ShareStatus s) {
 /// "just now", "5 min ago", "3 h ago", "2 d ago".
 String formatAgo(DateTime? time, DateTime now) {
   if (time == null) return 'never';
+  if (time.isAfter(now.add(const Duration(minutes: 2)))) return 'time unavailable';
+  if (time.isAfter(now)) return 'just now';
   final d = now.difference(time);
   if (d.inSeconds < 60) return 'just now';
   if (d.inMinutes < 60) return '${d.inMinutes} min ago';
