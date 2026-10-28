@@ -48,20 +48,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: FormPage(children: [
-          Container(
-            width: 78,
-            height: 78,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.55),
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              width: 78,
+              height: 78,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.55),
+                ),
               ),
-            ),
-            child: Icon(
-              Icons.hub_rounded,
-              size: 40,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              child: Icon(
+                Icons.hub_rounded,
+                size: 40,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
             ),
           ),
           const SizedBox(height: 18),
