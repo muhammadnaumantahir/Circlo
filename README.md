@@ -40,7 +40,7 @@ cd firebase && npm test            # Firestore rules tests (emulator)
 ## Documentation
 - [PROJECT_BRIEF.md](PROJECT_BRIEF.md) · [requirements.md](requirements.md) · [architecture.md](architecture.md) · [AGENTS.md](AGENTS.md)
 - Design: [design-system](design/design-system.md), [screens](design/screen-specification.md), [prompts](design/design-prompts.md), [user flows](docs/user-flows.md)
-- Docs: [data model](docs/data-model.md), [security & privacy](docs/security-privacy.md), [review findings](docs/review-findings.md), [test plan](docs/test-plan.md), [traceability](docs/traceability.md), [risks](docs/risks.md), [roadmap](docs/roadmap.md), [decisions](docs/decisions/)
+- Docs: [data model](docs/data-model.md), [security & privacy](docs/security-privacy.md), [feature audit and release blockers](docs/feature-audit-2026-10-28.md), [review findings](docs/review-findings.md), [test plan](docs/test-plan.md), [traceability](docs/traceability.md), [risks](docs/risks.md), [roadmap](docs/roadmap.md), [decisions](docs/decisions/)
 ## Web deployment
 
 Cloudflare Pages should use the repository root and these settings:
