@@ -141,8 +141,7 @@ class _NotificationTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final unavailable = item.kind == FeedKind.unavailable;
-    final iconBackground = unavailable ? scheme.errorContainer : scheme.primaryContainer;
-    final iconForeground = unavailable ? scheme.onErrorContainer : scheme.onPrimaryContainer;
+    final iconColor = unavailable ? scheme.error : CircloPalette.accent(item.kind.index);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
@@ -151,14 +150,10 @@ class _NotificationTile extends StatelessWidget {
         child: ListTile(
           minVerticalPadding: 12,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          leading: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconBackground,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(_iconFor(item), color: iconForeground, size: 22),
+          leading: PremiumIconChip(
+            icon: _iconFor(item),
+            color: iconColor,
+            size: 44,
           ),
           title: Text(item.text, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
           subtitle: Padding(
@@ -180,8 +175,9 @@ class _NotificationTile extends StatelessWidget {
               ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                   decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
+                    color: scheme.primary.withValues(alpha: .11),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: scheme.primary.withValues(alpha: .13)),
                   ),
                   child: Text(
                     'New',
