@@ -206,15 +206,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                               padding: const EdgeInsets.fromLTRB(20, 18, 16, 20),
                               child: Row(
                                 children: [
-                                  Container(
-                                    width: 42,
-                                    height: 42,
-                                    decoration: BoxDecoration(
-                                      color: scheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Icon(Icons.hub_rounded, color: scheme.onPrimaryContainer),
-                                  ),
+                                  const PremiumBrandMark(size: 42),
                                   const SizedBox(width: 11),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
