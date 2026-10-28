@@ -1,8 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Membership/sharing activity that other members see in their notification list.
-/// Written in the same batch as the change it describes (firestore.rules checks that).
-enum ActivityType { joined, left, removed, sharingStarted, sharingStopped }
+/// Membership, sharing and user-selected manual check-ins shown in the in-app feed.
+/// Check-ins contain no GPS coordinates and are self-reported, not location-verified.
+const Map<String, String> kCheckInStatuses = {
+  'im_okay': "I'm okay",
+  'arrived_safely': 'Arrived safely',
+  'on_my_way': 'On my way',
+  'running_late': 'Running late',
+};
+
+enum ActivityType { joined, left, removed, sharingStarted, sharingStopped, checkedIn }
 
 String activityTypeName(ActivityType t) {
   switch (t) {
@@ -16,6 +23,8 @@ String activityTypeName(ActivityType t) {
       return 'sharing_started';
     case ActivityType.sharingStopped:
       return 'sharing_stopped';
+    case ActivityType.checkedIn:
+      return 'checked_in';
   }
 }
 
@@ -32,6 +41,7 @@ Map<String, dynamic> activityDoc({
   required String actorName,
   String? subjectUid,
   String? subjectName,
+  String? checkInStatus,
 }) =>
     {
       'type': activityTypeName(type),
@@ -39,6 +49,7 @@ Map<String, dynamic> activityDoc({
       'actorName': actorName,
       if (subjectUid != null) 'subjectUid': subjectUid,
       if (subjectName != null) 'subjectName': subjectName,
+      if (checkInStatus != null) 'checkInStatus': checkInStatus,
       'occurredAt': FieldValue.serverTimestamp(),
     };
 
@@ -50,6 +61,7 @@ class ActivityEvent {
     required this.actorUid,
     required this.actorName,
     this.subjectName,
+    this.checkInStatus,
     required this.occurredAt,
   });
 
@@ -59,6 +71,7 @@ class ActivityEvent {
   final String actorUid;
   final String actorName;
   final String? subjectName;
+  final String? checkInStatus;
   final DateTime? occurredAt;
 
   static ActivityEvent? fromMap(String circleId, String id, Map<String, dynamic> d) {
@@ -71,6 +84,7 @@ class ActivityEvent {
       actorUid: (d['actorUid'] as String?) ?? '',
       actorName: (d['actorName'] as String?) ?? 'Someone',
       subjectName: d['subjectName'] as String?,
+      checkInStatus: d['checkInStatus'] as String?,
       occurredAt: (d['occurredAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -87,6 +101,8 @@ class ActivityEvent {
         return '$actorName started sharing their location';
       case ActivityType.sharingStopped:
         return '$actorName stopped sharing their location';
+      case ActivityType.checkedIn:
+        return '$actorName shared a manual check-in: ${kCheckInStatuses[checkInStatus] ?? "I'm okay"}';
     }
   }
 }
