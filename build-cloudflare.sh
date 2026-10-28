@@ -8,6 +8,14 @@ FLUTTER_VERSION="3.47.2"
 FLUTTER_DIR="/tmp/flutter"
 FLUTTER_REPO="https://github.com/flutter/flutter.git"
 
+# Firebase Web app configuration. These are client-side Firebase config values,
+# not service-account credentials. Cloudflare environment variables may override them.
+FIREBASE_API_KEY="${FIREBASE_API_KEY:-AIzaSyDXV4L9DPgLB-LiTtXXIu38_d6Q47QQ3KU}"
+FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID:-circlo-1dbda}"
+FIREBASE_MESSAGING_SENDER_ID="${FIREBASE_MESSAGING_SENDER_ID:-797576707965}"
+FIREBASE_AUTH_DOMAIN="${FIREBASE_AUTH_DOMAIN:-circlo-1dbda.firebaseapp.com}"
+FIREBASE_APP_ID_WEB="${FIREBASE_APP_ID_WEB:-1:797576707965:web:b5cde9db1f2cf642f01614}"
+
 # Cloudflare's network occasionally drops the large Flutter Git transfer.
 # Force HTTP/1.1 and retry cleanly rather than failing on the first disconnect.
 if [ ! -x "${FLUTTER_DIR}/bin/flutter" ]; then
@@ -38,15 +46,14 @@ cd "$(dirname "$0")/app"
 flutter create . --platforms=web
 flutter pub get
 
-# Firebase web configuration is supplied through Cloudflare Pages environment variables.
-# These values are client configuration, not service-account secrets. Missing values
-# leave the app on its setup screen so the web build can still be tested before setup.
+# Pass Firebase values into Flutter at compile time. Analytics is not used by
+# the current Flutter app, so measurementId is intentionally not required here.
 flutter build web --release \
-  --dart-define="FIREBASE_API_KEY=${FIREBASE_API_KEY:-}" \
-  --dart-define="FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-}" \
-  --dart-define="FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID:-}" \
-  --dart-define="FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN:-}" \
-  --dart-define="FIREBASE_APP_ID_WEB=${FIREBASE_APP_ID_WEB:-}"
+  --dart-define="FIREBASE_API_KEY=${FIREBASE_API_KEY}" \
+  --dart-define="FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}" \
+  --dart-define="FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID}" \
+  --dart-define="FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN}" \
+  --dart-define="FIREBASE_APP_ID_WEB=${FIREBASE_APP_ID_WEB}"
 
 # Publish at repository-root build/web to match the other apps.
 mkdir -p ../build
