@@ -72,7 +72,6 @@ class AccountDeletionService {
     for (final m in await _myMemberships(uid)) {
       final circleRef = m.reference.parent.parent;
       if (circleRef == null) continue;
-      final circleId = circleRef.id;
       if (m.data()['role'] == 'owner') {
         // Only reachable when we are the sole member (blockingCircles() is checked by the UI).
         // Remove this user's known history copies before circle deletion; the circle repository
@@ -113,4 +112,5 @@ class AccountDeletionService {
     final requests = await _db.collectionGroup('joinRequests').where('uid', isEqualTo: uid).get();
     await _deleteReferencesInBatches([for (final r in requests.docs) r.reference]);
     await _db.collection('users').doc(uid).delete();
-  }}
+  }
+}
