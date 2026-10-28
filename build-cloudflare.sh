@@ -6,9 +6,27 @@ set -euo pipefail
 
 FLUTTER_VERSION="3.47.2"
 FLUTTER_DIR="/tmp/flutter"
+FLUTTER_REPO="https://github.com/flutter/flutter.git"
 
+# Cloudflare's network occasionally drops the large Flutter Git transfer.
+# Force HTTP/1.1 and retry cleanly rather than failing on the first disconnect.
 if [ ! -x "${FLUTTER_DIR}/bin/flutter" ]; then
-  git clone --depth 1 --branch "${FLUTTER_VERSION}" https://github.com/flutter/flutter.git "${FLUTTER_DIR}"
+  rm -rf "${FLUTTER_DIR}"
+  cloned=false
+  for attempt in 1 2 3; do
+    echo "Downloading Flutter ${FLUTTER_VERSION} (attempt ${attempt}/3)..."
+    rm -rf "${FLUTTER_DIR}"
+    if git -c http.version=HTTP/1.1 clone --depth 1 --single-branch --branch "${FLUTTER_VERSION}" "${FLUTTER_REPO}" "${FLUTTER_DIR}"; then
+      cloned=true
+      break
+    fi
+    echo "Flutter download attempt ${attempt} failed."
+    sleep 3
+  done
+  if [ "${cloned}" != true ]; then
+    echo "ERROR: Could not download Flutter SDK after 3 attempts."
+    exit 1
+  fi
 fi
 
 export PATH="${FLUTTER_DIR}/bin:${PATH}"
