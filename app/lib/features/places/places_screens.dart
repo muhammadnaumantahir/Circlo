@@ -388,7 +388,6 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final subscription = widget.subscription;
     final alertsOn = subscription?.enabled ?? false;
     return Card(
