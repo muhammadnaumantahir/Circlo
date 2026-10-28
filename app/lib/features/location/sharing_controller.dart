@@ -58,6 +58,7 @@ class SharingController extends Notifier<SharingState> {
   HistoryRecorder? _history;
   Timer? _resumeTimer;
   List<MyMembership> _memberships = const [];
+  int _syncGeneration = 0;
   static const Duration _heartbeatEvery = Duration(minutes: 5);
 
   @override
@@ -118,26 +119,34 @@ class SharingController extends Notifier<SharingState> {
   }
 
   Future<void> _sync(List<MyMembership> memberships) async {
-    _memberships = memberships;
+    final generation = ++_syncGeneration;
+    _memberships = List<MyMembership>.unmodifiable(memberships);
     _handleTimedPauses(memberships);
     final active = [for (final m in memberships) if (m.isActive) m.circleId];
     if (active.isEmpty) {
       await _stop();
+      if (generation != _syncGeneration) return;
       state = const SharingState();
       return;
     }
+
     final access = await currentLocationAccess();
+    if (generation != _syncGeneration) return;
     if (access != LocationAccess.granted) {
       await _stop();
+      if (generation != _syncGeneration) return;
       state = SharingState(
         activeCircleIds: active,
         error: 'Location permission is needed to share. Open Location sharing to fix this.',
       );
       return;
     }
+
     state = state.copyWith(activeCircleIds: active, clearError: true);
-    await _start();
+    await _start(generation: generation);
+    if (generation != _syncGeneration) return;
     await _engine?.setCircles(active.toSet());
+    if (generation != _syncGeneration) return;
     _configureHistory();
   }
 
@@ -174,7 +183,7 @@ class SharingController extends Notifier<SharingState> {
     }
   }
 
-  Future<void> _start() async {
+  Future<void> _start({required int generation}) async {
     if (_sub != null) return;
     _throttle.reset();
     final uid = ref.read(currentUidProvider);
@@ -191,7 +200,7 @@ class SharingController extends Notifier<SharingState> {
       onError: (Object e) {
         // Do not keep the heartbeat publishing a stale position after the OS revokes location
         // access or the position stream fails. Stop the stream and engines; the user can retry.
-        unawaited(_handleLocationStreamError());
+        unawaited(_handleLocationStreamError(_syncGeneration));
       },
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) {
@@ -206,6 +215,7 @@ class SharingController extends Notifier<SharingState> {
       final first = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       ).timeout(const Duration(seconds: 20));
+      if (generation != _syncGeneration || _sub == null) return;
       _last = first;
       await _publish(first, force: true);
     } catch (_) {
@@ -225,12 +235,14 @@ class SharingController extends Notifier<SharingState> {
     ));
   }
 
-  Future<void> _handleLocationStreamError() async {
+  Future<void> _handleLocationStreamError(int generation) async {
     try {
       await _stop();
     } catch (_) {
       // Preserve the actionable location error even if best-effort flush/cleanup also fails.
     }
+    // A newer permission check or sharing-switch change supersedes this stream error.
+    if (generation != _syncGeneration) return;
     state = state.copyWith(
       tracking: false,
       error: 'Could not read your location. Check location permission and device settings.',
@@ -238,28 +250,28 @@ class SharingController extends Notifier<SharingState> {
   }
 
   Future<void> _stop() async {
-    // Cancel publishing first so no stale heartbeat can run during async cleanup.
+    // Detach every resource before the first await. A newer sync may start fresh resources
+    // while cancellation/flush below is still finishing; this cleanup must never dispose those.
     _heartbeat?.cancel();
     _heartbeat = null;
     final sub = _sub;
+    final history = _history;
+    final engine = _engine;
     _sub = null;
+    _history = null;
+    _engine = null;
     _last = null;
+
     try {
       await sub?.cancel();
     } catch (_) {
       // Continue cleanup even when the platform stream fails to cancel cleanly.
     }
-
-    final history = _history;
-    _history = null;
     try {
       await history?.dispose();
     } catch (_) {
       // History is best-effort on offline/quota failures; it must not keep location tracking alive.
     }
-
-    final engine = _engine;
-    _engine = null;
     try {
       await engine?.dispose();
     } catch (_) {
