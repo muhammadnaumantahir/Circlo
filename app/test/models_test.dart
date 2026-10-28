@@ -236,6 +236,32 @@ void main() {
     });
   });
 
+  group('PlaceSubscription.tryFromMap', () {
+    test('rejects malformed subscription documents without throwing', () {
+      expect(PlaceSubscription.tryFromMap('c1', {'placeId': 7}), isNull);
+      expect(PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'memberUids': 'not-a-list',
+      }), isNull);
+      expect(PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'memberUids': ['valid', 42],
+      }), isNull);
+    });
+
+    test('accepts a valid subscription document', () {
+      final subscription = PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'arrive': true,
+        'memberUids': ['u1'],
+      });
+      expect(subscription, isNotNull);
+      expect(subscription!.placeId, 'p1');
+      expect(subscription.arrive, isTrue);
+      expect(subscription.memberUids, ['u1']);
+    });
+  });
+
   group('PlaceSubscription.wants', () {
     const all = PlaceSubscription(circleId: 'c', placeId: 'p', arrive: true, leave: false, allMembers: true, memberUids: []);
     const some = PlaceSubscription(circleId: 'c', placeId: 'p', arrive: true, leave: true, allMembers: false, memberUids: ['bob']);
