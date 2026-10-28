@@ -4,7 +4,8 @@ rules_version = '2';
 // Default deny. Any path not matched below is inaccessible.
 // Scope notes (see docs/review-findings.md):
 //  - Join codes are validated here; there is no trusted server, so codes are long (10 chars, ~49 bits)
-//    and never listable. Approval flow, ownership transfer and circle deletion are NOT enabled yet.
+//    and never listable. Approval, ownership transfer and circle deletion use rule-checked client batches;
+//    regression tests exist in firebase/tests/rules.test.mjs but must run in the Emulator before release.
 //  - Minimum age is 13 (open question Q2b); keep in sync with app/lib/core/validators.dart.
 service cloud.firestore {
   match /databases/{database}/documents {
