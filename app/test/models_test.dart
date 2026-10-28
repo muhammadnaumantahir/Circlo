@@ -27,6 +27,22 @@ void main() {
     expect(const JoinFailure(JoinFailureKind.invalid).message, contains('not valid or has expired'));
   });
 
+  test('manual check-in events are distinct from GPS-detected arrivals', () {
+    const event = PlaceEvent(
+      id: 'bob_p1_manual_checkIn',
+      circleId: 'c1',
+      placeId: 'p1',
+      placeName: 'School',
+      memberUid: 'bob',
+      memberName: 'Bob',
+      type: 'checkIn',
+      visitId: 'manual',
+      occurredAt: null,
+    );
+    expect(event.isCheckIn, isTrue);
+    expect(event.isArrival, isFalse);
+  });
+
   group('PlaceSubscription.wants', () {
     const all = PlaceSubscription(circleId: 'c', placeId: 'p', arrive: true, leave: false, allMembers: true, memberUids: []);
     const some = PlaceSubscription(circleId: 'c', placeId: 'p', arrive: true, leave: true, allMembers: false, memberUids: ['bob']);
