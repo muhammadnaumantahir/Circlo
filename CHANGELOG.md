@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Treat shared-location timestamps more than two minutes in the future as unavailable instead of falsely showing a member as actively sharing; add regression coverage for large and small clock skew.
 - Clarified the timed location-sharing pause choice as “Until 6:00 AM”; it can resume at 6:00 AM today when selected before 6:00 AM, or the next day when selected later.
 
 ### Changed
