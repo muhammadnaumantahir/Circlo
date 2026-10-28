@@ -22,6 +22,9 @@ ShareStatus deriveStatus({
   if (!sharesLocation) return ShareStatus.notSharing;
   if (paused) return ShareStatus.paused;
   if (updatedAt == null) return ShareStatus.unavailable;
+  // A materially future-dated server timestamp is not evidence of a live location.
+  // Allow small device/server clock skew, matching isLocationFixFresh().
+  if (updatedAt.isAfter(now.add(const Duration(minutes: 2)))) return ShareStatus.unavailable;
   if (now.difference(updatedAt) > staleAfter) return ShareStatus.unavailable;
   return ShareStatus.sharing;
 }

@@ -30,6 +30,14 @@ void main() {
         deriveStatus(sharesLocation: true, paused: false, updatedAt: null, now: now),
         ShareStatus.unavailable,
       );
+      expect(
+        deriveStatus(sharesLocation: true, paused: false, updatedAt: now.add(const Duration(minutes: 3)), now: now),
+        ShareStatus.unavailable,
+      );
+      expect(
+        deriveStatus(sharesLocation: true, paused: false, updatedAt: now.add(const Duration(minutes: 1)), now: now),
+        ShareStatus.sharing,
+      );
     });
   });
 
