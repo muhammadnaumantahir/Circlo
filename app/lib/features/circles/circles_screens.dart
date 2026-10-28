@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/join_code.dart';
 import '../../core/validators.dart';
@@ -218,7 +221,9 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
 }
 
 class JoinCircleScreen extends ConsumerStatefulWidget {
-  const JoinCircleScreen({super.key});
+  const JoinCircleScreen({super.key, this.initialCode});
+  final String? initialCode;
+
   @override
   ConsumerState<JoinCircleScreen> createState() => _JoinCircleScreenState();
 }
@@ -228,6 +233,15 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
   final _code = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialCode = widget.initialCode;
+    if (initialCode != null && initialCode.trim().isNotEmpty) {
+      _code.text = formatJoinCode(normalizeJoinCode(initialCode));
+    }
+  }
 
   @override
   void dispose() {
@@ -536,72 +550,236 @@ class _JoinCodeCard extends ConsumerWidget {
   final bool isOwner;
   final String? uid;
 
+  String _inviteLink() {
+    if (!kIsWeb) return '';
+    final base = Uri.base;
+    if ((base.scheme != 'http' && base.scheme != 'https') || base.host.isEmpty) {
+      return '';
+    }
+    return base.replace(
+      path: '/circles/join',
+      queryParameters: {'code': normalizeJoinCode(circle.joinCode)},
+      fragment: '',
+    ).toString();
+  }
+
+  String _inviteMessage() {
+    final link = _inviteLink();
+    if (link.isNotEmpty) {
+      return 'Join "${circle.name}" on Circlo:\n$link\n\n'
+          'Only share this invite with people you trust. The circle owner may require approval.';
+    }
+    return 'Join "${circle.name}" on Circlo.\n\n'
+        'Open My Circles → Join and enter this code: ${formatJoinCode(circle.joinCode)}\n\n'
+        'Only share this invite with people you trust. The circle owner may require approval.';
+  }
+
+  Future<void> _share(BuildContext context) async {
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: _inviteMessage(),
+          subject: 'Join ${circle.name} on Circlo',
+        ),
+      );
+    } catch (_) {
+      if (context.mounted) showSnack(context, 'Could not open the share sheet. Copy the join code instead.');
+    }
+  }
+
+  Future<void> _showQr(BuildContext context) async {
+    final link = _inviteLink();
+    final data = link.isNotEmpty ? link : 'CIRCLO:${normalizeJoinCode(circle.joinCode)}';
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Circle invite'),
+        content: SizedBox(
+          width: 320,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: Theme.of(dialogContext).colorScheme.outlineVariant),
+                ),
+                child: QrImageView(
+                  data: data,
+                  version: QrVersions.auto,
+                  size: 224,
+                  backgroundColor: Colors.white,
+                  semanticsLabel: 'QR code to join ${circle.name}',
+                  errorStateBuilder: (context, error) => const SizedBox(
+                    width: 224,
+                    height: 224,
+                    child: Center(child: Text('Could not create the QR code.')),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                formatJoinCode(circle.joinCode),
+                textAlign: TextAlign.center,
+                style: Theme.of(dialogContext).textTheme.headlineSmall?.copyWith(
+                      letterSpacing: 2.2,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                link.isNotEmpty
+                    ? 'Scan to open Circlo on this website with the code filled in.'
+                    : 'Scan to read the join code, then open Circlo and choose My Circles → Join.',
+                textAlign: TextAlign.center,
+                style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(dialogContext).colorScheme.secondaryContainer.withValues(alpha: .55),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.shield_outlined, size: 20),
+                    SizedBox(width: 9),
+                    Expanded(
+                      child: Text('Anyone with this code may join or request to join, depending on the circle settings.'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: circle.joinCode));
+              if (dialogContext.mounted) showSnack(dialogContext, 'Code copied');
+            },
+            icon: const Icon(Icons.copy_rounded),
+            label: const Text('Copy code'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final expiry = ref.watch(codeExpiryProvider(circle.joinCode)).valueOrNull;
+    final expiryAsync = ref.watch(codeExpiryProvider(circle.joinCode));
+    final expiry = expiryAsync.valueOrNull;
     final expired = expiry != null && expiry.isBefore(DateTime.now());
+    final inviteAvailable = !expiryAsync.isLoading && !expiryAsync.hasError && !expired;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Join code', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            Row(
+              children: [
+                const PremiumIconChip(icon: Icons.group_add_rounded, color: CircloPalette.brand, size: 44),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Invite people', style: Theme.of(context).textTheme.titleLarge),
+                ),
+                if (expired)
+                  const Chip(
+                    avatar: Icon(Icons.schedule_rounded, size: 16),
+                    label: Text('Expired'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
             SelectableText(
               formatJoinCode(circle.joinCode),
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(letterSpacing: 2),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(letterSpacing: 2.2, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 4),
             if (expiry != null)
-              Text(expired ? 'This code has expired. Create a new one.' : 'Expires ${expiry.toLocal().toString().substring(0, 16)}'),
-            const SizedBox(height: 8),
-            const Text('Only share this code with people you trust. Anyone with it can join this circle.'),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              OutlinedButton.icon(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: circle.joinCode));
-                  if (context.mounted) showSnack(context, 'Code copied');
-                },
-                icon: const Icon(Icons.copy),
-                label: const Text('Copy'),
+              Text(expired ? 'This code has expired. Create a new one.' : 'Expires ${expiry.toLocal().toString().substring(0, 16)}')
+            else if (expiryAsync.hasError)
+              Text(
+                'Could not check code expiry. Copy is still available; refresh before sharing.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error),
               ),
-              if (isOwner && uid != null)
+            const SizedBox(height: 8),
+            Text(
+              'Only share this code with people you trust. The owner can require approval before a new member joins.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final choice = await showDialog<_ExpiryChoice>(
-                      context: context,
-                      builder: (ctx) => SimpleDialog(
-                        title: const Text('New join code'),
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
-                            child: Text('The current code stops working immediately. People already in the circle are not affected.'),
-                          ),
-                          for (final c in _ExpiryChoice.values)
-                            SimpleDialogOption(onPressed: () => Navigator.pop(ctx, c), child: Text(c.label)),
-                        ],
-                      ),
-                    );
-                    if (choice == null) return;
-                    try {
-                      await ref.read(circlesRepositoryProvider).rotateJoinCode(
-                            circleId: circle.id,
-                            oldCode: circle.joinCode,
-                            uid: uid!,
-                            expiry: choice.duration,
-                          );
-                      ref.invalidate(codeExpiryProvider);
-                      if (context.mounted) showSnack(context, 'New code created');
-                    } catch (_) {
-                      if (context.mounted) showSnack(context, 'Could not create a new code. Try again.');
-                    }
+                    await Clipboard.setData(ClipboardData(text: circle.joinCode));
+                    if (context.mounted) showSnack(context, 'Code copied');
                   },
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('New code'),
+                  icon: const Icon(Icons.copy_rounded),
+                  label: const Text('Copy code'),
                 ),
-            ]),
+                OutlinedButton.icon(
+                  onPressed: inviteAvailable ? () => _showQr(context) : null,
+                  icon: const Icon(Icons.qr_code_2_rounded),
+                  label: const Text('Show QR'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: inviteAvailable ? () => _share(context) : null,
+                  icon: const Icon(Icons.ios_share_rounded),
+                  label: const Text('Share invite'),
+                ),
+                if (isOwner && uid != null)
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final choice = await showDialog<_ExpiryChoice>(
+                        context: context,
+                        builder: (ctx) => SimpleDialog(
+                          title: const Text('New join code'),
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
+                              child: Text('The current code stops working immediately. People already in the circle are not affected.'),
+                            ),
+                            for (final choice in _ExpiryChoice.values)
+                              SimpleDialogOption(onPressed: () => Navigator.pop(ctx, choice), child: Text(choice.label)),
+                          ],
+                        ),
+                      );
+                      if (choice == null) return;
+                      try {
+                        await ref.read(circlesRepositoryProvider).rotateJoinCode(
+                              circleId: circle.id,
+                              oldCode: circle.joinCode,
+                              uid: uid,
+                              expiry: choice.duration,
+                            );
+                        ref.invalidate(codeExpiryProvider);
+                        if (context.mounted) showSnack(context, 'New code created');
+                      } catch (_) {
+                        if (context.mounted) showSnack(context, 'Could not create a new code. Try again.');
+                      }
+                    },
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('New code'),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
