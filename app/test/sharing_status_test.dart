@@ -71,6 +71,8 @@ void main() {
 
   test('formatAgo', () {
     expect(formatAgo(null, now), 'never');
+    expect(formatAgo(now.add(const Duration(minutes: 1)), now), 'just now');
+    expect(formatAgo(now.add(const Duration(minutes: 3)), now), 'time unavailable');
     expect(formatAgo(now.subtract(const Duration(seconds: 20)), now), 'just now');
     expect(formatAgo(now.subtract(const Duration(minutes: 5)), now), '5 min ago');
     expect(formatAgo(now.subtract(const Duration(hours: 3)), now), '3 h ago');
