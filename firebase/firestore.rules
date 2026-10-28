@@ -12,6 +12,8 @@ service cloud.firestore {
 
     function signedIn() { return request.auth != null; }
     function circlePath(cid) { return /databases/$(database)/documents/circles/$(cid); }
+    function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
+    function keepsHistory(uid) { return exists(userPath(uid)) && get(userPath(uid)).data.get('keepHistory', false) == true; }
     function memberPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/members/$(uid); }
     function placePath(cid, pid) { return /databases/$(database)/documents/circles/$(cid)/places/$(pid); }
     function locationPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/locations/$(uid); }
@@ -276,11 +278,14 @@ service cloud.firestore {
       // exact circle. Readable by circle members only while that member keeps both switches on.
       // Viewers read single documents by id (uid_yyyymmdd); there is no list.
       match /history/{docId} {
+        // The master history switch gates circle copies too, so turning it off hides existing copies.
         allow get: if isMember(cid)
+          && keepsHistory(resource.data.uid)
           && (resource.data.uid == request.auth.uid
               || (get(memberPath(cid, resource.data.uid)).data.get('historyShared', false) == true
                   && get(memberPath(cid, resource.data.uid)).data.get('sharesLocation', false) == true));
         allow create, update: if signedIn() && isMember(cid)
+          && keepsHistory(request.auth.uid)
           && request.resource.data.uid == request.auth.uid
           && docId == request.auth.uid + '_' + request.resource.data.day
           && validDay(request.resource.data, request.auth.uid)
