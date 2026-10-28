@@ -369,60 +369,95 @@ class _DayViewState extends State<_DayView> {
   Widget build(BuildContext context) {
     final t = widget.track;
     final route = [for (final p in t.route) LatLng(p.lat, p.lng)];
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-
     return LayoutBuilder(builder: (context, c) {
-      final map = ClipRect(
-        child: FlutterMap(
-          mapController: _controller,
-          options: MapOptions(
-            initialCenter: _points.isEmpty ? const LatLng(20, 0) : _points.first,
-            initialZoom: 14,
-            onMapReady: () {
-              _ready = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) => _fit());
-            },
-          ),
-          children: [
-            TileLayer(urlTemplate: kMapTileUrl, userAgentPackageName: 'com.circlo.circlo'),
-            if (route.length >= 2)
-              PolylineLayer(polylines: [Polyline(points: route, strokeWidth: 4, color: const Color(0xFF2563EB))]),
-            MarkerLayer(markers: [
-              for (var i = 0; i < t.visits.length; i++)
-                Marker(
-                  point: LatLng(t.visits[i].lat, t.visits[i].lng),
-                  width: 120,
-                  height: 52,
-                  child: Semantics(
-                    label: 'Visit ${i + 1}: ${t.visits[i].name}',
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      CircleAvatar(radius: 12, child: Text('${i + 1}', style: const TextStyle(fontSize: 12))),
-                      Text(t.visits[i].name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
+      final map = Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: FlutterMap(
+                mapController: _controller,
+                options: MapOptions(
+                  initialCenter: _points.isEmpty ? const LatLng(20, 0) : _points.first,
+                  initialZoom: 14,
+                  onMapReady: () {
+                    _ready = true;
+                    WidgetsBinding.instance.addPostFrameCallback((_) => _fit());
+                  },
                 ),
-            ]),
-            const RichAttributionWidget(attributions: [TextSourceAttribution(kMapAttribution)]),
-          ],
-        ),
+                children: [
+                  TileLayer(urlTemplate: kMapTileUrl, userAgentPackageName: 'com.circlo.circlo'),
+                  if (route.length >= 2)
+                    PolylineLayer(polylines: [Polyline(points: route, strokeWidth: 4, color: const Color(0xFF2563EB))]),
+                  MarkerLayer(markers: [
+                    for (var i = 0; i < t.visits.length; i++)
+                      Marker(
+                        point: LatLng(t.visits[i].lat, t.visits[i].lng),
+                        width: 120,
+                        height: 52,
+                        child: Semantics(
+                          label: 'Visit ${i + 1}: ${t.visits[i].name}',
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            CircleAvatar(radius: 12, child: Text('${i + 1}', style: const TextStyle(fontSize: 12))),
+                            Text(t.visits[i].name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                          ]),
+                        ),
+                      ),
+                  ]),
+                  const RichAttributionWidget(attributions: [TextSourceAttribution(kMapAttribution)]),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: IconButton.filledTonal(
+              tooltip: 'Fit route and stops',
+              onPressed: _points.isEmpty ? null : _fit,
+              icon: const Icon(Icons.center_focus_strong_rounded),
+            ),
+          ),
+        ],
       );
 
       final timeline = ListView(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Stops & timeline', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${t.visits.length} ${t.visits.length == 1 ? 'stop' : 'stops'}',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           if (route.length < 2)
-            const ListTile(
-              dense: true,
-              leading: Icon(Icons.route),
-              title: Text('Not enough data to show a route for this day.'),
+            const _HistoryNotice(
+              icon: Icons.route_rounded,
+              title: 'Route is incomplete',
+              message: 'There are not enough location points to draw a route for this day.',
             ),
           if (t.visits.isEmpty)
-            const ListTile(
-              dense: true,
-              leading: Icon(Icons.hourglass_empty),
-              title: Text('No stops of 10 minutes or more were recorded.'),
+            const _HistoryNotice(
+              icon: Icons.hourglass_empty_rounded,
+              title: 'No recorded stops',
+              message: 'Stops shorter than 10 minutes are not included in travel history.',
             ),
-          for (var i = 0; i < t.visits.length; i++) _VisitTile(index: i + 1, visit: t.visits[i], track: t, nowMs: nowMs),
+          for (var i = 0; i < t.visits.length; i++) _VisitTile(index: i + 1, visit: t.visits[i], track: t),
         ],
       );
 
@@ -434,46 +469,146 @@ class _DayViewState extends State<_DayView> {
   }
 }
 
+class _HistoryNotice extends StatelessWidget {
+  const _HistoryNotice({required this.icon, required this.title, required this.message});
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(icon, color: scheme.onSurfaceVariant),
+        title: Text(title, style: Theme.of(context).textTheme.titleSmall),
+        subtitle: Text(message),
+      ),
+    );
+  }
+}
+
 class _VisitTile extends StatelessWidget {
-  const _VisitTile({required this.index, required this.visit, required this.track, required this.nowMs});
+  const _VisitTile({required this.index, required this.visit, required this.track});
   final int index;
   final Visit visit;
   final DayTrack track;
-  final int nowMs;
+  Widget _timePill(BuildContext context, IconData icon, String label, {bool emphasized = false}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: emphasized ? scheme.primaryContainer : scheme.surfaceContainerHighest.withValues(alpha: .65),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: emphasized ? scheme.onPrimaryContainer : scheme.onSurfaceVariant),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: emphasized ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final tz = track.tzOffsetMin;
     final arrived = formatClock(visit.arrivedAt, tz);
     final left = visit.leftAt;
-    final String when;
-    final String stay;
-    if (left != null) {
-      when = 'Arrived $arrived · Left ${formatClock(left, tz)}';
-      stay = 'Stay duration: ${formatDuration(Duration(milliseconds: left - visit.arrivedAt))}';
-    } else {
-      when = 'Arrived $arrived · Still here (last seen ${formatClock(track.lastSeen, tz)})';
-      stay = 'So far: ${formatDuration(Duration(milliseconds: (track.lastSeen > visit.arrivedAt ? track.lastSeen : visit.arrivedAt) - visit.arrivedAt))}';
-    }
+    final end = left ?? (track.lastSeen > visit.arrivedAt ? track.lastSeen : visit.arrivedAt);
+    final duration = formatDuration(Duration(milliseconds: end - visit.arrivedAt));
     final accent = CircloPalette.accent(index - 1);
-    return ListTile(
-      leading: Container(
-        width: 32,
-        height: 32,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: accent.withValues(alpha: .14),
-          borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: accent.withValues(alpha: .18)),
-        ),
-        child: Text(
-          '$index',
-          style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w900),
+    final scheme = Theme.of(context).colorScheme;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(13),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: accent.withValues(alpha: .2)),
+              ),
+              child: Text('$index', style: TextStyle(color: accent, fontSize: 13, fontWeight: FontWeight.w900)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          visit.name,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      if (left == null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: scheme.secondaryContainer.withValues(alpha: .8),
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          child: Text('OPEN', style: TextStyle(color: scheme.onSecondaryContainer, fontSize: 10, fontWeight: FontWeight.w900)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    visit.placeId != null ? 'Saved place' : 'Unlabelled stop',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _timePill(context, Icons.login_rounded, 'Arrived $arrived', emphasized: true),
+                      if (left != null)
+                        _timePill(context, Icons.logout_rounded, 'Left ${formatClock(left, tz)}')
+                      else
+                        _timePill(context, Icons.location_on_rounded, 'Last seen ${formatClock(track.lastSeen, tz)}'),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.schedule_rounded, size: 16, color: scheme.onSurfaceVariant),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          left != null ? 'Stay duration: $duration' : 'Until last fix: $duration',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      title: Text(visit.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text('$when\n$stay'),
-      isThreeLine: true,
     );
   }
 }
