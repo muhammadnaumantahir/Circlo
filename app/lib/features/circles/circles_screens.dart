@@ -21,7 +21,7 @@ class CirclesScreen extends ConsumerWidget {
     final circles = ref.watch(myCirclesProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Circles'),
+        title: const Text('Your circles'),
         actions: [
           TextButton.icon(
             onPressed: () => context.push('/circles/join'),
@@ -66,11 +66,12 @@ class CirclesScreen extends ConsumerWidget {
           ];
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 104),
-            itemCount: list.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemCount: list.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, i) {
-              final c = list[i];
-              final tone = i % backgrounds.length;
+              if (i == 0) return _CircleCollectionHero(count: list.length);
+              final c = list[i - 1];
+              final tone = (i - 1) % backgrounds.length;
               return Card(
                 margin: EdgeInsets.zero,
                 child: ListTile(
@@ -104,6 +105,83 @@ class CirclesScreen extends ConsumerWidget {
           ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CircleCollectionHero extends StatelessWidget {
+  const _CircleCollectionHero({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: PremiumHeroCard(
+        padding: const EdgeInsets.all(20),
+        radius: 26,
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .16),
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: Colors.white.withValues(alpha: .22)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.shield_rounded, size: 14, color: Colors.white),
+                        SizedBox(width: 6),
+                        Text(
+                          'PRIVATE BY DESIGN',
+                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .7),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Your people,\ntogether.',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      height: 1.02,
+                      letterSpacing: -.6,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    '$count ${count == 1 ? 'circle' : 'circles'} · Invite people you trust and choose when to share.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: .88),
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              width: 74,
+              height: 74,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .15),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: .24), width: 1.5),
+              ),
+              child: const Icon(Icons.diversity_3_rounded, size: 38, color: Colors.white),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -373,18 +451,47 @@ class CircleDetailScreen extends ConsumerWidget {
                 error: (e, _) => const Text('Could not load members.'),
                 data: (list) => Column(
                   children: [
-                    for (final m in list)
-                      ListTile(
-                        leading: CircleAvatar(child: Text(m.displayName.isEmpty ? '?' : m.displayName[0].toUpperCase())),
-                        title: Text(m.uid == uid ? '${m.displayName} (you)' : m.displayName),
-                        subtitle: Text(m.isOwner ? 'Owner' : 'Member'),
-                        trailing: (isOwner && m.uid != uid)
-                            ? IconButton(
-                                tooltip: 'Remove ${m.displayName}',
-                                icon: const Icon(Icons.person_remove),
-                                onPressed: () => _remove(context, ref, m),
-                              )
-                            : null,
+                    for (var i = 0; i < list.length; i++)
+                      Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          minVerticalPadding: 12,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                          leading: CircleAvatar(
+                            radius: 23,
+                            backgroundColor: CircloPalette.accent(i).withValues(alpha: .14),
+                            foregroundColor: CircloPalette.accent(i),
+                            child: Text(
+                              list[i].displayName.isEmpty ? '?' : list[i].displayName[0].toUpperCase(),
+                              style: const TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          title: Text(
+                            list[i].uid == uid ? '${list[i].displayName} (you)' : list[i].displayName,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  list[i].isOwner ? Icons.shield_rounded : Icons.person_outline_rounded,
+                                  size: 14,
+                                  color: list[i].isOwner ? CircloPalette.brand : Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(list[i].isOwner ? 'Circle owner' : 'Member'),
+                              ],
+                            ),
+                          ),
+                          trailing: (isOwner && list[i].uid != uid)
+                              ? IconButton(
+                                  tooltip: 'Remove ${list[i].displayName}',
+                                  icon: const Icon(Icons.person_remove_outlined),
+                                  onPressed: () => _remove(context, ref, list[i]),
+                                )
+                              : null,
+                        ),
                       ),
                   ],
                 ),

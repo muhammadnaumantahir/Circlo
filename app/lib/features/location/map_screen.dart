@@ -100,7 +100,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Map'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const PremiumBrandMark(size: 38),
+            const SizedBox(width: 10),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Circlo', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  'YOUR PEOPLE, IN SYNC',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        letterSpacing: 1.05,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
           const NotificationsBell(),
           const SizedBox(width: 4),
@@ -195,7 +216,7 @@ class _MapBody extends ConsumerWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) => onFit(points));
     }
 
-    final mapWidget = _buildMap(context, located, uid, places);
+    final mapWidget = _buildMap(context, ref, views, located, uid, places);
     final list = _buildList(context, ref, views, uid, now, membersAsync.isLoading, membersAsync.hasError);
     final peopleOnly = ref.watch(_peopleListModeProvider);
 
@@ -276,7 +297,7 @@ class _MapBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildMap(BuildContext context, List<_MemberView> located, String? uid, List<Place> places) {
+  Widget _buildMap(BuildContext context, WidgetRef ref, List<_MemberView> views, List<_MemberView> located, String? uid, List<Place> places) {
     return Stack(
       children: [
         FlutterMap(
@@ -318,11 +339,44 @@ class _MapBody extends ConsumerWidget {
               for (final v in located)
                 Marker(
                   point: LatLng(v.location!.lat, v.location!.lng),
-                  width: 56,
-                  height: 56,
+                  width: 116,
+                  height: 78,
                   child: Semantics(
-                    label: '${v.member.displayName}, ${statusLabel(v.status)}',
-                    child: _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 44),
+                    button: true,
+                    label: '${v.member.displayName}, ${statusLabel(v.status)}. Open member details.',
+                    onTap: () => _showDetails(context, v, DateTime.now()),
+                    child: GestureDetector(
+                      onTap: () => _showDetails(context, v, DateTime.now()),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 42),
+                          const SizedBox(height: 3),
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 112),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: .75)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: .10),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              v.member.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
             ]),
@@ -341,13 +395,26 @@ class _MapBody extends ConsumerWidget {
               ),
             ),
           ),
+        if (MediaQuery.sizeOf(context).width < 900)
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: _PeoplePeekCard(
+              views: views,
+              onAllPeople: () => ref.read(_peopleListModeProvider.notifier).state = true,
+              onMemberTap: (v) => _showDetails(context, v, DateTime.now()),
+              onPlaces: () => context.go('/places'),
+              onSharing: () => context.push('/sharing'),
+            ),
+          ),
         Positioned(
-          right: 12,
-          bottom: 28,
+          right: 18,
+          bottom: MediaQuery.sizeOf(context).width < 900 ? 194 : 24,
           child: FloatingActionButton.small(
             heroTag: 'recenter',
             tooltip: 'Show everyone',
-            onPressed: () => onFit([for (final v in located) LatLng(v.location!.lat, v.location!.lng)]),
+            onPressed: located.isEmpty ? null : () => onFit([for (final v in located) LatLng(v.location!.lat, v.location!.lng)]),
             child: const Icon(Icons.center_focus_strong),
           ),
         ),
@@ -387,50 +454,325 @@ class _MapBody extends ConsumerWidget {
 
   void _showDetails(BuildContext context, _MemberView v, DateTime now) {
     final loc = v.location;
+    final statusColor = _statusColor(context, v.status);
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+      isScrollControlled: true,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _Avatar(name: v.member.displayName, color: statusColor, size: 58),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(v.member.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 4),
+                          Text(v.member.isOwner ? 'Circle owner' : 'Circle member', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_statusIcon(v.status), color: statusColor, size: 17),
+                          const SizedBox(width: 6),
+                          Text(statusLabel(v.status), maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: statusColor, fontWeight: FontWeight.w800)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                if (loc == null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: .55),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.location_off_outlined),
+                        SizedBox(width: 10),
+                        Expanded(child: Text('No location is available. Sharing may be off, paused, or waiting for a GPS fix.')),
+                      ],
+                    ),
+                  )
+                else ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: .55),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.schedule_rounded, color: scheme.primary, size: 19),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Last location update', style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${formatAgo(loc.updatedAt, now)}${loc.updatedAt == null ? '' : ' · ${_formatDateTime(loc.updatedAt!)}'}',
+                                    style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Icon(Icons.gps_fixed_rounded, color: scheme.primary, size: 19),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Text('Estimated GPS accuracy ±${loc.accuracy.round()} m', style: Theme.of(ctx).textTheme.bodyMedium),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (v.status == ShareStatus.unavailable)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text(
+                        'This is the last known location and may be out of date.',
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.error),
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () async {
+                        final ok = await launchDirections(loc.lat, loc.lng);
+                        if (!ok && ctx.mounted) showSnack(ctx, 'Could not open a maps app.');
+                      },
+                      icon: const Icon(Icons.directions_rounded),
+                      label: const Text('Get directions'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PeoplePeekCard extends StatelessWidget {
+  const _PeoplePeekCard({
+    required this.views,
+    required this.onAllPeople,
+    required this.onMemberTap,
+    required this.onPlaces,
+    required this.onSharing,
+  });
+
+  final List<_MemberView> views;
+  final VoidCallback onAllPeople;
+  final ValueChanged<_MemberView> onMemberTap;
+  final VoidCallback onPlaces;
+  final VoidCallback onSharing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final sharing = views.where((v) => v.status == ShareStatus.sharing).length;
+    final paused = views.where((v) => v.status == ShareStatus.paused).length;
+    final status = sharing > 0
+        ? '$sharing sharing now'
+        : (paused > 0 ? '$paused paused' : 'No active location updates');
+
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: .13),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .75)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              _Avatar(name: v.member.displayName, color: _statusColor(ctx, v.status), size: 48),
-              const SizedBox(width: 12),
-              Expanded(child: Text(v.member.displayName, style: Theme.of(ctx).textTheme.titleLarge)),
-            ]),
-            const SizedBox(height: 16),
-            Row(children: [
-              Icon(_statusIcon(v.status), color: _statusColor(ctx, v.status)),
-              const SizedBox(width: 8),
-              Text(statusLabel(v.status)),
-            ]),
-            const SizedBox(height: 8),
-            if (loc == null)
-              const Text('No location available.')
-            else ...[
-              Text('Last updated: ${formatAgo(loc.updatedAt, now)}'
-                  '${loc.updatedAt == null ? '' : ' (${_formatDateTime(loc.updatedAt!)})'}'),
-              const SizedBox(height: 4),
-              Text('Position: ${loc.lat.toStringAsFixed(5)}, ${loc.lng.toStringAsFixed(5)} · accuracy ±${loc.accuracy.round()} m'),
-              if (v.status == ShareStatus.unavailable)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text('This is the last known location. It may be out of date.'),
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: CircloPalette.brand.withValues(alpha: .10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.groups_rounded, color: CircloPalette.brand, size: 20),
                 ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final ok = await launchDirections(loc.lat, loc.lng);
-                  if (!ok && ctx.mounted) showSnack(ctx, 'Could not open a maps app.');
-                },
-                icon: const Icon(Icons.directions),
-                label: const Text('Get directions'),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Your people', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
+                      Text(
+                        '$status · ${views.length} ${views.length == 1 ? 'member' : 'members'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: onAllPeople,
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 9)),
+                  child: const Text('See all'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (views.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Members will appear here when the circle loads.'),
+              )
+            else
+              SizedBox(
+                height: 60,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: views.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 14),
+                  itemBuilder: (context, index) {
+                    final v = views[index];
+                    return Semantics(
+                      button: true,
+                      label: 'View ${v.member.displayName}. ${statusLabel(v.status)}',
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () => onMemberTap(v),
+                        child: SizedBox(
+                          width: 54,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 38),
+                              const SizedBox(height: 4),
+                              Text(
+                                v.member.displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _QuickMapAction(
+                    icon: Icons.place_rounded,
+                    label: 'Saved places',
+                    color: CircloPalette.mint,
+                    onTap: onPlaces,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _QuickMapAction(
+                    icon: Icons.tune_rounded,
+                    label: 'Sharing settings',
+                    color: CircloPalette.violet,
+                    onTap: onSharing,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickMapAction extends StatelessWidget {
+  const _QuickMapAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: color.withValues(alpha: .10),
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -531,8 +873,32 @@ class _Avatar extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color, width: 3), color: Theme.of(context).colorScheme.surface),
-        alignment: Alignment.center,
-        child: Text(name.isEmpty ? '?' : name[0].toUpperCase(), style: Theme.of(context).textTheme.titleMedium),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Theme.of(context).colorScheme.surface,
+          border: Border.all(color: color, width: 2.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: .20),
+              blurRadius: 9,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color.withValues(alpha: .12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            name.isEmpty ? '?' : name[0].toUpperCase(),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+        ),
       );
 }
