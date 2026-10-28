@@ -88,6 +88,9 @@ class SharingController extends Notifier<SharingState> {
     );
   }
 
+  /// Re-check permissions and restart location listeners after a recoverable stream error.
+  Future<void> retry() => _sync(_memberships);
+
   /// Timed pauses end by themselves while the app is running (FR-038).
   void _handleTimedPauses(List<MyMembership> memberships) {
     final uid = ref.read(currentUidProvider);
