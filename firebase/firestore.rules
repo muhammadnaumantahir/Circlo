@@ -252,8 +252,8 @@ service cloud.firestore {
         allow delete: if signedIn() && (subId.matches(request.auth.uid + '_.*') || isOwner(cid));
       }
 
-      // Arrival/departure events detected on the sharing member's own device (ADR-0002).
-      // Client-created and therefore UNTRUSTED for anything beyond this circle's in-app feed.
+      // Place arrival/departure events are detected on-device; check-ins are manually user-declared.
+      // All are client-created and UNTRUSTED for anything beyond this circle's in-app activity.
       match /placeEvents/{eventId} {
         allow get, list: if isMember(cid);
         allow create: if isMember(cid)
