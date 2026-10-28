@@ -74,6 +74,24 @@ enum _PlaceFilter { all, alertsOn, alertsOff }
 
 class _PlacesBodyState extends ConsumerState<_PlacesBody> {
   _PlaceFilter _filter = _PlaceFilter.all;
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void didUpdateWidget(covariant _PlacesBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.circle.id != widget.circle.id) {
+      _filter = _PlaceFilter.all;
+      _query = '';
+      _searchController.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,11 +105,13 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
     final count = places.length;
     final alertsOn = places.where((p) => subByPlace[p.id]?.enabled ?? false).length;
     final alertsOff = count - alertsOn;
+    final query = _query.trim().toLowerCase();
     final visiblePlaces = [
       for (final p in places)
-        if (_filter == _PlaceFilter.all ||
-            (_filter == _PlaceFilter.alertsOn && (subByPlace[p.id]?.enabled ?? false)) ||
-            (_filter == _PlaceFilter.alertsOff && !(subByPlace[p.id]?.enabled ?? false)))
+        if ((_filter == _PlaceFilter.all ||
+                (_filter == _PlaceFilter.alertsOn && (subByPlace[p.id]?.enabled ?? false)) ||
+                (_filter == _PlaceFilter.alertsOff && !(subByPlace[p.id]?.enabled ?? false))) &&
+            (query.isEmpty || p.name.toLowerCase().contains(query)))
           p,
     ];
 
@@ -239,6 +259,31 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
             ),
           ),
         ],
+        if (placesAsync.valueOrNull != null && places.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(() => _query = value),
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Search saved places',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                isDense: true,
+              ),
+            ),
+          ),
         Expanded(
           child: Stack(
             children: [
@@ -267,16 +312,33 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
                   }
                   if (visiblePlaces.isEmpty) {
                     final showingOn = _filter == _PlaceFilter.alertsOn;
+                    final searching = query.isNotEmpty;
                     return MessageView(
-                      icon: showingOn ? Icons.notifications_off_outlined : Icons.filter_alt_off_outlined,
-                      title: showingOn ? 'No alerts enabled' : 'All places have alerts on',
-                      message: showingOn
-                          ? 'Turn alerts on for a place, or switch back to see every saved place.'
-                          : 'Every saved place currently has alerts enabled.',
+                      icon: searching
+                          ? Icons.search_off_rounded
+                          : showingOn
+                              ? Icons.notifications_off_outlined
+                              : Icons.filter_alt_off_outlined,
+                      title: searching
+                          ? 'No matching places'
+                          : showingOn
+                              ? 'No alerts enabled'
+                              : 'All places have alerts on',
+                      message: searching
+                          ? 'Try another place name, or clear search and filters to see every saved place.'
+                          : showingOn
+                              ? 'Turn alerts on for a place, or switch back to see every saved place.'
+                              : 'Every saved place currently has alerts enabled.',
                       actions: [
                         OutlinedButton(
-                          onPressed: () => setState(() => _filter = _PlaceFilter.all),
-                          child: const Text('Show all places'),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _query = '';
+                              _filter = _PlaceFilter.all;
+                            });
+                          },
+                          child: Text(searching ? 'Clear search and filters' : 'Show all places'),
                         ),
                       ],
                     );
