@@ -101,6 +101,19 @@ void main() {
         'placeId': 'p1',
         'allMembers': 42,
       }), isNull);
+      // A malformed pause flag must not silently resume a subscription.
+      expect(PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'paused': 'true',
+      }), isNull);
+      expect(PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'arrive': 'true',
+      }), isNull);
+      expect(PlaceSubscription.tryFromMap('c1', {
+        'placeId': 'p1',
+        'leave': 1,
+      }), isNull);
     });
   });
 
