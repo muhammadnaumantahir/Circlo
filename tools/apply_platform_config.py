@@ -132,9 +132,9 @@ def _ensure_gradle_plugin(path: Path, declaration: str, plugin_id: str) -> bool:
     if plugin_id in source:
         return False
 
-    match = re.search(r"(?m)^\\s*plugins\\s*\\{", source)
+    match = re.search(r"(?m)^\s*plugins\s*\{", source)
     if match is None:
-        updated = source.rstrip() + f"\\n\\nplugins {{\\n    {declaration}\\n}}\\n"
+        updated = source.rstrip() + f"\n\nplugins {{\n    {declaration}\n}}\n"
     else:
         opening = source.find("{", match.start())
         depth = 0
@@ -150,7 +150,7 @@ def _ensure_gradle_plugin(path: Path, declaration: str, plugin_id: str) -> bool:
         if closing is None:
             print(f"Could not locate end of plugins block in {path}", file=sys.stderr)
             return False
-        updated = source[:closing] + f"    {declaration}\\n" + source[closing:]
+        updated = source[:closing] + f"    {declaration}\n" + source[closing:]
 
     if updated != source:
         path.write_text(updated, encoding="utf-8")
