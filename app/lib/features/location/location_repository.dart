@@ -38,7 +38,9 @@ class LocationRepository {
       .where('sharing', isEqualTo: true)
       .snapshots()
       .map((snap) => {
-            for (final d in snap.docs) d.id: MemberLocation.fromMap(d.id, d.data()),
+            for (final d in snap.docs)
+              if (MemberLocation.tryFromMap(d.id, d.data()) case final location?)
+                d.id: location,
           });
 
   /// Turns sharing on/off for one circle. Turning off also deletes the location document
