@@ -43,6 +43,9 @@ class _PlaceState {
   }
 }
 
+bool _validCoordinate(double lat, double lng) =>
+    lat.isFinite && lng.isFinite && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
 class PlaceDetector {
   PlaceDetector({
     this.maxAccuracyM = 100,
@@ -85,9 +88,16 @@ class PlaceDetector {
   void reset() => _states.clear();
 
   List<PlaceTransition> process(Fix fix, Iterable<PlacePoint> places) {
-    if (fix.accuracy > maxAccuracyM) return const [];
+    // Bad GPS samples must never affect visit state or emit false arrival/departure events.
+    if (!_validCoordinate(fix.lat, fix.lng) ||
+        !fix.accuracy.isFinite ||
+        fix.accuracy < 0 ||
+        fix.accuracy > maxAccuracyM) {
+      return const [];
+    }
     final out = <PlaceTransition>[];
     for (final p in places) {
+      if (!_validCoordinate(p.lat, p.lng) || !p.radiusM.isFinite || p.radiusM <= 0) continue;
       final st = _state(p.id);
       final d = distanceMeters(fix.lat, fix.lng, p.lat, p.lng);
       final condition = st.inside ? d > p.radiusM * exitFactor : d <= p.radiusM;

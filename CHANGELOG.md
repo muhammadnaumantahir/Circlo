@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Ignore malformed GPS samples and invalid saved-place coordinates/radii in arrival/departure detection to prevent false safety alerts.
 - Fix the account-deletion circle reference and guard relative-time labels against future timestamps.
 - Skip malformed or out-of-range shared-location documents so one invalid Firestore record cannot break the live-location stream; add regression tests.
 - Treat shared-location timestamps more than two minutes in the future as unavailable instead of falsely showing a member as actively sharing; add regression coverage for large and small clock skew.

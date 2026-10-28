@@ -70,6 +70,34 @@ void main() {
     expect(d.process(at(300, 80), [school]), isEmpty);
   });
 
+  test('malformed GPS fixes are ignored without changing visit state', () {
+    final d = PlaceDetector();
+    expect(d.process(const Fix(lat: double.nan, lng: school.lng, accuracy: 5, time: t0), [school]), isEmpty);
+    expect(d.process(const Fix(lat: 91, lng: school.lng, accuracy: 5, time: t0), [school]), isEmpty);
+    expect(d.process(const Fix(lat: school.lat, lng: school.lng, accuracy: double.nan, time: t0), [school]), isEmpty);
+    expect(d.process(const Fix(lat: school.lat, lng: school.lng, accuracy: -1, time: t0), [school]), isEmpty);
+    expect(d.isInside('school'), isFalse);
+
+    // Two valid samples are still required; rejected samples do not count toward confirmation.
+    expect(d.process(at(10, 10), [school]), isEmpty);
+    expect(d.process(at(10, 20), [school]).single.type, TransitionType.arrive);
+  });
+
+  test('invalid saved place coordinates and radii are ignored', () {
+    final d = PlaceDetector();
+    const invalidPlaces = [
+      PlacePoint(id: 'bad-lat', lat: 91, lng: school.lng, radiusM: 150),
+      PlacePoint(id: 'bad-lng', lat: school.lat, lng: double.infinity, radiusM: 150),
+      PlacePoint(id: 'bad-radius', lat: school.lat, lng: school.lng, radiusM: double.nan),
+      PlacePoint(id: 'negative-radius', lat: school.lat, lng: school.lng, radiusM: -10),
+    ];
+    expect(d.process(at(10, 10), invalidPlaces), isEmpty);
+    expect(d.process(at(10, 20), invalidPlaces), isEmpty);
+    for (final place in invalidPlaces) {
+      expect(d.isInside(place.id), isFalse);
+    }
+  });
+
   test('inaccurate fixes are ignored', () {
     final d = PlaceDetector();
     expect(d.process(at(10, 0, acc: 500), [school]), isEmpty);
