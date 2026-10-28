@@ -775,6 +775,15 @@ describe('activity feed, notification prefs and timed pause (Increment 6)', () =
   const act = (over = {}) => ({ type: 'joined', actorUid: 'bob', actorName: 'Bob', occurredAt: serverTimestamp(), ...over });
   const aref = (f, id = 'a1') => doc(f, `circles/c1/activity/${id}`);
 
+  it('manual check-ins are member-authored, status-limited and contain no GPS fields', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(aref(db('bob')), act({ type: 'checked_in', checkInStatus: 'arrived_safely' })));
+    await env.clearFirestore(); await seed({ bob: true });
+    await assertFails(setDoc(aref(db('bob'), 'invalid-status'), act({ type: 'checked_in', checkInStatus: 'at_home' })));
+    await assertFails(setDoc(aref(db('bob'), 'missing-status'), act({ type: 'checked_in' })));
+    await assertFails(setDoc(aref(db('bob'), 'gps-field'), act({ type: 'checked_in', checkInStatus: 'im_okay', lat: 31.5, lng: 74.3 })));
+    await assertFails(setDoc(aref(db('carol'), 'non-member'), act({ type: 'checked_in', actorUid: 'carol', actorName: 'Carol', checkInStatus: 'im_okay' })));
+  });
   it("'joined' is only valid together with the actor's own membership creation", async () => {
     await seed();
     const f = db('bob'); const b = writeBatch(f);
