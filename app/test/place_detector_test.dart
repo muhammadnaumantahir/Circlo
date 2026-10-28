@@ -92,6 +92,20 @@ void main() {
     expect(d.process(at(10, 30), [school]).single.type, TransitionType.arrive);
   });
 
+  test('same place document ID in different circles has independent state', () {
+    final d = PlaceDetector();
+    const homeA = PlacePoint(id: 'circle-a/home', lat: school.lat, lng: school.lng, radiusM: 150);
+    const homeB = PlacePoint(id: 'circle-b/home', lat: school.lat, lng: school.lng, radiusM: 150);
+
+    expect(d.process(at(10, 0), [homeA]), isEmpty);
+    expect(d.process(at(10, 10), [homeB]), isEmpty);
+    expect(d.process(at(10, 20), [homeA]).single.type, TransitionType.arrive);
+    expect(d.isInside('circle-a/home'), isTrue);
+    expect(d.isInside('circle-b/home'), isFalse);
+    expect(d.process(at(10, 30), [homeB]).single.type, TransitionType.arrive);
+    expect(d.isInside('circle-b/home'), isTrue);
+  });
+
   test('invalid saved place coordinates and radii are ignored', () {
     final d = PlaceDetector();
     const invalidPlaces = [

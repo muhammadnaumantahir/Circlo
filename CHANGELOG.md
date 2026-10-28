@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Scope place-alert detector state by circle and place ID so same-named document IDs in different circles cannot interfere with arrival/departure events.
 - Reject invalid GPS coordinates or accuracy before writing shared locations to Firestore, instead of silently normalizing negative accuracy.
 - Ignore out-of-order GPS samples in saved-place arrival/departure detection so delayed callbacks cannot advance confirmation or create false transitions.
 - Skip malformed saved-place documents in the live places stream so bad coordinates or radii cannot break place tracking.
