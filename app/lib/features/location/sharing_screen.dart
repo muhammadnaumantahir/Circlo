@@ -127,6 +127,8 @@ class _EngineStatusCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final DateTime? synced = lastPublished?.toLocal();
+    final stale = synced != null &&
+        DateTime.now().difference(synced) > const Duration(minutes: 10);
     final String title;
     final String detail;
     final IconData icon;
@@ -147,6 +149,11 @@ class _EngineStatusCard extends StatelessWidget {
       detail = 'Your live location is hidden until sharing resumes.';
       icon = Icons.pause_circle_outline_rounded;
       tone = scheme.secondary;
+    } else if (stale) {
+      title = 'Location sync is delayed';
+      detail = 'Last successful sync was over 10 minutes ago. Check your connection and retry.';
+      icon = Icons.sync_problem_rounded;
+      tone = scheme.error;
     } else if (!tracking || synced == null) {
       title = 'Connecting to your location';
       detail = 'Circlo will show the last successful sync here.';
@@ -191,14 +198,14 @@ class _EngineStatusCard extends StatelessWidget {
                       color: error != null ? scheme.error : scheme.onSurfaceVariant,
                     ),
                   ),
-                  if (sharingEnabled && !allPaused && error == null && (!tracking || synced == null)) ...[
+                  if (sharingEnabled && !allPaused && error == null && !stale && (!tracking || synced == null)) ...[
                     const SizedBox(height: 10),
                     const LinearProgressIndicator(minHeight: 3),
                   ],
                 ],
               ),
             ),
-            if (error != null)
+            if (error != null || stale)
               IconButton(
                 tooltip: 'Retry location sync',
                 onPressed: onRetry,
