@@ -78,9 +78,26 @@ class TrackBuilder {
     required Iterable<NamedPlace> places,
     required int tzOffsetMin,
   }) {
-    if (accuracy > maxAccuracyM) return false;
-    final key = dayKey(time);
+    // Never record an invalid GPS sample. NaN and negative accuracy values must not
+    // pass through comparisons and contaminate the saved route or stop state.
+    if (!lat.isFinite ||
+        !lng.isFinite ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180 ||
+        !accuracy.isFinite ||
+        accuracy < 0 ||
+        accuracy > maxAccuracyM) {
+      return false;
+    }
+
     final t = time.millisecondsSinceEpoch;
+    // Delayed callbacks must not roll the active day back or rewind history state.
+    if (_track != null && _track!.lastSeen != 0 && t < _track!.lastSeen) {
+      return false;
+    }
+    final key = dayKey(time);
 
     var changed = false;
     if (_track == null || _track!.day != key) {
