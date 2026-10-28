@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Manual check-ins from the Map or Places screen: choose a saved place to post a one-time activity entry. Check-ins are clearly labelled as user-selected (not GPS-verified), store no coordinates, appear in the in-app Places activity feed, and can be deleted by their author.
 ### Changed
 - Grouped filtered activity into Upcoming, Today, Yesterday, Last 7 days and Earlier sections with per-section counts, preserving category filters, search and unread labels.
 - Polished the Travel History timeline with richer stop cards, arrival/departure chips, stay duration and an explicit open/last-seen state for unfinished records, plus a one-tap map control to fit the selected route and stops.
