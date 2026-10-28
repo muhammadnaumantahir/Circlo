@@ -2,8 +2,8 @@
 
 - **Current phase:** Hardening and release preparation.
 - **Baseline:** v0.3, Firebase-only, $0/no-billing scope.
-- **Current implementation status (2026-10-28):** Main account, circle, location-sharing, places, history and in-app notification flows are represented in source code. New UI/reliability improvements are on branch `ui/circlo-premium-refresh` in PR #1.
-- **Verification status:** Not release-verified. Flutter analyze/tests and Firebase Emulator rules tests have not been run for the current branch; Android/iOS background location has not been tested on real devices.
+- **Current implementation status (2026-10-28):** Main includes Firebase Google Sign-In source, premium blue/mint UI, QR/share-sheet circle invitations, web invite links with code prefill, account/circle/location/places/history/in-app notification flows and the previous privacy/reliability hardening.
+- **Verification status:** Not release-verified. The owner will run CI/build checks manually; Flutter analyze/tests and Firebase Emulator rules tests have not been run here. Google OAuth still needs Firebase Console setup; QR/share-sheet behavior and Android/iOS background location need real-device tests.
 - **Latest hardening:** Live-location reads require the active-sharing marker and current per-circle consent for direct gets; pause/stop/removal require atomic deletion. Heartbeats reject stale fixes, async sharing/place-listener operations are generation-guarded, and queued place events retry their member-name lookup after offline recovery.
 - **Still deferred by the owner's current scope:** remote cross-user push, scheduled cleanup, guaranteed complete account/circle deletion, trusted server-side validation of place events.
 - **Last reviewed:** 2026-10-28. See [the current feature audit](docs/feature-audit-2026-10-28.md) for the feature inventory, recent improvements, and release blockers.
