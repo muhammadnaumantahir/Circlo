@@ -7,6 +7,17 @@ import '../../providers.dart';
 import '../location/sharing_status.dart';
 import 'place_models.dart';
 
+String _activityTimeGroup(DateTime timestamp, DateTime now) {
+  final eventDay = DateTime(timestamp.year, timestamp.month, timestamp.day);
+  final today = DateTime(now.year, now.month, now.day);
+  final daysAgo = today.difference(eventDay).inDays;
+  if (daysAgo < 0) return 'Upcoming';
+  if (daysAgo == 0) return 'Today';
+  if (daysAgo == 1) return 'Yesterday';
+  if (daysAgo < 7) return 'This week';
+  return 'Earlier';
+}
+
 IconData _iconFor(FeedItem i) {
   switch (i.kind) {
     case FeedKind.place:
@@ -118,6 +129,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 feedKindLabel(item.kind).toLowerCase().contains(query);
             return matchesCategory(item) && matchesSearch;
           }).toList();
+
+          final now = DateTime.now();
+          final groupedItems = <String, List<FeedItem>>{};
+          for (final item in visibleItems) {
+            final group = _activityTimeGroup(item.at, now);
+            groupedItems.putIfAbsent(group, () => <FeedItem>[]).add(item);
+          }
+          const activityGroupOrder = <String>['Upcoming', 'Today', 'Yesterday', 'This week', 'Earlier'];
 
           return ListView(
             padding: const EdgeInsets.only(bottom: 24),
@@ -252,11 +271,36 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     ),
                   )
                 else
-                  for (final item in visibleItems)
-                    _NotificationTile(
-                      item: item,
-                      isNew: _seenWhenOpened == null || item.at.isAfter(_seenWhenOpened!),
-                    ),
+                  for (final groupLabel in activityGroupOrder)
+                    if (groupedItems.containsKey(groupLabel)) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 2),
+                        child: Row(
+                          children: [
+                            Text(
+                              groupLabel,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Divider(color: Theme.of(context).colorScheme.outlineVariant),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${groupedItems[groupLabel]!.length}',
+                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      for (final item in groupedItems[groupLabel]!)
+                        _NotificationTile(
+                          item: item,
+                          isNew: _seenWhenOpened == null || item.at.isAfter(_seenWhenOpened!),
+                        ),
+                    ],
               ],
             ],
           );
