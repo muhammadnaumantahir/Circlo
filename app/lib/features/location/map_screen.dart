@@ -90,12 +90,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Keep the sharing engine alive while the app is open (it reacts to the user's switches).
     ref.watch(sharingControllerProvider);
     final circlesAsync = ref.watch(myCirclesProvider);
+    final profile = ref.watch(profileProvider).valueOrNull;
+    final profileName = profile?.displayName.trim() ?? '';
+    final profileInitial = profileName.isEmpty ? '?' : profileName.substring(0, 1).toUpperCase();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Map'),
         actions: [
           const NotificationsBell(),
+          const SizedBox(width: 4),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              tooltip: 'Profile & settings',
+              onPressed: () => context.go('/profile'),
+              icon: CircleAvatar(
+                radius: 17,
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                child: Text(
+                  profileInitial,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
       body: circlesAsync.when(
@@ -281,21 +301,26 @@ class _MapBody extends ConsumerWidget {
     if (loading && views.isEmpty) return const LoadingView();
     if (hasError) return const MessageView(icon: Icons.lock_outline, title: 'Could not load members');
     return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
       itemCount: views.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, i) {
         final v = views[i];
         final name = v.member.uid == uid ? '${v.member.displayName} (you)' : v.member.displayName;
         final ago = v.location == null ? '' : ' · ${formatAgo(v.location!.updatedAt, now)}';
-        return ListTile(
-          leading: _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 40),
-          title: Text(name),
-          subtitle: Row(children: [
-            Icon(_statusIcon(v.status), size: 16, color: _statusColor(context, v.status)),
-            const SizedBox(width: 4),
-            Flexible(child: Text('${statusLabel(v.status)}$ago')),
-          ]),
-          onTap: () => _showDetails(context, v, now),
+        return Card(
+          margin: EdgeInsets.zero,
+          child: ListTile(
+            leading: _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 40),
+            title: Text(name),
+            subtitle: Row(children: [
+              Icon(_statusIcon(v.status), size: 16, color: _statusColor(context, v.status)),
+              const SizedBox(width: 6),
+              Flexible(child: Text('${statusLabel(v.status)}$ago')),
+            ]),
+            trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+            onTap: () => _showDetails(context, v, now),
+          ),
         );
       },
     );
@@ -360,33 +385,76 @@ class _Header extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final memberships = ref.watch(myMembershipsProvider).valueOrNull ?? const <MyMembership>[];
     final active = memberships.where((m) => m.isActive).length;
     final pausedCount = memberships.where((m) => m.sharesLocation && m.paused).length;
     final label = active > 0
         ? 'Sharing with $active ${active == 1 ? 'circle' : 'circles'}'
         : (pausedCount > 0 ? 'Sharing paused' : 'Not sharing');
-    final icon = active > 0 ? Icons.location_on : (pausedCount > 0 ? Icons.pause_circle_outline : Icons.visibility_off);
+    final icon = active > 0
+        ? Icons.location_on_rounded
+        : (pausedCount > 0 ? Icons.pause_circle_outline_rounded : Icons.visibility_off_rounded);
+    final chipBackground = active > 0
+        ? scheme.primaryContainer
+        : (pausedCount > 0 ? scheme.secondaryContainer : scheme.surface);
+    final chipForeground = active > 0
+        ? scheme.onPrimaryContainer
+        : (pausedCount > 0 ? scheme.onSecondaryContainer : scheme.onSurfaceVariant);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(children: [
-        Expanded(
-          child: DropdownButton<String>(
-            isExpanded: true,
-            value: selected.id,
-            underline: const SizedBox.shrink(),
-            items: [for (final c in circles) DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))],
-            onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.65)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: scheme.primaryContainer,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(Icons.groups_rounded, color: scheme.onPrimaryContainer, size: 21),
           ),
-        ),
-        const SizedBox(width: 8),
-        ActionChip(
-          avatar: Icon(icon, size: 18),
-          label: Text(label),
-          onPressed: () => context.push('/sharing'),
-        ),
-      ]),
+          const SizedBox(width: 10),
+          Expanded(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: selected.id,
+              underline: const SizedBox.shrink(),
+              icon: const Icon(Icons.unfold_more_rounded, size: 20),
+              style: theme.textTheme.titleMedium,
+              items: [
+                for (final c in circles)
+                  DropdownMenuItem(
+                    value: c.id,
+                    child: Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
+            ),
+          ),
+          const SizedBox(width: 8),
+          ActionChip(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+            side: BorderSide.none,
+            backgroundColor: chipBackground,
+            avatar: Icon(icon, size: 17, color: chipForeground),
+            label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            labelStyle: theme.textTheme.labelMedium?.copyWith(
+              color: chipForeground,
+              fontWeight: FontWeight.w700,
+            ),
+            onPressed: () => context.push('/sharing'),
+          ),
+        ],
+      ),
     );
   }
 }
