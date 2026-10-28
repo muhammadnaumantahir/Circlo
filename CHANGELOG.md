@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Ignore malformed optional timed-pause timestamps when reading membership documents, keeping the sharing-state stream alive.
 - Skip malformed place-event documents so bad legacy records cannot break the in-app feed or place-state restoration.
 - Ignore malformed saved place-subscription documents so one bad document cannot break the user's subscription stream.
 - Scope place-alert detector state by circle and place ID so same-named document IDs in different circles cannot interfere with arrival/departure events.
