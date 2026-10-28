@@ -93,19 +93,8 @@ class CirclesScreen extends ConsumerWidget {
                     child: Icon(icons[tone], color: foregrounds[tone], size: 25),
                   ),
                   title: Text(c.name, style: Theme.of(context).textTheme.titleMedium),
-                  subtitle: Consumer(
-                    builder: (context, ref, _) {
-                      final members = ref.watch(membersProvider(c.id));
-                      final uid = ref.watch(currentUidProvider);
-                      final role = c.ownerUid == uid ? 'Owner' : 'Member';
-                      return Text(
-                        members.when(
-                          data: (rows) => '${rows.length} ${rows.length == 1 ? 'member' : 'members'} · $role',
-                          loading: () => role,
-                          error: (_, __) => '$role · Member count unavailable',
-                        ),
-                      );
-                    },
+                  subtitle: Text(
+                    '${c.ownerUid == ref.watch(currentUidProvider) ? 'Owner' : 'Member'} · Members and sharing settings',
                   ),
                   trailing: Container(
                     width: 34,
