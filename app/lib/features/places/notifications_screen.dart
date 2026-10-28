@@ -2,21 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'activity_time_group.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
 import '../location/sharing_status.dart';
 import 'place_models.dart';
-
-String _activityTimeGroup(DateTime timestamp, DateTime now) {
-  final eventDay = DateTime(timestamp.year, timestamp.month, timestamp.day);
-  final today = DateTime(now.year, now.month, now.day);
-  final daysAgo = today.difference(eventDay).inDays;
-  if (daysAgo < 0) return 'Upcoming';
-  if (daysAgo == 0) return 'Today';
-  if (daysAgo == 1) return 'Yesterday';
-  if (daysAgo < 7) return 'This week';
-  return 'Earlier';
-}
 
 IconData _iconFor(FeedItem i) {
   switch (i.kind) {
@@ -133,7 +123,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           final now = DateTime.now();
           final groupedItems = <String, List<FeedItem>>{};
           for (final item in visibleItems) {
-            final group = _activityTimeGroup(item.at, now);
+            final group = activityTimeGroupLabel(item.at, now: now);
             groupedItems.putIfAbsent(group, () => <FeedItem>[]).add(item);
           }
           const activityGroupOrder = <String>['Upcoming', 'Today', 'Yesterday', 'This week', 'Earlier'];
