@@ -451,18 +451,47 @@ class CircleDetailScreen extends ConsumerWidget {
                 error: (e, _) => const Text('Could not load members.'),
                 data: (list) => Column(
                   children: [
-                    for (final m in list)
-                      ListTile(
-                        leading: CircleAvatar(child: Text(m.displayName.isEmpty ? '?' : m.displayName[0].toUpperCase())),
-                        title: Text(m.uid == uid ? '${m.displayName} (you)' : m.displayName),
-                        subtitle: Text(m.isOwner ? 'Owner' : 'Member'),
-                        trailing: (isOwner && m.uid != uid)
-                            ? IconButton(
-                                tooltip: 'Remove ${m.displayName}',
-                                icon: const Icon(Icons.person_remove),
-                                onPressed: () => _remove(context, ref, m),
-                              )
-                            : null,
+                    for (var i = 0; i < list.length; i++)
+                      Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          minVerticalPadding: 12,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                          leading: CircleAvatar(
+                            radius: 23,
+                            backgroundColor: CircloPalette.accent(i).withValues(alpha: .14),
+                            foregroundColor: CircloPalette.accent(i),
+                            child: Text(
+                              list[i].displayName.isEmpty ? '?' : list[i].displayName[0].toUpperCase(),
+                              style: const TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          title: Text(
+                            list[i].uid == uid ? '${list[i].displayName} (you)' : list[i].displayName,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  list[i].isOwner ? Icons.shield_rounded : Icons.person_outline_rounded,
+                                  size: 14,
+                                  color: list[i].isOwner ? CircloPalette.brand : Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(list[i].isOwner ? 'Circle owner' : 'Member'),
+                              ],
+                            ),
+                          ),
+                          trailing: (isOwner && list[i].uid != uid)
+                              ? IconButton(
+                                  tooltip: 'Remove ${list[i].displayName}',
+                                  icon: const Icon(Icons.person_remove_outlined),
+                                  onPressed: () => _remove(context, ref, list[i]),
+                                )
+                              : null,
+                        ),
                       ),
                   ],
                 ),
