@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Fixed a compile-time reference error in account deletion when deleting a circle owned by the user.
 - Clarified the timed location-sharing pause choice as “Until 6:00 AM”; it can resume at 6:00 AM today when selected before 6:00 AM, or the next day when selected later.
 
 ### Changed
