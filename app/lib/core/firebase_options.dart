@@ -85,5 +85,6 @@ class CircloFirebase {
         messagingSenderId: _senderId,
         projectId: _projectId,
         authDomain: kIsWeb && _authDomain.isNotEmpty ? _authDomain : null,
+        iosBundleId: defaultTargetPlatform == TargetPlatform.iOS ? 'com.circlo.app' : null,
       );
 }
