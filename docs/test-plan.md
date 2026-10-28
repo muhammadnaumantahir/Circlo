@@ -8,6 +8,8 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. Status below reflects w
 | FR-001, FR-002 | Login form validation | `app/test/login_screen_test.dart` | `flutter test` | Not run (CI) |
 | FR-004, FR-102 | Validators: name, phone, email, password, birth year, min age 13 | `app/test/validators_test.dart` | `flutter test` | Not run (CI) |
 | FR-011, NFR-011 | Join-code generation/format | `app/test/join_code_test.dart` | `flutter test` | Not run (CI) |
+| FR-012 | Web invite code prefill and manual join-code entry | `app/test/circle_invite_test.dart` | `cd app && flutter test test/circle_invite_test.dart` | Added on 2026-10-28; Not run here |
+| FR-012 | QR invite and OS share sheet on web, Android and iOS; expired code blocked from sharing/QR | manual web + native devices | manual | Not run — required |
 | FR-004, FR-102, NFR-006 | Profile rules: own-only, age ≥13, immutable birth year | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); runs in CI |
 | FR-010, FR-011 | Create circle batch rules | same | same | Blocked here; CI |
 | FR-013, FR-020 | Join with valid/invalid/revoked/expired code; rotate code | same | same | Blocked here; CI |
