@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Changed
+- Extended the family map to surface each member's latest manual check-in in member details and the People list, including timestamp and optional saved-place context. It is explicitly labeled self-reported and not GPS-verified; existing activity data is reused.
 - Added manual circle check-ins (I'm okay, Arrived safely, On my way, Running late) from the map header. Users can optionally attach a saved-place name/ID, which is validated against the circle's saved place; check-ins remain self-reported and never include GPS coordinates. A dedicated notification category can be muted.
 - Grouped filtered activity into Upcoming, Today, Yesterday, Last 7 days and Earlier sections with per-section counts, preserving category filters, search and unread labels.
 - Polished the Travel History timeline with richer stop cards, arrival/departure chips, stay duration and an explicit open/last-seen state for unfinished records, plus a one-tap map control to fit the selected route and stops.
