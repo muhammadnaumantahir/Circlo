@@ -84,6 +84,29 @@ class _PlacesBody extends ConsumerWidget {
             onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text('Saved places', style: Theme.of(context).textTheme.titleMedium),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$count / $kMaxPlacesPerCircle',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
         Expanded(
           child: Stack(
             children: [
@@ -103,18 +126,54 @@ class _PlacesBody extends ConsumerWidget {
                       actions: [FilledButton(onPressed: () => _add(context, count), child: const Text('Add a place'))],
                     );
                   }
+                  final scheme = Theme.of(context).colorScheme;
+                  final backgrounds = [
+                    scheme.primaryContainer,
+                    scheme.secondaryContainer,
+                    scheme.tertiaryContainer,
+                  ];
+                  final foregrounds = [
+                    scheme.onPrimaryContainer,
+                    scheme.onSecondaryContainer,
+                    scheme.onTertiaryContainer,
+                  ];
                   return ListView.separated(
-                    padding: const EdgeInsets.only(bottom: 88),
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 96),
                     itemCount: places.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, i) {
                       final p = places[i];
-                      return ListTile(
-                        leading: const Icon(Icons.place),
-                        title: Text(p.name),
-                        subtitle: Text('${p.radiusM.round()} m · ${_alertSummary(subByPlace[p.id])}'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('/places/${circle.id}/${p.id}'),
+                      final alert = subByPlace[p.id];
+                      final alertsOn = alert?.enabled ?? false;
+                      return Card(
+                        margin: EdgeInsets.zero,
+                        child: ListTile(
+                          minVerticalPadding: 12,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          leading: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: backgrounds[i % backgrounds.length],
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Icon(
+                              Icons.location_on_rounded,
+                              color: foregrounds[i % foregrounds.length],
+                              size: 25,
+                            ),
+                          ),
+                          title: Text(p.name, style: Theme.of(context).textTheme.titleMedium),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text('${p.radiusM.round()} m radius · ${_alertSummary(alert)}'),
+                          ),
+                          trailing: Icon(
+                            alertsOn ? Icons.notifications_active_outlined : Icons.chevron_right_rounded,
+                            color: alertsOn ? scheme.primary : scheme.onSurfaceVariant,
+                          ),
+                          onTap: () => context.push('/places/${circle.id}/${p.id}'),
+                        ),
                       );
                     },
                   );
