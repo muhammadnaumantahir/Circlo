@@ -770,15 +770,25 @@ class HistorySettingsScreen extends ConsumerWidget {
       confirmLabel: 'Delete all',
     );
     if (!ok) return;
-    await _delete(context, ref, uid, (days) => days);
+    await _delete(context, ref, uid, (days) => days, allDays: true);
   }
 
-  Future<void> _delete(BuildContext context, WidgetRef ref, String uid, List<String> Function(List<String>) pick) async {
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    String uid,
+    List<String> Function(List<String>) pick, {
+    bool allDays = false,
+  }) async {
     final repo = ref.read(historyRepositoryProvider);
     final memberships = ref.read(myMembershipsProvider).valueOrNull ?? const [];
     try {
-      // Deletion actions must use every stored day key, not only the history screen's display limit.
-      final days = pick(await repo.allMyDays(uid));
+      // Delete All must page through every key; the date-range picker spans at most 121 days,
+      // so its bounded query remains sufficient and avoids unnecessary reads.
+      final storedDays = allDays
+          ? await repo.allMyDays(uid)
+          : await repo.myDays(uid, limit: 200);
+      final days = pick(storedDays);
       if (days.isEmpty) {
         if (context.mounted) showSnack(context, 'No history in that range.');
         return;
