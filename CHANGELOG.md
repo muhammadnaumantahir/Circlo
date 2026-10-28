@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Ignore duplicate-timestamp GPS callbacks in place-arrival detection so repeated copies of one fix cannot satisfy the multi-fix confirmation threshold.
 - Share the first Travel History restore between concurrent GPS callbacks so an overlapping Firestore read cannot replace newer in-memory tracking state with a stale snapshot.
 - Bound restored Travel History timestamps to the supported date range and reset invalid timezone offsets, preventing malformed metadata from crashing date/time rendering.
 - Reject invalid GPS fixes and out-of-order timestamps in Travel History recording so malformed samples cannot pollute a route or roll the active day backward.
