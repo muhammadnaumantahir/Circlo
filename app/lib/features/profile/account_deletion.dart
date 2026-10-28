@@ -27,6 +27,22 @@ class AccountDeletionService {
   final CirclesRepository circles;
   final HistoryRepository history;
 
+  static const int _deleteBatchSize = 400;
+
+  /// Deletes bulk data in safe chunks. Keep security-sensitive revocation writes in their own
+  /// small atomic batch, because Firestore Rules require location + membership deletion together.
+  Future<void> _deleteReferencesInBatches(
+    List<DocumentReference<Map<String, dynamic>>> refs,
+  ) async {
+    for (var i = 0; i < refs.length; i += _deleteBatchSize) {
+      final batch = _db.batch();
+      for (final ref in refs.skip(i).take(_deleteBatchSize)) {
+        batch.delete(ref);
+      }
+      await batch.commit();
+    }
+  }
+
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _myMemberships(String uid) async =>
       (await _db.collectionGroup('members').where('uid', isEqualTo: uid).get()).docs;
 
@@ -49,48 +65,52 @@ class AccountDeletionService {
   /// Runs every data step; returns normally only when all of them succeeded.
   /// The caller deletes the Firebase Auth user afterwards.
   Future<void> deleteAllData(String uid) async {
-    final days = <String>[];
-    for (;;) {
-      final batchDays = await history.myDays(uid, limit: 200);
-      if (batchDays.isEmpty) break;
-      days.addAll(batchDays);
-      await history.deleteDays(uid: uid, days: batchDays, circleIds: const []);
-      if (batchDays.length < 200) break;
-    }
+    // Read the full day-key set first. Do not delete the private master keys until all reachable
+    // circle copies have been cleaned up; otherwise a failure and retry would lose the day list.
+    final days = await history.allMyDays(uid);
 
     for (final m in await _myMemberships(uid)) {
       final circleRef = m.reference.parent.parent;
       if (circleRef == null) continue;
-      final circleId = circleRef.id;
       if (m.data()['role'] == 'owner') {
-        // Only reachable when we are the sole member (blockingCircles() was empty).
+        // Only reachable when we are the sole member (blockingCircles() is checked by the UI).
+        // Remove this user's known history copies before circle deletion; the circle repository
+        // also cleans its normal retention window and other reachable subcollection documents.
+        await _deleteReferencesInBatches([
+          for (final day in days) circleRef.collection('history').doc('${uid}_$day'),
+        ]);
         await circles.deleteCircle(circleId: circleId, ownerUid: uid);
         continue;
       }
-      final batch = _db.batch();
-      // own alert preferences (ids are derived from the places we can list)
+
+      final cleanupRefs = <DocumentReference<Map<String, dynamic>>>[];
+      // Own alert preferences (IDs are derived from places we can list).
       final places = await circleRef.collection('places').get();
       for (final p in places.docs) {
-        batch.delete(circleRef.collection('placeSubscriptions').doc('${uid}_${p.id}'));
+        cleanupRefs.add(circleRef.collection('placeSubscriptions').doc('${uid}_${p.id}'));
       }
-      // own events (queryable by ourselves)
+      // Own events (queryable by ourselves). This may exceed one Firestore batch.
       final events = await circleRef.collection('placeEvents').where('memberUid', isEqualTo: uid).get();
-      for (final e in events.docs) {
-        batch.delete(e.reference);
-      }
-      // own history copies for the days we know about
+      cleanupRefs.addAll(events.docs.map((e) => e.reference));
+      // Own history copies for every day recorded in the private master list.
       for (final day in days) {
-        batch.delete(circleRef.collection('history').doc('${uid}_$day'));
+        cleanupRefs.add(circleRef.collection('history').doc('${uid}_$day'));
       }
-      batch.delete(circleRef.collection('locations').doc(uid));
-      batch.delete(m.reference);
-      await batch.commit();
+      await _deleteReferencesInBatches(cleanupRefs);
+
+      // Revoke access in one small atomic operation: Firestore Rules require that a member
+      // cannot be removed while their live-location projection remains.
+      final revoke = _db.batch();
+      revoke.delete(circleRef.collection('locations').doc(uid));
+      revoke.delete(m.reference);
+      await revoke.commit();
     }
 
+    // This happens only after reachable circle copies are handled, preserving retryability.
+    await history.deleteDays(uid: uid, days: days, circleIds: const []);
+
     final requests = await _db.collectionGroup('joinRequests').where('uid', isEqualTo: uid).get();
-    for (final r in requests.docs) {
-      await r.reference.delete();
-    }
+    await _deleteReferencesInBatches([for (final r in requests.docs) r.reference]);
     await _db.collection('users').doc(uid).delete();
   }
 }

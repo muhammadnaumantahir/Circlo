@@ -38,6 +38,7 @@ This audit reflects a static review of the current Flutter source and project re
 - Places display used capacity and whether their arrival/departure alerts are enabled.
 - Place-alert listeners now use generation guards when sharing scope changes and discard queued events for circles that stop sharing, avoiding stale listeners/events after pause or revoke.
 - Circle deletion removes location projections before deleting member documents in small batches to stay within Firestore security-rule access-call limits.
+- Account deletion now cleans large sets of a user's place events, place subscriptions, history copies, and join requests in batches of 400 writes; it keeps live-location deletion and membership removal in one atomic batch, and retains master history day keys until reachable circle copies have been processed so interrupted cleanup can be retried more safely.
 - Sharing heartbeats use the current session generation across circle switches; late upload responses or delayed errors from an old native stream cannot replace or stop the newer session.
 - Pending place events retry the member-name lookup after connectivity recovers instead of remaining stuck until sharing is toggled.
 - Pinned Flutter **3.47.2** in `app/.fvmrc`; CI and the Cloudflare build read the same pin. Cloudflare rejects a stale/mismatched SDK instead of silently reusing it.
