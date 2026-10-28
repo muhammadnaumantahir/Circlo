@@ -285,6 +285,7 @@ describe('live location sharing (circle-scoped)', () => {
     await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
     await assertSucceeds(getDoc(locRef(db('alice'), 'c1', 'bob')));
     await assertSucceeds(getDocs(query(collection(db('alice'), 'circles/c1/locations'), where('sharing', '==', true))));
+    await assertFails(getDocs(collection(db('alice'), 'circles/c1/locations'))); // query must constrain active sharing
     await assertFails(getDoc(locRef(db('carol'), 'c1', 'bob')));              // member of c2 only
     await assertFails(getDocs(collection(db('carol'), 'circles/c1/locations')));
     await assertFails(getDoc(locRef(db('mallory'), 'c1', 'bob')));
