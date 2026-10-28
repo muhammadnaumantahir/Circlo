@@ -59,13 +59,22 @@ class PlaceDetector {
 
   _PlaceState _state(String placeId) => _states.putIfAbsent(placeId, _PlaceState.new);
 
-  /// Resume an ongoing visit (e.g. after an app restart) so no duplicate "arrived" is produced.
-  void restoreInside(String placeId, String visitId) {
+  /// Restore the latest known state of a place after an app restart or share pause.
+  /// Passing [inside] as false is important after a previous visit ended: stale state must
+  /// never turn the next fix into a duplicate departure for the old visit.
+  void restoreState(String placeId, {required bool inside, String? visitId}) {
     final s = _state(placeId);
-    s.inside = true;
-    s.visitId = visitId;
+    s.inside = inside;
+    s.visitId = inside ? visitId : null;
     s.clearPending();
   }
+
+  /// Backwards-compatible helper for restoring an active visit.
+  void restoreInside(String placeId, String visitId) =>
+      restoreState(placeId, inside: true, visitId: visitId);
+
+  /// Clear transient state for a place that was removed from active tracking.
+  void forget(String placeId) => _states.remove(placeId);
 
   bool isInside(String placeId) => _states[placeId]?.inside ?? false;
 
