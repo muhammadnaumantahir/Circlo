@@ -6,7 +6,7 @@ This audit reflects a static review of the current Flutter source and project re
 
 | Area | Current implementation | Confidence / limit |
 |---|---|---|
-| Accounts | Email/password sign-up, login, password reset, email verification gate, birth-year age gate, profile edit | Source exists; end-to-end flow not run |
+| Accounts | Email/password and Google sign-up/sign-in, password reset, provider-aware verification, birth-year age gate, profile edit | Source exists; Firebase Console/OAuth and end-to-end Google flow not run |
 | Circles | Create/join by code, code rotation/expiry, pending join approval, member removal/leave, ownership transfer, circle deletion | Source and rules tests exist; emulator test suite not run |
 | Location sharing | Per-circle opt-in with consent, pause/resume (manual, 1 hour, or until 6:00), permission help, live-location documents and status derivation | Background behavior not verified on devices |
 | Map | Circle switcher, member markers/status, last-update details, saved-place overlays and external directions | Public tile provider must be chosen/validated before release |
