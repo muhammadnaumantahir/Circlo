@@ -64,16 +64,13 @@ class AuthRepository {
     } on AuthFailure {
       rethrow;
     } catch (e) {
-      if (_isCancellation(e.toString())) return false;
       final detail = e.toString().toLowerCase();
-      if (detail.contains('id token') ||
-          detail.contains('serverclientid') ||
-          detail.contains('client id') ||
-          detail.contains('oauth')) {
+      if (_isGoogleConfigurationIssue(detail)) {
         throw const AuthFailure(
-          'Google Sign-In needs OAuth setup. Enable Google in Firebase Authentication and refresh the Android/iOS client configuration.',
+          'Google Sign-In needs OAuth setup. Enable Google in Firebase Authentication, register the app signing fingerprints, and refresh the native Firebase client configuration.',
         );
       }
+      if (_isCancellation(detail)) return false;
       throw const AuthFailure(
         'Could not sign in with Google. Check your connection and Firebase Google provider setup.',
       );
@@ -154,7 +151,13 @@ class AuthRepository {
     } on AuthFailure {
       rethrow;
     } catch (e) {
-      if (_isCancellation(e.toString())) {
+      final detail = e.toString().toLowerCase();
+      if (_isGoogleConfigurationIssue(detail)) {
+        throw const AuthFailure(
+          'Google re-authentication needs OAuth setup. Check Firebase provider settings and the app client configuration.',
+        );
+      }
+      if (_isCancellation(detail)) {
         throw const AuthFailure('Google re-authentication was cancelled.');
       }
       throw const AuthFailure(
@@ -183,6 +186,17 @@ class AuthRepository {
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(_message(e.code));
     }
+  }
+
+  static bool _isGoogleConfigurationIssue(String value) {
+    return value.contains('clientconfigurationerror') ||
+        value.contains('serverclientid') ||
+        value.contains('client id') ||
+        value.contains('oauth') ||
+        value.contains('sha-1') ||
+        value.contains('sha1') ||
+        value.contains('wrong client') ||
+        value.contains('client identifier');
   }
 
   static bool _isCancellation(String value) {
