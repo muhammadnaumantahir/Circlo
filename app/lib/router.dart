@@ -18,6 +18,20 @@ import 'features/profile/profile_screens.dart';
 import 'providers.dart';
 
 const _publicRoutes = {'/login', '/signup', '/reset'};
+const _authOnlyRoutes = {'/splash', '/verify-email', '/profile-setup'};
+
+String? _safeInternalRedirect(String? value) {
+  if (value == null || !value.startsWith('/') || value.startsWith('//')) return null;
+  final uri = Uri.tryParse(value);
+  if (uri == null || uri.hasScheme || uri.hasAuthority || uri.path.isEmpty) return null;
+  if (_publicRoutes.contains(uri.path) || _authOnlyRoutes.contains(uri.path)) return null;
+  return uri.toString();
+}
+
+String _routeWithRedirect(String path, String? redirect) {
+  if (redirect == null) return path;
+  return Uri(path: path, queryParameters: {'redirect': redirect}).toString();
+}
 
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
@@ -28,11 +42,25 @@ class _RouterNotifier extends ChangeNotifier {
 
   String? redirect(BuildContext context, GoRouterState state) {
     final loc = state.matchedLocation;
+    final queryRedirect = _safeInternalRedirect(state.uri.queryParameters['redirect']);
+    // Preserve a protected deep link while Firebase initializes, the user signs in,
+    // and a new account completes profile setup/email verification.
+    final currentProtectedLocation = (!_publicRoutes.contains(loc) && !_authOnlyRoutes.contains(loc))
+        ? _safeInternalRedirect(state.uri.toString())
+        : null;
+    final requestedLocation = queryRedirect ?? currentProtectedLocation;
+
     final auth = _ref.read(authStateProvider);
-    if (auth.isLoading) return loc == '/splash' ? null : '/splash';
+    if (auth.isLoading) {
+      if (loc == '/splash' && queryRedirect == null) return null;
+      return _routeWithRedirect('/splash', requestedLocation);
+    }
 
     final user = auth.valueOrNull;
-    if (user == null) return _publicRoutes.contains(loc) ? null : '/login';
+    if (user == null) {
+      if (_publicRoutes.contains(loc)) return null;
+      return _routeWithRedirect('/login', requestedLocation);
+    }
 
     // Google verifies the provider email; don't force Google-authenticated users
     // through the email/password verification screen.
@@ -40,18 +68,21 @@ class _RouterNotifier extends ChangeNotifier {
       (provider) => provider.providerId == 'google.com',
     );
     if (!user.emailVerified && !trustedGoogleEmail) {
-      return loc == '/verify-email' ? null : '/verify-email';
+      if (loc == '/verify-email') return null;
+      return _routeWithRedirect('/verify-email', requestedLocation);
     }
 
     final profile = _ref.read(profileProvider);
     if (profile.isLoading || profile.hasError) {
-      return loc == '/splash' ? null : '/splash';
+      if (loc == '/splash') return null;
+      return _routeWithRedirect('/splash', requestedLocation);
     }
     if (profile.valueOrNull == null) {
-      return loc == '/profile-setup' ? null : '/profile-setup';
+      if (loc == '/profile-setup') return null;
+      return _routeWithRedirect('/profile-setup', requestedLocation);
     }
-    if (_publicRoutes.contains(loc) || loc == '/splash' || loc == '/profile-setup' || loc == '/verify-email') {
-      return '/map';
+    if (_publicRoutes.contains(loc) || _authOnlyRoutes.contains(loc)) {
+      return requestedLocation ?? '/map';
     }
     return null;
   }
