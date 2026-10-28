@@ -441,7 +441,9 @@ class _Header extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          ActionChip(
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 174),
+            child: ActionChip(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
             side: BorderSide.none,
             backgroundColor: chipBackground,
@@ -452,6 +454,7 @@ class _Header extends ConsumerWidget {
               fontWeight: FontWeight.w700,
             ),
             onPressed: () => context.push('/sharing'),
+            ),
           ),
         ],
       ),
