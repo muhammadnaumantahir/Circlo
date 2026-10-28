@@ -476,7 +476,7 @@ class _MapBody extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(v.member.displayName, style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                          Text(v.member.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                           const SizedBox(height: 4),
                           Text('Circle member', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
                         ],
@@ -493,7 +493,7 @@ class _MapBody extends ConsumerWidget {
                         children: [
                           Icon(_statusIcon(v.status), color: statusColor, size: 17),
                           const SizedBox(width: 6),
-                          Text(statusLabel(v.status), style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: statusColor, fontWeight: FontWeight.w800)),
+                          Text(statusLabel(v.status), maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: statusColor, fontWeight: FontWeight.w800)),
                         ],
                       ),
                     ),
