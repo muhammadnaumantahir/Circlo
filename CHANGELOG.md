@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Make circle, member and join-request model parsing tolerate malformed Firestore string and timestamp fields without runtime cast failures.
 - Safely reject saved-place documents with non-string names and tolerate malformed optional creator values without crashing place streams.
 - Ignore malformed optional timed-pause timestamps when reading membership documents, keeping the sharing-state stream alive.
 - Skip malformed place-event documents so bad legacy records cannot break the in-app feed or place-state restoration.

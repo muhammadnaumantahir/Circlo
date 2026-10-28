@@ -17,9 +17,9 @@ class Circle {
 
   factory Circle.fromMap(String id, Map<String, dynamic> data) => Circle(
         id: id,
-        name: (data['name'] as String?) ?? '',
-        ownerUid: (data['ownerUid'] as String?) ?? '',
-        joinCode: (data['joinCode'] as String?) ?? '',
+        name: data['name'] is String ? data['name'] as String : '',
+        ownerUid: data['ownerUid'] is String ? data['ownerUid'] as String : '',
+        joinCode: data['joinCode'] is String ? data['joinCode'] as String : '',
         requiresApproval: data['requiresApproval'] == true,
       );
 }
@@ -45,8 +45,8 @@ class Member {
 
   factory Member.fromMap(String uid, Map<String, dynamic> data) => Member(
         uid: uid,
-        displayName: (data['displayName'] as String?) ?? 'Member',
-        role: (data['role'] as String?) ?? 'member',
+        displayName: data['displayName'] is String ? data['displayName'] as String : 'Member',
+        role: data['role'] is String ? data['role'] as String : 'member',
         sharesLocation: data['sharesLocation'] == true,
         paused: data['paused'] == true,
         historyShared: data['historyShared'] == true,
@@ -87,11 +87,11 @@ class JoinRequest {
 
   factory JoinRequest.fromMap(String circleId, Map<String, dynamic> d) => JoinRequest(
         circleId: circleId,
-        uid: (d['uid'] as String?) ?? '',
-        displayName: (d['displayName'] as String?) ?? 'Someone',
-        joinCode: (d['joinCode'] as String?) ?? '',
+        uid: d['uid'] is String ? d['uid'] as String : '',
+        displayName: d['displayName'] is String ? d['displayName'] as String : 'Someone',
+        joinCode: d['joinCode'] is String ? d['joinCode'] as String : '',
         approved: d['status'] == 'approved',
-        createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
+        createdAt: d['createdAt'] is Timestamp ? (d['createdAt'] as Timestamp).toDate() : null,
       );
 }
 

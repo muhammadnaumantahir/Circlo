@@ -156,6 +156,41 @@ void main() {
     expect(JoinRequest.fromMap('c1', {'status': 'pending'}).approved, isFalse);
   });
 
+  test('circle and member models safely default malformed optional string fields', () {
+    final circle = Circle.fromMap('c1', {
+      'name': 42,
+      'ownerUid': false,
+      'joinCode': ['bad'],
+    });
+    expect(circle.name, '');
+    expect(circle.ownerUid, '');
+    expect(circle.joinCode, '');
+
+    final member = Member.fromMap('u1', {
+      'displayName': 42,
+      'role': false,
+      'sharesLocation': true,
+    });
+    expect(member.displayName, 'Member');
+    expect(member.role, 'member');
+    expect(member.sharesLocation, isTrue);
+  });
+
+  test('join request safely ignores malformed optional field types', () {
+    final request = JoinRequest.fromMap('c1', {
+      'uid': 42,
+      'displayName': false,
+      'joinCode': ['bad'],
+      'status': 'approved',
+      'createdAt': 'not-a-timestamp',
+    });
+    expect(request.uid, '');
+    expect(request.displayName, 'Someone');
+    expect(request.joinCode, '');
+    expect(request.approved, isTrue);
+    expect(request.createdAt, isNull);
+  });
+
   test('JoinFailure messages do not reveal whether a code exists', () {
     expect(const JoinFailure(JoinFailureKind.invalid).message, contains('not valid or has expired'));
   });
