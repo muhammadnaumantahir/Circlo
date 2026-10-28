@@ -35,6 +35,7 @@ class SharingState {
     DateTime? lastPublished,
     String? error,
     bool clearError = false,
+    bool clearLastPublished = false,
   }) =>
       SharingState(
         tracking: tracking ?? this.tracking,
