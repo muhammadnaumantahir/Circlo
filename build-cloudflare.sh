@@ -37,7 +37,16 @@ cd "$(dirname "$0")/app"
 # Generate web platform files in Cloudflare's temporary build checkout.
 flutter create . --platforms=web
 flutter pub get
-flutter build web --release
+
+# Firebase web configuration is supplied through Cloudflare Pages environment variables.
+# These values are client configuration, not service-account secrets. Missing values
+# leave the app on its setup screen so the web build can still be tested before setup.
+flutter build web --release \
+  --dart-define="FIREBASE_API_KEY=${FIREBASE_API_KEY:-}" \
+  --dart-define="FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-}" \
+  --dart-define="FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID:-}" \
+  --dart-define="FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN:-}" \
+  --dart-define="FIREBASE_APP_ID_WEB=${FIREBASE_APP_ID_WEB:-}"
 
 # Publish at repository-root build/web to match the other apps.
 mkdir -p ../build
