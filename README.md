@@ -43,4 +43,9 @@ cd firebase && npm test            # Firestore rules tests (emulator)
 - Docs: [data model](docs/data-model.md), [security & privacy](docs/security-privacy.md), [review findings](docs/review-findings.md), [test plan](docs/test-plan.md), [traceability](docs/traceability.md), [risks](docs/risks.md), [roadmap](docs/roadmap.md), [decisions](docs/decisions/)
 ## Web deployment
 
-Pushes to `main` trigger the Cloudflare Pages deployment.
+Cloudflare Pages should use the repository root and these settings:
+
+- **Build command:** `bash ./build-cloudflare.sh`
+- **Build output directory:** `build/web`
+
+The script builds the Flutter project in `app/` and copies the web output to the repository-root `build/web`, keeping deployment settings consistent with FinMate and Stockly. Pushes to `main` trigger the Cloudflare Pages deployment.
