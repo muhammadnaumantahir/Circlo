@@ -118,7 +118,7 @@ class PlaceEvent {
 }
 
 /// Notification categories the user can switch off (FR-081).
-enum FeedKind { place, membership, sharing, unavailable, requests }
+enum FeedKind { place, membership, sharing, unavailable, requests, checkIns }
 
 String feedKindName(FeedKind k) => k.name;
 
@@ -134,6 +134,8 @@ String feedKindLabel(FeedKind k) {
       return 'Someone\'s location becomes unavailable';
     case FeedKind.requests:
       return 'Join requests for circles I own';
+    case FeedKind.checkIns:
+      return 'Manual member check-ins';
   }
 }
 

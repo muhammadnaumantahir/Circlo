@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart' hide Circle;
 import '../../core/map_config.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
+import '../circles/activity.dart';
 import '../circles/circle_models.dart';
 import '../places/notifications_screen.dart';
 import '../places/place_models.dart';
@@ -76,6 +77,7 @@ class MapScreen extends ConsumerStatefulWidget {
 class _MapScreenState extends ConsumerState<MapScreen> {
   final MapController _controller = MapController();
   bool _ready = false;
+  bool _savingCheckIn = false;
   String? _fittedFor;
 
   void _fit(List<LatLng> pts) {
@@ -105,26 +107,34 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const PremiumBrandMark(size: 38),
-            const SizedBox(width: 10),
+            PremiumBrandMark(size: MediaQuery.sizeOf(context).width < 380 ? 32 : 38),
+            SizedBox(width: MediaQuery.sizeOf(context).width < 380 ? 7 : 10),
             Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Circlo', style: Theme.of(context).textTheme.titleLarge),
-                Text(
-                  'YOUR PEOPLE, IN SYNC',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        letterSpacing: 1.05,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
+                if (MediaQuery.sizeOf(context).width >= 380)
+                  Text(
+                    'YOUR PEOPLE, IN SYNC',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          letterSpacing: 1.05,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
               ],
             ),
           ],
         ),
         actions: [
+          IconButton.filledTonal(
+            tooltip: 'Share a manual check-in — no GPS attached',
+            onPressed: _savingCheckIn ? null : _showCheckInSheet,
+            icon: _savingCheckIn
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.task_alt_rounded),
+          ),
           const NotificationsBell(),
           const SizedBox(width: 4),
           Padding(
@@ -176,6 +186,94 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _showCheckInSheet() async {
+    if (_savingCheckIn) return;
+    final circles = ref.read(myCirclesProvider).valueOrNull;
+    final uid = ref.read(currentUidProvider);
+    final displayName = ref.read(profileProvider).valueOrNull?.displayName.trim() ?? '';
+    if (circles == null || circles.isEmpty || uid == null || displayName.isEmpty) {
+      if (mounted) showSnack(context, 'Your profile and circle must be loaded before checking in.');
+      return;
+    }
+    final selectedId = ref.read(selectedCircleIdProvider);
+    final circle = circles.firstWhere((c) => c.id == selectedId, orElse: () => circles.first);
+    final status = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final scheme = Theme.of(sheetContext).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text('Share a quick check-in', style: Theme.of(sheetContext).textTheme.titleLarge),
+                ),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    'Shared with everyone in ${circle.name}. This is a manual status, not GPS verification, and no coordinates are sent.',
+                    style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                for (final entry in kCheckInStatuses.entries)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: Icon(
+                        switch (entry.key) {
+                          'im_okay' => Icons.check_circle_rounded,
+                          'arrived_safely' => Icons.home_rounded,
+                          'on_my_way' => Icons.directions_walk_rounded,
+                          _ => Icons.schedule_rounded,
+                        },
+                        color: scheme.primary,
+                        size: 26,
+                      ),
+                      title: Text(entry.value, style: Theme.of(sheetContext).textTheme.titleSmall),
+                      subtitle: Text(switch (entry.key) {
+                        'im_okay' => 'Let your circle know you are okay',
+                        'arrived_safely' => 'Tell them you reached your destination',
+                        'on_my_way' => 'Share that you are travelling',
+                        _ => 'Let them know your plans changed',
+                      }),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => Navigator.of(sheetContext).pop(entry.key),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted || status == null) return;
+
+    setState(() => _savingCheckIn = true);
+    try {
+      await ref.read(circlesRepositoryProvider).createCheckIn(
+            circleId: circle.id,
+            uid: uid,
+            displayName: displayName,
+            status: status,
+          );
+      if (mounted) showSnack(context, 'Check-in shared with ${circle.name}. No GPS coordinates were sent.');
+    } catch (_) {
+      if (mounted) showSnack(context, 'Could not share your check-in. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => _savingCheckIn = false);
+    }
   }
 }
 

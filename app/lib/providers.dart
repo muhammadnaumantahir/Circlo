@@ -141,17 +141,19 @@ final notificationFeedProvider = Provider<AsyncValue<List<FeedItem>>>((ref) {
 
     final wantMembership = wants(FeedKind.membership);
     final wantSharing = wants(FeedKind.sharing);
-    if (wantMembership || wantSharing) {
+    final wantCheckIns = wants(FeedKind.checkIns);
+    if (wantMembership || wantSharing || wantCheckIns) {
       for (final a in ref.watch(activityProvider(c.id)).valueOrNull ?? const <ActivityEvent>[]) {
         final at = a.occurredAt;
         if (at == null || at.isBefore(cutoff) || a.actorUid == uid) continue;
         final isSharing = a.type == ActivityType.sharingStarted || a.type == ActivityType.sharingStopped;
-        if (isSharing ? !wantSharing : !wantMembership) continue;
+        final isCheckIn = a.type == ActivityType.checkedIn;
+        if (isSharing ? !wantSharing : isCheckIn ? !wantCheckIns : !wantMembership) continue;
         items.add(FeedItem(
           id: '${c.id}/act/${a.id}',
           circleId: c.id,
           circleName: c.name,
-          kind: isSharing ? FeedKind.sharing : FeedKind.membership,
+          kind: isSharing ? FeedKind.sharing : isCheckIn ? FeedKind.checkIns : FeedKind.membership,
           text: a.text,
           at: at,
         ));

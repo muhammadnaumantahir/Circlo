@@ -302,6 +302,27 @@ class CirclesRepository {
     await batch.commit();
   }
 
+  /// Shares a short, user-selected check-in with this circle without attaching GPS data.
+  /// Firestore rules validate membership, the member's current name, and the allowed status.
+  Future<void> createCheckIn({
+    required String circleId,
+    required String uid,
+    required String displayName,
+    required String status,
+  }) {
+    if (!kCheckInStatuses.containsKey(status)) {
+      throw ArgumentError.value(status, 'status', 'Unsupported check-in status');
+    }
+    return _circles.doc(circleId).collection('activity').doc().set(
+          activityDoc(
+            type: ActivityType.checkedIn,
+            actorUid: uid,
+            actorName: displayName,
+            checkInStatus: status,
+          ),
+        );
+  }
+
   Stream<List<ActivityEvent>> watchActivity(String circleId, {int limit = 50}) => _circles
       .doc(circleId)
       .collection('activity')

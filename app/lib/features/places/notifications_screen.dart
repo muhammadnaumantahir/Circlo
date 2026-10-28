@@ -20,6 +20,8 @@ IconData _iconFor(FeedItem i) {
       return Icons.location_off;
     case FeedKind.requests:
       return Icons.person_add;
+    case FeedKind.checkIns:
+      return Icons.check_circle_outline_rounded;
   }
 }
 
@@ -42,7 +44,7 @@ class NotificationsBell extends ConsumerWidget {
   }
 }
 
-enum _ActivityFilter { all, places, people, location }
+enum _ActivityFilter { all, places, people, location, checkIns }
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -106,12 +108,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 return item.kind == FeedKind.membership || item.kind == FeedKind.requests;
               case _ActivityFilter.location:
                 return item.kind == FeedKind.sharing || item.kind == FeedKind.unavailable;
+              case _ActivityFilter.checkIns:
+                return item.kind == FeedKind.checkIns;
             }
           }
 
           final placeCount = items.where((i) => i.kind == FeedKind.place).length;
           final peopleCount = items.where((i) => i.kind == FeedKind.membership || i.kind == FeedKind.requests).length;
           final locationCount = items.where((i) => i.kind == FeedKind.sharing || i.kind == FeedKind.unavailable).length;
+          final checkInCount = items.where((i) => i.kind == FeedKind.checkIns).length;
           final visibleItems = items.where((item) {
             final matchesSearch = query.isEmpty ||
                 item.text.toLowerCase().contains(query) ||
@@ -144,7 +149,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   padding: EdgeInsets.all(24),
                   child: Center(
                     child: Text(
-                      'Nothing new yet.\nArrivals, membership changes and sharing updates will show up here.',
+                      'Nothing new yet.\nArrivals, member check-ins, membership changes and sharing updates will show up here.',
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -205,6 +210,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           label: Text('Location $locationCount'),
                           selected: _filter == _ActivityFilter.location,
                           onSelected: (_) => setState(() => _filter = _ActivityFilter.location),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: Text('Check-ins $checkInCount'),
+                          selected: _filter == _ActivityFilter.checkIns,
+                          onSelected: (_) => setState(() => _filter = _ActivityFilter.checkIns),
                         ),
                       ],
                     ),
