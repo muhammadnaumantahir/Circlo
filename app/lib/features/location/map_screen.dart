@@ -287,7 +287,7 @@ class _MapBody extends ConsumerWidget {
             onMapReady: onReady,
           ),
           children: [
-            TileLayer(urlTemplate: kMapTileUrl, userAgentPackageName: 'com.circlo.circlo'),
+            TileLayer(urlTemplate: kMapTileUrl, userAgentPackageName: 'com.circlo.app'),
             CircleLayer(circles: [
               for (final p in places)
                 CircleMarker(
