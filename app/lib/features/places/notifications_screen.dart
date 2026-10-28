@@ -126,7 +126,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             final group = activityTimeGroupLabel(item.at, now: now);
             groupedItems.putIfAbsent(group, () => <FeedItem>[]).add(item);
           }
-          const activityGroupOrder = <String>['Upcoming', 'Today', 'Yesterday', 'This week', 'Earlier'];
+          const activityGroupOrder = <String>['Upcoming', 'Today', 'Yesterday', 'Last 7 days', 'Earlier'];
 
           return ListView(
             padding: const EdgeInsets.only(bottom: 24),
