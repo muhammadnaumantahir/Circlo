@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Make Travel History deletion load all saved day keys across Firestore pages, so deleting all history cannot leave older records behind after the 200-day display limit.
 - Ignore duplicate-timestamp GPS callbacks in place-arrival detection so repeated copies of one fix cannot satisfy the multi-fix confirmation threshold.
 - Share the first Travel History restore between concurrent GPS callbacks so an overlapping Firestore read cannot replace newer in-memory tracking state with a stale snapshot.
 - Bound restored Travel History timestamps to the supported date range and reset invalid timezone offsets, preventing malformed metadata from crashing date/time rendering.
