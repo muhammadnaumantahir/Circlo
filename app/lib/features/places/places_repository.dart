@@ -14,7 +14,11 @@ class PlacesRepository {
       .collection('places')
       .snapshots()
       .map((s) {
-        final list = [for (final d in s.docs) Place.fromMap(circleId, d.id, d.data())];
+        final list = <Place>[];
+        for (final d in s.docs) {
+          final place = Place.tryFromMap(circleId, d.id, d.data());
+          if (place != null) list.add(place);
+        }
         list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         return list;
       });
