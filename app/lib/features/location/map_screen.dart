@@ -444,16 +444,16 @@ class _Header extends ConsumerWidget {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 174),
             child: ActionChip(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-            side: BorderSide.none,
-            backgroundColor: chipBackground,
-            avatar: Icon(icon, size: 17, color: chipForeground),
-            label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-            labelStyle: theme.textTheme.labelMedium?.copyWith(
-              color: chipForeground,
-              fontWeight: FontWeight.w700,
-            ),
-            onPressed: () => context.push('/sharing'),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+              side: BorderSide.none,
+              backgroundColor: chipBackground,
+              avatar: Icon(icon, size: 17, color: chipForeground),
+              label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+              labelStyle: theme.textTheme.labelMedium?.copyWith(
+                color: chipForeground,
+                fontWeight: FontWeight.w700,
+              ),
+              onPressed: () => context.push('/sharing'),
             ),
           ),
         ],
