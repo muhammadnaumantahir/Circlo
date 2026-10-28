@@ -541,6 +541,7 @@ describe('travel history (Increment 4)', () => {
   });
   it('circle copy needs sharing on, not paused and historyShared on for that circle', async () => {
     await seed({ bob: true });
+    await seedUser('bob', { keepHistory: true });
     await assertFails(setDoc(copy(db('bob'), 'bob'), dayDoc('bob')));
     await flags('bob', { sharesLocation: true, paused: false, historyShared: false });
     await assertFails(setDoc(copy(db('bob'), 'bob'), dayDoc('bob')));
@@ -554,6 +555,7 @@ describe('travel history (Increment 4)', () => {
   });
   it('members read a copy only while the owner keeps history and sharing on; outsiders never', async () => {
     await seed({ bob: true });
+    await seedUser('bob', { keepHistory: true });
     await flags('bob', { sharesLocation: true, paused: false, historyShared: true });
     await assertSucceeds(setDoc(copy(db('bob'), 'bob'), dayDoc('bob')));
     await assertSucceeds(getDoc(copy(db('alice'), 'bob')));
@@ -567,6 +569,24 @@ describe('travel history (Increment 4)', () => {
     await flags('bob', { historyShared: true, sharesLocation: false });            // sharing off also hides it
     await assertFails(getDoc(copy(db('alice'), 'bob')));
   });
+  it('master history off blocks circle-history reads and writes', async () => {
+    await seed({ bob: true });
+    await seedUser('bob', { keepHistory: true });
+    await flags('bob', { sharesLocation: true, paused: false, historyShared: true });
+    await assertSucceeds(setDoc(copy(db('bob'), 'bob'), dayDoc('bob')));
+    await assertSucceeds(getDoc(copy(db('alice'), 'bob')));
+
+    // Turn off the user's master setting while leaving the per-circle flag enabled.
+    await seedUser('bob');
+    await assertFails(getDoc(copy(db('alice'), 'bob')));
+    await assertFails(getDoc(copy(db('bob'), 'bob')));
+    await assertFails(setDoc(copy(db('bob'), 'bob', '20261014'), dayDoc('bob', '20261014')));
+    await assertFails(updateDoc(copy(db('bob'), 'bob'), { lastSeen: 3, updatedAt: serverTimestamp() }));
+
+    // Re-enabling the master switch restores access only while per-circle consent remains on.
+    await seedUser('bob', { keepHistory: true });
+    await assertSucceeds(getDoc(copy(db('alice'), 'bob')));
+  });
   it('copies can be deleted by their owner (even if absent) and by the circle owner; not by others', async () => {
     await seed({ bob: true });
     await assertSucceeds(deleteDoc(copy(db('bob'), 'bob', '20200101')));           // nonexistent: batch-safe
@@ -576,6 +596,7 @@ describe('travel history (Increment 4)', () => {
   });
   it('removed members lose access to history copies', async () => {
     await seed({ bob: true });
+    await seedUser('alice', { keepHistory: true });
     await flags('alice', { sharesLocation: true, paused: false, historyShared: true });
     await assertSucceeds(setDoc(copy(db('alice'), 'alice'), dayDoc('alice')));
     await assertSucceeds(getDoc(copy(db('bob'), 'alice')));

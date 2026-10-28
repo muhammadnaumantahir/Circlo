@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Travel-history privacy: Firestore now checks the master “Keep my travel history” switch before allowing circle-copy reads or writes, blocking subsequent server-side reads when the switch is off. Data already cached on recipients’ devices cannot be remotely recalled.
 - Location sharing recovery: the permission card refreshes when Circlo resumes after system Settings and offers retry if permission status cannot be checked. The screen also retries loading circles after a connection error.
 
 ### Added
