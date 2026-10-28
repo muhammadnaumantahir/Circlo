@@ -12,6 +12,6 @@ String activityTimeGroupLabel(DateTime timestamp, {required DateTime now}) {
   if (daysAgo < 0) return 'Upcoming';
   if (daysAgo == 0) return 'Today';
   if (daysAgo == 1) return 'Yesterday';
-  if (daysAgo < 7) return 'This week';
+  if (daysAgo < 7) return 'Last 7 days';
   return 'Earlier';
 }
