@@ -21,7 +21,7 @@ class CirclesScreen extends ConsumerWidget {
     final circles = ref.watch(myCirclesProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Circles'),
+        title: const Text('Your circles'),
         actions: [
           TextButton.icon(
             onPressed: () => context.push('/circles/join'),
