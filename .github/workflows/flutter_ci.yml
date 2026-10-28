@@ -39,3 +39,32 @@ jobs:
 
       - name: Run tests
         run: flutter test
+  firestore-rules:
+    name: Firestore security rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: firebase/package-lock.json
+
+      - name: Set up Java for the Firestore Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install test dependencies
+        run: npm ci
+
+      - name: Run Firestore Emulator rules tests
+        run: npm test
