@@ -69,8 +69,11 @@ class LocationRepository {
     return batch.commit();
   }
 
-  Future<String?> _myName(String circleId, String uid) async =>
-      (await _member(circleId, uid).get()).data()?['displayName'] as String?;
+  Future<String?> _myName(String circleId, String uid) async {
+    final data = (await _member(circleId, uid).get()).data();
+    final name = data?['displayName'];
+    return name is String ? name : null;
+  }
 
   /// Pause/resume in all given circles (those where sharing is on). Pausing removes the locations.
   /// [until] makes the pause timed: the app resumes sharing automatically once it has passed.
