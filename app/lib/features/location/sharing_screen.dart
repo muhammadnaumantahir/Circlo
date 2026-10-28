@@ -308,7 +308,7 @@ class _CircleSharingTile extends ConsumerWidget {
       title: 'Share your location with ${circle.name}?',
       message: '• $others other ${others == 1 ? 'member' : 'members'} of this circle will see where you are on a map and when it was last updated.\n'
           '• Nobody outside this circle can see it.\n'
-          '• Your phone shows a notification while sharing runs in the background.\n'
+          '${kIsWeb ? '• On the web, sharing stays active only while this tab is open.\\n' : '• Your device shows a visible location-sharing indicator while tracking runs.\\n'}'
           '• You can pause or stop at any time here, and leaving the circle stops it immediately.',
       confirmLabel: 'Share my location',
     );
