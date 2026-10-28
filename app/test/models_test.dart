@@ -38,5 +38,38 @@ void main() {
       expect(some.wants('arrive', 'bob'), isTrue);
       expect(some.wants('arrive', 'eve'), isFalse);
     });
+    test('pause suppresses events without changing saved alert choices', () {
+      const paused = PlaceSubscription(
+        circleId: 'c',
+        placeId: 'p',
+        arrive: true,
+        leave: false,
+        allMembers: false,
+        memberUids: ['bob'],
+        paused: true,
+      );
+      expect(paused.enabled, isFalse);
+      expect(paused.wants('arrive', 'bob'), isFalse);
+      expect(paused.arrive, isTrue);
+      expect(paused.leave, isFalse);
+      expect(paused.allMembers, isFalse);
+      expect(paused.memberUids, ['bob']);
+    });
+    test('legacy subscription documents default to unpaused', () {
+      final legacy = PlaceSubscription.fromMap('c', {
+        'placeId': 'p',
+        'arrive': true,
+        'leave': false,
+      });
+      expect(legacy.paused, isFalse);
+      final saved = PlaceSubscription.fromMap('c', {
+        'placeId': 'p',
+        'arrive': true,
+        'leave': false,
+        'paused': true,
+      });
+      expect(saved.paused, isTrue);
+      expect(saved.enabled, isFalse);
+    });
   });
 }
