@@ -19,10 +19,12 @@ This audit reflects a static review of the current Flutter source and project re
 ## Improvements made on the current UI branch
 
 - Added a consistent light/dark theme, reusable empty-state presentation, polished circle/place cards, and responsive desktop navigation.
-- Circle cards show live member counts and the current user's role.
+- Circle cards use a role label without starting a separate live member listener for every circle, avoiding extra reads.
 - The sharing screen shows tracking state, the last successful location sync and a retry action.
 - A location-stream failure now cancels the heartbeat before cleanup so the app does not keep republishing a stale position.
-- The map clearly tells web users that sharing stops when the tab is closed.
+- The map clearly tells web users that sharing stops when the tab is closed, and compact screens can switch between a full map and a full-height People list.
+- The profile screen and in-app notification feed use clearer identity, privacy and activity cards.
+- History restoration retries after a transient Firestore read failure instead of permanently proceeding without the existing daily track.
 - Fixed place-alert restoration so the latest departure resets stale “inside” state; added a regression test for the next visit.
 - Places display used capacity and whether their arrival/departure alerts are enabled.
 
