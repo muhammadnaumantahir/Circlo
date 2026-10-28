@@ -526,6 +526,9 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
   final Set<String> _selected = {};
 
   bool _loadedExisting = false;
+  bool _subscriptionLoaded = false;
+  bool _subscriptionLoadError = false;
+  bool _subscriptionLoading = false;
   bool _searching = false;
   bool _saving = false;
   String? _searchError;
@@ -552,22 +555,38 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
   }
 
   Future<void> _loadSubscription() async {
+    if (_subscriptionLoading) return;
     final uid = ref.read(currentUidProvider);
-    if (uid == null) return;
+    if (uid == null) {
+      if (mounted) setState(() => _subscriptionLoadError = true);
+      return;
+    }
+    setState(() {
+      _subscriptionLoading = true;
+      _subscriptionLoadError = false;
+    });
     try {
       final sub = await ref.read(placesRepositoryProvider).getSubscription(widget.circleId, uid, widget.placeId!);
-      if (!mounted || sub == null) return;
+      if (!mounted) return;
       setState(() {
-        _arrive = sub.arrive;
-        _leave = sub.leave;
-        _paused = sub.paused;
-        _allMembers = sub.allMembers;
-        _selected
-          ..clear()
-          ..addAll(sub.memberUids);
+        if (sub != null) {
+          _arrive = sub.arrive;
+          _leave = sub.leave;
+          _paused = sub.paused;
+          _allMembers = sub.allMembers;
+          _selected
+            ..clear()
+            ..addAll(sub.memberUids);
+        }
+        // A successful read with no document is different from a failed read:
+        // defaults are safe to use only after the server has answered successfully.
+        _subscriptionLoaded = true;
+        _subscriptionLoadError = false;
       });
     } catch (_) {
-      // keep defaults; saving will create the preference document
+      if (mounted) setState(() => _subscriptionLoadError = true);
+    } finally {
+      if (mounted) setState(() => _subscriptionLoading = false);
     }
   }
 
@@ -632,6 +651,10 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
   Future<void> _save({required bool canEdit}) async {
     final uid = ref.read(currentUidProvider);
     if (uid == null) return;
+    if (_isEdit && !_subscriptionLoaded) {
+      showSnack(context, 'Load your existing alert settings before saving. Use Retry if they could not be loaded.');
+      return;
+    }
     if (canEdit && !_form.currentState!.validate()) return;
     if (canEdit && _pin == null) {
       setState(() => _pinError = 'Tap the map or search to choose the place location.');
@@ -860,35 +883,57 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
             onChanged: canEdit ? (v) => setState(() => _radius = v) : null,
           ),
           const Divider(),
+          if (_isEdit && !_subscriptionLoaded)
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: Icon(_subscriptionLoadError ? Icons.warning_amber_rounded : Icons.sync),
+                title: Text(_subscriptionLoadError ? 'Could not load your alert settings' : 'Loading your alert settings'),
+                subtitle: Text(_subscriptionLoadError
+                    ? 'Your existing preferences are protected. Retry before changing or saving alert settings.'
+                    : 'Alert controls will be available once your saved preferences are loaded.'),
+                trailing: _subscriptionLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : IconButton(
+                        tooltip: 'Retry loading alert settings',
+                        onPressed: _loadSubscription,
+                        icon: const Icon(Icons.refresh),
+                      ),
+              ),
+            ),
           Text('My alerts for this place', style: Theme.of(context).textTheme.titleMedium),
           SwitchListTile(
             title: const Text('Pause all alerts'),
             subtitle: const Text('Keep your arrival/departure choices, but temporarily stop these alerts.'),
             value: _paused,
-            onChanged: (v) => setState(() => _paused = v),
+            onChanged: (_isEdit && !_subscriptionLoaded) ? null : (v) => setState(() => _paused = v),
           ),
           SwitchListTile(
             title: const Text('Notify me when someone arrives'),
             value: _arrive,
-            onChanged: (v) => setState(() => _arrive = v),
+            onChanged: (_isEdit && !_subscriptionLoaded) ? null : (v) => setState(() => _arrive = v),
           ),
           SwitchListTile(
             title: const Text('Notify me when someone leaves'),
             value: _leave,
-            onChanged: (v) => setState(() => _leave = v),
+            onChanged: (_isEdit && !_subscriptionLoaded) ? null : (v) => setState(() => _leave = v),
           ),
           SwitchListTile(
             title: const Text('Everyone in the circle'),
             subtitle: const Text('Turn off to choose specific members'),
             value: _allMembers,
-            onChanged: (_arrive || _leave) ? (v) => setState(() => _allMembers = v) : null,
+            onChanged: (_isEdit && !_subscriptionLoaded)
+                ? null
+                : (_arrive || _leave) ? (v) => setState(() => _allMembers = v) : null,
           ),
           if (!_allMembers && (_arrive || _leave))
             for (final m in others)
               CheckboxListTile(
                 title: Text(m.displayName),
                 value: _selected.contains(m.uid),
-                onChanged: (v) => setState(() => v == true ? _selected.add(m.uid) : _selected.remove(m.uid)),
+                onChanged: (_isEdit && !_subscriptionLoaded)
+                    ? null
+                    : (v) => setState(() => v == true ? _selected.add(m.uid) : _selected.remove(m.uid)),
               ),
           const SizedBox(height: 8),
           const Text(
@@ -899,7 +944,7 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
           ),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: _saving ? null : () => _save(canEdit: canEdit),
+            onPressed: (_saving || (_isEdit && !_subscriptionLoaded)) ? null : () => _save(canEdit: canEdit),
             child: _saving
                 ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : Text(_isEdit ? 'Save changes' : 'Save place'),
