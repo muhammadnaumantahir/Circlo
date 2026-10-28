@@ -39,7 +39,7 @@ class SharingState {
       SharingState(
         tracking: tracking ?? this.tracking,
         activeCircleIds: activeCircleIds ?? this.activeCircleIds,
-        lastPublished: lastPublished ?? this.lastPublished,
+        lastPublished: clearLastPublished ? null : (lastPublished ?? this.lastPublished),
         error: clearError ? null : (error ?? this.error),
       );
 }
@@ -94,6 +94,7 @@ class SharingController extends Notifier<SharingState> {
   Future<void> retry() async {
     final generation = ++_syncGeneration;
     final memberships = List<MyMembership>.unmodifiable(_memberships);
+    state = state.copyWith(tracking: false, clearError: true, clearLastPublished: true);
     await _stop();
     if (generation != _syncGeneration) return;
     await _sync(memberships);
@@ -149,7 +150,12 @@ class SharingController extends Notifier<SharingState> {
       return;
     }
 
-    state = state.copyWith(activeCircleIds: active, clearError: true);
+    final scopeChanged = !listEquals(state.activeCircleIds, active);
+    state = state.copyWith(
+      activeCircleIds: active,
+      clearError: true,
+      clearLastPublished: scopeChanged,
+    );
     await _start(generation: generation);
     if (generation != _syncGeneration) return;
     await _engine?.setCircles(active.toSet());
@@ -226,7 +232,13 @@ class SharingController extends Notifier<SharingState> {
       _last = first;
       await _publish(first, force: true);
     } catch (_) {
-      // The stream will deliver the first fix; nothing to do.
+      // Do not leave the sharing screen in an endless "connecting" state when neither the
+      // stream nor getCurrentPosition can provide a first fix. Surface a retry action instead.
+      if (generation == _syncGeneration && _sub != null && state.lastPublished == null) {
+        state = state.copyWith(
+          error: 'Could not get your location. Check location permission, GPS and device settings.',
+        );
+      }
     }
   }
 
