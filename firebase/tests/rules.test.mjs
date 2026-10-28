@@ -376,6 +376,16 @@ describe('live location sharing (circle-scoped)', () => {
     await assertFails(deleteDoc(locRef(db('mallory'), 'c1', 'bob')));
     await assertSucceeds(deleteDoc(locRef(db('alice'), 'c1', 'bob')));
   });
+  it('membership removal requires the member location to be deleted first', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
+
+    await assertFails(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
+    await assertSucceeds(deleteDoc(locRef(db('alice'), 'c1', 'bob')));
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
+  });
+
   it('a removed member can no longer read locations', async () => {
     await seed({ bob: true });
     await setSharing('alice', 'c1', { sharesLocation: true, paused: false });
