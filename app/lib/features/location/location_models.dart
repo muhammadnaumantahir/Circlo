@@ -72,6 +72,19 @@ class MyMembership {
   final bool historyShared;
   final DateTime? pausedUntil; // timed pause: resume automatically after this moment
 
+  /// Builds membership state without trusting the Firestore field types.
+  factory MyMembership.fromMap(String circleId, Map<String, dynamic> data) {
+    final rawPausedUntil = data['pausedUntil'];
+    return MyMembership(
+      circleId: circleId,
+      sharesLocation: data['sharesLocation'] == true,
+      paused: data['paused'] == true,
+      historyShared: data['historyShared'] == true,
+      // A malformed optional timestamp should not terminate the whole memberships stream.
+      pausedUntil: rawPausedUntil is Timestamp ? rawPausedUntil.toDate() : null,
+    );
+  }
+
   /// Location is actually being published to this circle.
   bool get isActive => sharesLocation && !paused;
 }
