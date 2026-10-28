@@ -4,6 +4,13 @@ import 'history_models.dart';
 import 'history_repository.dart';
 import 'track_builder.dart';
 
+typedef HistoryDayLoader = Future<DayTrack?> Function(String uid, String day);
+typedef HistoryDayWriter = Future<void> Function(
+  String uid,
+  DayTrack track,
+  Iterable<String> sharedCircleIds,
+);
+
 /// Turns the live location stream into the user's daily history and stores it with few writes:
 /// at most one write batch every [flushEvery] (plus one when a visit starts or ends).
 ///
@@ -11,20 +18,37 @@ import 'track_builder.dart';
 /// "Keep my travel history". Copies go to a circle only if history sharing is on for it.
 class HistoryRecorder {
   HistoryRecorder({
-    required this.repository,
+    HistoryRepository? repository,
     required this.uid,
     this.flushEvery = const Duration(minutes: 5),
-  });
+    HistoryDayLoader? loadDay,
+    HistoryDayWriter? saveDay,
+  })  : _loadDay = loadDay ??
+            ((uid, day) => repository!.getMine(uid, day)),
+        _saveDay = saveDay ??
+            ((uid, track, circles) => repository!.saveDay(
+                  uid: uid,
+                  track: track,
+                  sharedCircleIds: circles,
+                )) {
+    if (repository == null && (loadDay == null || saveDay == null)) {
+      throw ArgumentError(
+        'Provide a repository or both history read/write callbacks.',
+      );
+    }
+  }
 
-  final HistoryRepository repository;
   final String uid;
   final Duration flushEvery;
+  final HistoryDayLoader _loadDay;
+  final HistoryDayWriter _saveDay;
 
   final TrackBuilder _builder = TrackBuilder();
   Set<String> _sharedCircles = {};
   List<NamedPlace> _places = const [];
   bool _keep = false;
   bool _restored = false;
+  Future<void>? _restorePending;
   bool _dirty = false;
   DateTime? _lastFlush;
   String _signature = '';
@@ -47,13 +71,7 @@ class HistoryRecorder {
   }) async {
     if (!_keep) return;
     try {
-      if (!_restored) {
-        // Mark restored only after the read succeeds. If Firestore is offline on startup,
-        // retry on a later fix instead of overwriting an existing day's history with a blank track.
-        final existing = await repository.getMine(uid, dayKey(time));
-        if (existing != null) _builder.restore(existing);
-        _restored = true;
-      }
+      await _ensureRestored(time);
       final before = _builder.current;
       final changed = _builder.process(
         lat: lat,
@@ -92,8 +110,36 @@ class HistoryRecorder {
     _lastFlush = DateTime.now();
   }
 
+  Future<void> _ensureRestored(DateTime time) async {
+    if (_restored) return;
+
+    // Concurrent location callbacks share the same first read. Otherwise each callback could
+    // restore the same stale snapshot and overwrite state processed by another callback.
+    final pending = _restorePending;
+    if (pending != null) {
+      await pending;
+      return;
+    }
+
+    final restore = _loadAndRestore(time);
+    _restorePending = restore;
+    try {
+      await restore;
+    } finally {
+      if (identical(_restorePending, restore)) _restorePending = null;
+    }
+  }
+
+  Future<void> _loadAndRestore(DateTime time) async {
+    // Mark restored only after the read succeeds. If Firestore is offline on startup,
+    // retry on a later fix instead of overwriting an existing day's history with a blank track.
+    final existing = await _loadDay(uid, dayKey(time));
+    if (existing != null) _builder.restore(existing);
+    _restored = true;
+  }
+
   Future<void> _write(DayTrack t) =>
-      repository.saveDay(uid: uid, track: t, sharedCircleIds: _sharedCircles);
+      _saveDay(uid, t, _sharedCircles);
 
   /// Called when sharing stops/pauses: close the current stop and store what we have.
   Future<void> dispose() async {
