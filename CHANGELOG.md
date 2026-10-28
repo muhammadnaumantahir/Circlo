@@ -4,6 +4,7 @@
 ### Fixed
 - Travel-history privacy: Firestore now checks the master “Keep my travel history” switch before allowing circle-copy reads or writes, blocking subsequent server-side reads when the switch is off. Data already cached on recipients’ devices cannot be remotely recalled.
 - Location sharing recovery: the permission card refreshes when Circlo resumes after system Settings and offers retry if permission status cannot be checked. The screen also retries loading circles after a connection error.
+- Account deletion now chunks bulk document cleanup into batches of 400, keeps location and membership revocation atomic, and retains history day keys until reachable circle copies are handled to support safer retries.
 
 ### Added
 - Circle invitations: show a QR code, share invites through the system share sheet, and open web invite links with the join code prefilled. Web invite destinations are preserved through login, email verification and new-user profile setup. Invite/QR actions are disabled while expiry is loading, cannot be checked, or the code is expired.
