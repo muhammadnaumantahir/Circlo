@@ -342,35 +342,40 @@ class _MapBody extends ConsumerWidget {
                   width: 116,
                   height: 78,
                   child: Semantics(
-                    label: '${v.member.displayName}, ${statusLabel(v.status)}',
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 42),
-                        const SizedBox(height: 3),
-                        Container(
-                          constraints: const BoxConstraints(maxWidth: 112),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: .75)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: .10),
-                                blurRadius: 10,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
+                    button: true,
+                    label: '${v.member.displayName}, ${statusLabel(v.status)}. Open member details.',
+                    onTap: () => _showDetails(context, v, DateTime.now()),
+                    child: GestureDetector(
+                      onTap: () => _showDetails(context, v, DateTime.now()),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 42),
+                          const SizedBox(height: 3),
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 112),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: .75)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: .10),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              v.member.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w800),
+                            ),
                           ),
-                          child: Text(
-                            v.member.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -449,52 +454,137 @@ class _MapBody extends ConsumerWidget {
 
   void _showDetails(BuildContext context, _MemberView v, DateTime now) {
     final loc = v.location;
+    final statusColor = _statusColor(context, v.status);
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              _Avatar(name: v.member.displayName, color: _statusColor(ctx, v.status), size: 48),
-              const SizedBox(width: 12),
-              Expanded(child: Text(v.member.displayName, style: Theme.of(ctx).textTheme.titleLarge)),
-            ]),
-            const SizedBox(height: 16),
-            Row(children: [
-              Icon(_statusIcon(v.status), color: _statusColor(ctx, v.status)),
-              const SizedBox(width: 8),
-              Text(statusLabel(v.status)),
-            ]),
-            const SizedBox(height: 8),
-            if (loc == null)
-              const Text('No location available.')
-            else ...[
-              Text('Last updated: ${formatAgo(loc.updatedAt, now)}'
-                  '${loc.updatedAt == null ? '' : ' (${_formatDateTime(loc.updatedAt!)})'}'),
-              const SizedBox(height: 4),
-              Text('Position: ${loc.lat.toStringAsFixed(5)}, ${loc.lng.toStringAsFixed(5)} · accuracy ±${loc.accuracy.round()} m'),
-              if (v.status == ShareStatus.unavailable)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text('This is the last known location. It may be out of date.'),
+      isScrollControlled: true,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _Avatar(name: v.member.displayName, color: statusColor, size: 58),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(v.member.displayName, style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 4),
+                          Text('Circle member', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_statusIcon(v.status), color: statusColor, size: 17),
+                          const SizedBox(width: 6),
+                          Text(statusLabel(v.status), style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: statusColor, fontWeight: FontWeight.w800)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final ok = await launchDirections(loc.lat, loc.lng);
-                  if (!ok && ctx.mounted) showSnack(ctx, 'Could not open a maps app.');
-                },
-                icon: const Icon(Icons.directions),
-                label: const Text('Get directions'),
-              ),
-            ],
-          ],
-        ),
-      ),
+                const SizedBox(height: 18),
+                if (loc == null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: .55),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.location_off_outlined),
+                        SizedBox(width: 10),
+                        Expanded(child: Text('No location is available. Sharing may be off, paused, or waiting for a GPS fix.')),
+                      ],
+                    ),
+                  )
+                else ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: .55),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.schedule_rounded, color: scheme.primary, size: 19),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Last location update', style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${formatAgo(loc.updatedAt, now)}${loc.updatedAt == null ? '' : ' · ${_formatDateTime(loc.updatedAt!)}'}',
+                                    style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Icon(Icons.gps_fixed_rounded, color: scheme.primary, size: 19),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Text('Estimated GPS accuracy ±${loc.accuracy.round()} m', style: Theme.of(ctx).textTheme.bodyMedium),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (v.status == ShareStatus.unavailable)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text(
+                        'This is the last known location and may be out of date.',
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.error),
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () async {
+                        final ok = await launchDirections(loc.lat, loc.lng);
+                        if (!ok && ctx.mounted) showSnack(ctx, 'Could not open a maps app.');
+                      },
+                      icon: const Icon(Icons.directions_rounded),
+                      label: const Text('Get directions'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
