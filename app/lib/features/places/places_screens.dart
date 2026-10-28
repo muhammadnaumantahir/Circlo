@@ -18,6 +18,7 @@ import 'place_models.dart';
 
 String _alertSummary(PlaceSubscription? s, {bool loading = false, bool unavailable = false}) {
   if (loading) return unavailable ? 'Alert settings unavailable' : 'Loading alert settings';
+  if (s?.paused == true) return 'Alerts paused';
   if (s == null || !s.enabled) return 'Alerts off';
   final what = s.arrive && s.leave ? 'arrivals & departures' : (s.arrive ? 'arrivals' : 'departures');
   return 'Alerts: $what${s.allMembers ? '' : ' (selected members)'}';
@@ -423,12 +424,15 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
     }
 
     final current = widget.subscription;
-    final enable = !(current?.enabled ?? false);
+    final hasAlertTypes = current != null && (current.arrive || current.leave);
+    // The bell pauses an active subscription or resumes a paused one, retaining its exact
+    // arrival/departure choices and member filter. If no alert types were selected, turn both on.
     final next = PlaceSubscription(
       circleId: widget.circleId,
       placeId: widget.place.id,
-      arrive: enable,
-      leave: enable,
+      arrive: hasAlertTypes ? current.arrive : true,
+      leave: hasAlertTypes ? current.leave : true,
+      paused: current?.enabled ?? false,
       allMembers: current?.allMembers ?? true,
       memberUids: current?.memberUids ?? const <String>[],
     );
@@ -473,13 +477,21 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
               ? 'Saving alert settings'
               : !widget.alertsReady
                   ? 'Alert settings not ready'
-                  : alertsOn
-                  ? 'Turn all alerts off'
-                  : 'Turn arrival and departure alerts on',
+                  : subscription?.paused == true
+                      ? 'Resume alerts'
+                      : alertsOn
+                          ? 'Pause alerts'
+                          : 'Turn arrival and departure alerts on',
           onPressed: (_saving || !widget.alertsReady) ? null : _toggleAlerts,
           icon: _saving
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : Icon(alertsOn ? Icons.notifications_active_rounded : Icons.notifications_off_outlined),
+              : Icon(
+                  subscription?.paused == true
+                      ? Icons.notifications_paused_outlined
+                      : alertsOn
+                          ? Icons.notifications_active_rounded
+                          : Icons.notifications_off_outlined,
+                ),
         ),
         onTap: widget.onOpen,
       ),
@@ -509,6 +521,7 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
   double _radius = kDefaultRadiusM.toDouble();
   bool _arrive = true;
   bool _leave = true;
+  bool _paused = false;
   bool _allMembers = true;
   final Set<String> _selected = {};
 
@@ -547,6 +560,7 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
       setState(() {
         _arrive = sub.arrive;
         _leave = sub.leave;
+        _paused = sub.paused;
         _allMembers = sub.allMembers;
         _selected
           ..clear()
@@ -629,6 +643,7 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
       placeId: widget.placeId ?? '',
       arrive: _arrive,
       leave: _leave,
+      paused: _paused,
       allMembers: _allMembers,
       memberUids: _allMembers ? const [] : _selected.toList(),
     );
@@ -846,6 +861,12 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
           ),
           const Divider(),
           Text('My alerts for this place', style: Theme.of(context).textTheme.titleMedium),
+          SwitchListTile(
+            title: const Text('Pause all alerts'),
+            subtitle: const Text('Keep your arrival/departure choices, but temporarily stop these alerts.'),
+            value: _paused,
+            onChanged: (v) => setState(() => _paused = v),
+          ),
           SwitchListTile(
             title: const Text('Notify me when someone arrives'),
             value: _arrive,
