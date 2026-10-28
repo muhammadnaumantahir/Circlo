@@ -199,66 +199,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     final selectedId = ref.read(selectedCircleIdProvider);
     final circle = circles.firstWhere((c) => c.id == selectedId, orElse: () => circles.first);
-    final status = await showModalBottomSheet<String>(
+    final places = ref.read(placesProvider(circle.id)).valueOrNull ?? const <Place>[];
+    final choice = await showModalBottomSheet<_CheckInChoice>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (sheetContext) {
-        final scheme = Theme.of(sheetContext).colorScheme;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text('Share a quick check-in', style: Theme.of(sheetContext).textTheme.titleLarge),
-                ),
-                const SizedBox(height: 6),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    'Shared with everyone in ${circle.name}. This is a manual status, not GPS verification, and no coordinates are sent.',
-                    style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                for (final entry in kCheckInStatuses.entries)
-                  Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: Icon(
-                        switch (entry.key) {
-                          'im_okay' => Icons.check_circle_rounded,
-                          'arrived_safely' => Icons.home_rounded,
-                          'on_my_way' => Icons.directions_walk_rounded,
-                          _ => Icons.schedule_rounded,
-                        },
-                        color: scheme.primary,
-                        size: 26,
-                      ),
-                      title: Text(entry.value, style: Theme.of(sheetContext).textTheme.titleSmall),
-                      subtitle: Text(switch (entry.key) {
-                        'im_okay' => 'Let your circle know you are okay',
-                        'arrived_safely' => 'Tell them you reached your destination',
-                        'on_my_way' => 'Share that you are travelling',
-                        _ => 'Let them know your plans changed',
-                      }),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => Navigator.of(sheetContext).pop(entry.key),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      builder: (_) => _CheckInSheet(circle: circle, places: places),
     );
-    if (!mounted || status == null) return;
+    if (!mounted || choice == null) return;
 
     setState(() => _savingCheckIn = true);
     try {
@@ -266,14 +214,130 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             circleId: circle.id,
             uid: uid,
             displayName: displayName,
-            status: status,
+            status: choice.status,
+            placeId: choice.place?.id,
+            placeName: choice.place?.name,
           );
-      if (mounted) showSnack(context, 'Check-in shared with ${circle.name}. No GPS coordinates were sent.');
+      if (mounted) {
+        final placeSuffix = choice.place == null ? '' : ' at ${choice.place!.name}';
+        showSnack(context, 'Check-in shared with ${circle.name}$placeSuffix. No GPS coordinates were sent.');
+      }
     } catch (_) {
       if (mounted) showSnack(context, 'Could not share your check-in. Check your connection and try again.');
     } finally {
       if (mounted) setState(() => _savingCheckIn = false);
     }
+  }
+}
+
+class _CheckInChoice {
+  const _CheckInChoice({required this.status, this.place});
+  final String status;
+  final Place? place;
+}
+
+class _CheckInSheet extends StatefulWidget {
+  const _CheckInSheet({required this.circle, required this.places});
+  final Circle circle;
+  final List<Place> places;
+
+  @override
+  State<_CheckInSheet> createState() => _CheckInSheetState();
+}
+
+class _CheckInSheetState extends State<_CheckInSheet> {
+  String? _placeId;
+
+  Place? get _selectedPlace {
+    for (final place in widget.places) {
+      if (place.id == _placeId) return place;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext sheetContext) {
+    final scheme = Theme.of(sheetContext).colorScheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text('Share a quick check-in', style: Theme.of(sheetContext).textTheme.titleLarge),
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Shared with everyone in ${widget.circle.name}. This is a manual status, not GPS verification, and no coordinates are sent.',
+                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (widget.places.isNotEmpty) ...[
+                DropdownButtonFormField<String>(
+                  value: _placeId ?? '',
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Saved place (optional)',
+                    prefixIcon: Icon(Icons.place_outlined),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(value: '', child: Text('No saved place attached')),
+                    for (final place in widget.places)
+                      DropdownMenuItem<String>(
+                        value: place.id,
+                        child: Text(place.name, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _placeId = value == null || value.isEmpty ? null : value),
+                ),
+                const SizedBox(height: 8),
+              ] else
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'You can check in without a saved place, or add one from Places later.',
+                    style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ),
+              for (final entry in kCheckInStatuses.entries)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: Icon(
+                      switch (entry.key) {
+                        'im_okay' => Icons.check_circle_rounded,
+                        'arrived_safely' => Icons.home_rounded,
+                        'on_my_way' => Icons.directions_walk_rounded,
+                        _ => Icons.schedule_rounded,
+                      },
+                      color: scheme.primary,
+                      size: 26,
+                    ),
+                    title: Text(entry.value, style: Theme.of(sheetContext).textTheme.titleSmall),
+                    subtitle: Text(switch (entry.key) {
+                      'im_okay' => 'Let your circle know you are okay',
+                      'arrived_safely' => 'Tell them you reached your destination',
+                      'on_my_way' => 'Share that you are travelling',
+                      _ => 'Let them know your plans changed',
+                    }),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.of(sheetContext).pop(
+                      _CheckInChoice(status: entry.key, place: _selectedPlace),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

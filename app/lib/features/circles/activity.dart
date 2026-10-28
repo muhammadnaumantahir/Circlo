@@ -42,6 +42,8 @@ Map<String, dynamic> activityDoc({
   String? subjectUid,
   String? subjectName,
   String? checkInStatus,
+  String? checkInPlaceId,
+  String? checkInPlaceName,
 }) =>
     {
       'type': activityTypeName(type),
@@ -50,6 +52,8 @@ Map<String, dynamic> activityDoc({
       if (subjectUid != null) 'subjectUid': subjectUid,
       if (subjectName != null) 'subjectName': subjectName,
       if (checkInStatus != null) 'checkInStatus': checkInStatus,
+      if (checkInPlaceId != null) 'checkInPlaceId': checkInPlaceId,
+      if (checkInPlaceName != null) 'checkInPlaceName': checkInPlaceName,
       'occurredAt': FieldValue.serverTimestamp(),
     };
 
@@ -62,6 +66,8 @@ class ActivityEvent {
     required this.actorName,
     this.subjectName,
     this.checkInStatus,
+    this.checkInPlaceId,
+    this.checkInPlaceName,
     required this.occurredAt,
   });
 
@@ -72,6 +78,8 @@ class ActivityEvent {
   final String actorName;
   final String? subjectName;
   final String? checkInStatus;
+  final String? checkInPlaceId;
+  final String? checkInPlaceName;
   final DateTime? occurredAt;
 
   static ActivityEvent? fromMap(String circleId, String id, Map<String, dynamic> d) {
@@ -85,6 +93,8 @@ class ActivityEvent {
       actorName: (d['actorName'] as String?) ?? 'Someone',
       subjectName: d['subjectName'] as String?,
       checkInStatus: d['checkInStatus'] as String?,
+      checkInPlaceId: d['checkInPlaceId'] as String?,
+      checkInPlaceName: d['checkInPlaceName'] as String?,
       occurredAt: (d['occurredAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -102,7 +112,8 @@ class ActivityEvent {
       case ActivityType.sharingStopped:
         return '$actorName stopped sharing their location';
       case ActivityType.checkedIn:
-        return '$actorName shared a manual check-in: ${kCheckInStatuses[checkInStatus] ?? "I'm okay"}';
+        return '$actorName shared a manual check-in: ${kCheckInStatuses[checkInStatus] ?? "I'm okay"}'
+            '${checkInPlaceName?.isNotEmpty == true ? ' · at $checkInPlaceName' : ''}';
     }
   }
 }

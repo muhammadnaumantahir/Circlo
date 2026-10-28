@@ -309,7 +309,13 @@ class CirclesRepository {
     required String uid,
     required String displayName,
     required String status,
+    String? placeId,
+    String? placeName,
   }) {
+    if ((placeId == null) != (placeName == null) ||
+        (placeId != null && (placeId.isEmpty || placeName!.trim().isEmpty))) {
+      throw ArgumentError('A saved place ID and name must be provided together.');
+    }
     if (!kCheckInStatuses.containsKey(status)) {
       throw ArgumentError.value(status, 'status', 'Unsupported check-in status');
     }
@@ -319,6 +325,8 @@ class CirclesRepository {
             actorUid: uid,
             actorName: displayName,
             checkInStatus: status,
+            checkInPlaceId: placeId,
+            checkInPlaceName: placeName,
           ),
         );
   }

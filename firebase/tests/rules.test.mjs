@@ -784,6 +784,25 @@ describe('activity feed, notification prefs and timed pause (Increment 6)', () =
     await assertFails(setDoc(aref(db('bob'), 'spoofed-name'), act({ type: 'checked_in', actorName: 'Alice', checkInStatus: 'im_okay' })));
     await assertFails(setDoc(aref(db('bob'), 'gps-field'), act({ type: 'checked_in', checkInStatus: 'im_okay', lat: 31.5, lng: 74.3 })));
     await assertFails(setDoc(aref(db('carol'), 'non-member'), act({ type: 'checked_in', actorUid: 'carol', actorName: 'Carol', checkInStatus: 'im_okay' })));
+
+    // Optional saved-place context stores only the saved place ID and name, never coordinates.
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles/c1/places/p1'), {
+        name: 'School', lat: 31.5, lng: 74.3, radiusM: 150, createdBy: 'alice', createdAt: Timestamp.now(),
+      });
+    });
+    await assertSucceeds(setDoc(aref(db('bob'), 'with-place'), act({
+      type: 'checked_in', checkInStatus: 'arrived_safely', checkInPlaceId: 'p1', checkInPlaceName: 'School',
+    })));
+    await assertFails(setDoc(aref(db('bob'), 'wrong-place-name'), act({
+      type: 'checked_in', checkInStatus: 'arrived_safely', checkInPlaceId: 'p1', checkInPlaceName: 'Fake place',
+    })));
+    await assertFails(setDoc(aref(db('bob'), 'unknown-place'), act({
+      type: 'checked_in', checkInStatus: 'arrived_safely', checkInPlaceId: 'missing', checkInPlaceName: 'School',
+    })));
+    await assertFails(setDoc(aref(db('bob'), 'partial-place'), act({
+      type: 'checked_in', checkInStatus: 'arrived_safely', checkInPlaceId: 'p1',
+    })));
   });
   it("'joined' is only valid together with the actor's own membership creation", async () => {
     await seed();

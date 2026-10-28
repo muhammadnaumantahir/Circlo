@@ -20,13 +20,30 @@ void main() {
         'actorUid': 'member-1',
         'actorName': 'Sam',
         'checkInStatus': 'arrived_safely',
+        'checkInPlaceId': 'place-1',
+        'checkInPlaceName': 'School',
         'occurredAt': Timestamp.fromDate(DateTime(2026, 10, 28, 12)),
       });
 
       expect(event, isNotNull);
       expect(event!.type, ActivityType.checkedIn);
-      expect(event.text, 'Sam shared a manual check-in: Arrived safely');
+      expect(event.text, 'Sam shared a manual check-in: Arrived safely · at School');
       expect(event.checkInStatus, 'arrived_safely');
+      expect(event.checkInPlaceId, 'place-1');
+      expect(event.checkInPlaceName, 'School');
+    });
+
+    test('manual check-ins without a selected place keep the original message', () {
+      final event = ActivityEvent.fromMap('circle-1', 'event-plain', {
+        'type': 'checked_in',
+        'actorUid': 'member-1',
+        'actorName': 'Sam',
+        'checkInStatus': 'im_okay',
+        'occurredAt': Timestamp.now(),
+      });
+      expect(event!.text, "Sam shared a manual check-in: I'm okay");
+      expect(event.checkInPlaceId, isNull);
+      expect(event.checkInPlaceName, isNull);
     });
 
     test('keeps unrelated legacy activity parsing and ignores unknown types', () {
