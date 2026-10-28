@@ -15,6 +15,7 @@
 - Improved places and notification feed cards with capacity/alert states.
 - Fixed place-alert restoration to reset completed visits correctly and prevent stale duplicate departure events; added a regression test.
 - Hardened sharing shutdown so a failed position stream cannot keep the heartbeat publishing stale coordinates.
+- Heartbeats now request a fresh medium-accuracy position; initial, streamed and heartbeat fixes with stale timestamps are not republished as fresh.
 - Serialized notification preference saves to prevent rapid switch changes from overwriting one another; failed saves roll back locally.
 - History recording retries a failed initial restore from Firestore instead of proceeding without the prior daily track.
 - Hardened Firestore live-location privacy: list queries filter `sharing == true`, direct reads require the marker and current per-circle consent, pause/stop/removal require atomic location deletion, and orphaned child data is unreadable when a parent circle is missing.
