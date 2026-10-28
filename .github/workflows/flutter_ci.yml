@@ -28,6 +28,9 @@ jobs:
         run: |
           set -euo pipefail
           bash -n build-cloudflare.sh
+          bash -n tools/flutter_version.sh
+          bash -n tools/test_flutter_version.sh
+          bash tools/test_flutter_version.sh
           python3 -m py_compile tools/apply_platform_config.py
 
       - name: Read pinned Flutter version

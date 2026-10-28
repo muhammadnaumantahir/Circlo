@@ -15,10 +15,9 @@ if [[ -z "${FLUTTER_VERSION}" ]]; then
   exit 1
 fi
 
-flutter_version() {
-  "$1" --version 2>/dev/null | sed -n '1s/^Flutter \([^ ]*\).*/\1/p'
-}
-
+# Keep version detection independently testable.
+# shellcheck source=tools/flutter_version.sh
+source "${ROOT}/tools/flutter_version.sh"
 # Reuse a PATH installation only when it exactly matches the repository pin.
 if command -v flutter >/dev/null 2>&1 && [ "$(flutter_version "$(command -v flutter)")" = "${FLUTTER_VERSION}" ]; then
   echo "Using Flutter ${FLUTTER_VERSION} from PATH."
@@ -53,9 +52,13 @@ else
   export PATH="${FLUTTER_DIR}/bin:${PATH}"
 fi
 
-ACTUAL_FLUTTER_VERSION="$(flutter_version "$(command -v flutter)")"
+if ! ACTUAL_FLUTTER_VERSION="$(flutter_version "$(command -v flutter)")"; then
+  echo "ERROR: Unable to identify the active Flutter SDK. See the diagnostic output above." >&2
+  exit 1
+fi
 if [ "${ACTUAL_FLUTTER_VERSION}" != "${FLUTTER_VERSION}" ]; then
-  echo "ERROR: Expected Flutter ${FLUTTER_VERSION}, found ${ACTUAL_FLUTTER_VERSION:-unknown}."
+  echo "ERROR: Expected Flutter ${FLUTTER_VERSION}, found ${ACTUAL_FLUTTER_VERSION}." >&2
+  echo "Active Flutter executable: $(command -v flutter)" >&2
   exit 1
 fi
 
