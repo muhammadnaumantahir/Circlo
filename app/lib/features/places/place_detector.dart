@@ -102,7 +102,7 @@ class PlaceDetector {
       final st = _state(p.id);
       // Location callbacks can arrive out of order after retries or stream reconnection.
       // Older samples must not advance the confirmation counter or create a transition.
-      if (st.lastFixAt != null && fix.time.isBefore(st.lastFixAt!)) continue;
+      if (st.lastFixAt != null && !fix.time.isAfter(st.lastFixAt!)) continue;
       st.lastFixAt = fix.time;
       final d = distanceMeters(fix.lat, fix.lng, p.lat, p.lng);
       final condition = st.inside ? d > p.radiusM * exitFactor : d <= p.radiusM;
