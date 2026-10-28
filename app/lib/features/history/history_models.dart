@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-const int _maxSafeEpochMs = 9007199254740991;
+// Keep epoch values within DateTime's supported range, with room for a legal UTC offset.
+const int _maxSafeEpochMs = 8640000000000000 - (14 * 60 * 60 * 1000);
+const int _maxTimezoneOffsetMin = 14 * 60;
 
 int? _safeInt(Object? value) {
   if (value is! num) return null;
@@ -9,6 +11,14 @@ int? _safeInt(Object? value) {
     return null;
   }
   return value.toInt();
+}
+
+int _safeTimezoneOffset(Object? value) {
+  final offset = _safeInt(value);
+  if (offset == null || offset < -_maxTimezoneOffsetMin || offset > _maxTimezoneOffsetMin) {
+    return 0;
+  }
+  return offset;
 }
 
 bool _validCoordinates(double lat, double lng) =>
@@ -170,7 +180,7 @@ class DayTrack {
     final rawUpdatedAt = m['updatedAt'];
     return DayTrack(
       day: rawDay is String ? rawDay : '',
-      tzOffsetMin: _safeInt(m['tzOffsetMin']) ?? 0,
+      tzOffsetMin: _safeTimezoneOffset(m['tzOffsetMin']),
       route: route,
       visits: visits,
       lastSeen: _safeInt(m['lastSeen']) ?? 0,
