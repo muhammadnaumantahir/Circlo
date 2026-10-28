@@ -83,6 +83,15 @@ void main() {
     expect(d.process(at(10, 20), [school]).single.type, TransitionType.arrive);
   });
 
+  test('out-of-order fixes do not count toward arrival confirmation', () {
+    final d = PlaceDetector();
+    expect(d.process(at(10, 20), [school]), isEmpty);
+    // This sample is older than the previous one and must not confirm arrival.
+    expect(d.process(at(10, 10), [school]), isEmpty);
+    expect(d.isInside('school'), isFalse);
+    expect(d.process(at(10, 30), [school]).single.type, TransitionType.arrive);
+  });
+
   test('invalid saved place coordinates and radii are ignored', () {
     final d = PlaceDetector();
     const invalidPlaces = [
