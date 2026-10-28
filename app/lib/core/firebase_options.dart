@@ -15,21 +15,24 @@ class CircloFirebase {
     defaultValue: '1:797576707965:web:b5cde9db1f2cf642f01614',
   );
 
-  // Android app configuration from google-services.json. These can be overridden
-  // at build time when registering a different Firebase app or flavor.
+  // Native app configuration from Firebase Console's Android/iOS app registrations.
+  // Cloud build or local builds can override these at compile time.
   static const _apiKeyAndroid = String.fromEnvironment(
     'FIREBASE_API_KEY_ANDROID',
     defaultValue: 'AIzaSyDeb8QAPTjUFFIg8iC0wcfPnF88BhE0AWo',
   );
   static const _appIdAndroid = String.fromEnvironment(
     'FIREBASE_APP_ID_ANDROID',
-    defaultValue: '1:797576707965:android:8d5a24f29aef192ef01614',
+    defaultValue: '1:797576707965:android:91b519b7fed24a2cf01614',
   );
-
-  // iOS stays unconfigured until its Firebase app is registered and its values
-  // are supplied. This avoids accidentally initializing iOS with the Web app ID.
-  static const _apiKeyIos = String.fromEnvironment('FIREBASE_API_KEY_IOS');
-  static const _appIdIos = String.fromEnvironment('FIREBASE_APP_ID_IOS');
+  static const _apiKeyIos = String.fromEnvironment(
+    'FIREBASE_API_KEY_IOS',
+    defaultValue: 'AIzaSyCqrD4cl_qBvrTXqgX7MJwpa79Km_6aVVs',
+  );
+  static const _appIdIos = String.fromEnvironment(
+    'FIREBASE_APP_ID_IOS',
+    defaultValue: '1:797576707965:ios:31aadbebe4efc19ef01614',
+  );
 
   static const _projectId = String.fromEnvironment(
     'FIREBASE_PROJECT_ID',
