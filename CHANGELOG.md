@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Changed
+- Added manual circle check-ins (I'm okay, Arrived safely, On my way, Running late) from the map header. Check-ins are self-reported activity-feed entries, visible to circle members, and never include GPS coordinates; a dedicated notification category can be muted.
 - Grouped filtered activity into Upcoming, Today, Yesterday, Last 7 days and Earlier sections with per-section counts, preserving category filters, search and unread labels.
 - Polished the Travel History timeline with richer stop cards, arrival/departure chips, stay duration and an explicit open/last-seen state for unfinished records, plus a one-tap map control to fit the selected route and stops.
 - Improved Travel History with one-tap Today / Yesterday / 7 days ago shortcuts and a compact daily summary of recorded stops, simplified route points, and last recorded fix; privacy and retention behavior are unchanged.
