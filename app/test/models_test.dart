@@ -22,6 +22,30 @@ void main() {
     });
   });
 
+  group('Place.tryFromMap', () {
+    test('accepts valid saved place coordinates and radius', () {
+      final place = Place.tryFromMap('c1', 'p1', {
+        'name': 'Home',
+        'lat': 31.52,
+        'lng': 74.35,
+        'radiusM': 150,
+      });
+      expect(place, isNotNull);
+      expect(place!.name, 'Home');
+      expect(place.lat, 31.52);
+      expect(place.lng, 74.35);
+      expect(place.radiusM, 150);
+    });
+
+    test('rejects malformed coordinates and out-of-policy radii', () {
+      expect(Place.tryFromMap('c1', 'p1', {'name': 'Home', 'lat': 91, 'lng': 0, 'radiusM': 150}), isNull);
+      expect(Place.tryFromMap('c1', 'p1', {'name': 'Home', 'lat': 0, 'lng': double.nan, 'radiusM': 150}), isNull);
+      expect(Place.tryFromMap('c1', 'p1', {'name': 'Home', 'lat': 0, 'lng': 0, 'radiusM': double.infinity}), isNull);
+      expect(Place.tryFromMap('c1', 'p1', {'name': 'Home', 'lat': 0, 'lng': 0, 'radiusM': 99}), isNull);
+      expect(Place.tryFromMap('c1', 'p1', {'name': ' ', 'lat': 0, 'lng': 0, 'radiusM': 150}), isNull);
+    });
+  });
+
   test('Circle.fromMap reads approval flag with safe defaults', () {
     final c = Circle.fromMap('c1', {'name': 'Family', 'ownerUid': 'a', 'joinCode': 'ABCDEFGHJK', 'requiresApproval': true});
     expect(c.requiresApproval, isTrue);
