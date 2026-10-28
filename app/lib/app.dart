@@ -30,18 +30,18 @@ ThemeData _theme(Brightness brightness) {
       ),
       headlineSmall: base.textTheme.headlineSmall?.copyWith(
         color: scheme.onSurface,
-        fontWeight: FontWeight.w750,
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.45,
       ),
       titleLarge: base.textTheme.titleLarge?.copyWith(
         color: scheme.onSurface,
         fontSize: 21,
-        fontWeight: FontWeight.w750,
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.3,
       ),
       titleMedium: base.textTheme.titleMedium?.copyWith(
         color: scheme.onSurface,
-        fontWeight: FontWeight.w650,
+        fontWeight: FontWeight.w600,
       ),
       bodyLarge: base.textTheme.bodyLarge?.copyWith(
         color: scheme.onSurface,
@@ -60,7 +60,7 @@ ThemeData _theme(Brightness brightness) {
       titleTextStyle: base.textTheme.titleLarge?.copyWith(
         color: scheme.onSurface,
         fontSize: 21,
-        fontWeight: FontWeight.w750,
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.3,
       ),
     ),
@@ -109,14 +109,14 @@ ThemeData _theme(Brightness brightness) {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         side: BorderSide(color: scheme.outlineVariant),
-        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w650),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         minimumSize: const Size(48, 44),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w650),
+        textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
