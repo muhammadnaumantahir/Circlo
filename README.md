@@ -49,3 +49,16 @@ Cloudflare Pages should use the repository root and these settings:
 - **Build output directory:** `build/web`
 
 The script builds the Flutter project in `app/` and copies the web output to the repository-root `build/web`, keeping deployment settings consistent with FinMate and Stockly. Pushes to `main` trigger the Cloudflare Pages deployment.
+
+
+### Cloudflare Pages Firebase web variables
+
+In **Cloudflare Pages → Circlo → Settings → Environment variables**, add these for the **Production** environment (and Preview too if you test preview deployments):
+
+- `FIREBASE_API_KEY`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_MESSAGING_SENDER_ID`
+- `FIREBASE_AUTH_DOMAIN`
+- `FIREBASE_APP_ID_WEB`
+
+Copy the values from **Firebase Console → Project settings → General → Your apps → Web app → SDK setup and configuration**. These are Firebase client configuration values, not service-account credentials. The build script passes them into Flutter via `--dart-define`; without them the deployed app displays the Firebase setup screen. Never add service-account JSON or FCM server credentials to Cloudflare or the Flutter app.
