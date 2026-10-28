@@ -51,6 +51,7 @@ class SharingScreen extends ConsumerWidget {
               sharingEnabled: sharingOn.isNotEmpty,
               allPaused: allPaused,
               activeCircleCount: sharing.activeCircleIds.length,
+              onRetry: () => ref.read(sharingControllerProvider.notifier).retry(),
             ),
             const SizedBox(height: 12),
             _PermissionCard(ref: ref),
@@ -110,6 +111,7 @@ class _EngineStatusCard extends StatelessWidget {
     required this.sharingEnabled,
     required this.allPaused,
     required this.activeCircleCount,
+    required this.onRetry,
   });
 
   final bool tracking;
@@ -118,6 +120,7 @@ class _EngineStatusCard extends StatelessWidget {
   final bool sharingEnabled;
   final bool allPaused;
   final int activeCircleCount;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -195,6 +198,12 @@ class _EngineStatusCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (error != null)
+              IconButton(
+                tooltip: 'Retry location sync',
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
           ],
         ),
       ),
