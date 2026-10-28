@@ -92,6 +92,23 @@ void main() {
     expect(d.process(at(10, 30), [school]).single.type, TransitionType.arrive);
   });
 
+  test('duplicate timestamps do not count as separate confirmation fixes', () {
+    final d = PlaceDetector();
+    final first = at(10, 20);
+    final duplicate = Fix(
+      lat: first.lat,
+      lng: first.lng,
+      accuracy: first.accuracy,
+      time: first.time,
+    );
+
+    expect(d.process(first, [school]), isEmpty);
+    expect(d.process(duplicate, [school]), isEmpty);
+    expect(d.isInside('school'), isFalse);
+
+    expect(d.process(at(10, 30), [school]).single.type, TransitionType.arrive);
+  });
+
   test('same place document ID in different circles has independent state', () {
     final d = PlaceDetector();
     const homeA = PlacePoint(id: 'circle-a/home', lat: school.lat, lng: school.lng, radiusM: 150);
