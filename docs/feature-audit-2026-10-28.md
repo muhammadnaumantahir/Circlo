@@ -25,6 +25,7 @@ This audit reflects a static review of the current Flutter source and project re
 - Circle cards use a role label without starting a separate live member listener for every circle, avoiding extra reads.
 - The sharing screen shows tracking state, the last successful location sync, flags syncs older than 10 minutes, and offers retry.
 - The location-permission card rechecks when Circlo resumes after system Settings, so newly granted/revoked permission or re-enabled location services are reflected without manually restarting the app; a retry is available if the permission check itself errors.
+- The Location sharing screen now offers a Retry action if its circles query fails, instead of leaving the user on a dead-end error state.
 - A location-stream failure now cancels the heartbeat before cleanup. The five-minute heartbeat requests a fresh position, and initial/stream/heartbeat fixes are rejected when their timestamp is stale rather than being re-stamped as fresh.
 - The map clearly tells web users that sharing stops when the tab is closed, and compact screens can switch between a full map and a full-height People list.
 - The profile screen and in-app notification feed use clearer identity, privacy and activity cards.

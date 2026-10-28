@@ -28,7 +28,17 @@ class SharingScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Location sharing')),
       body: circles.when(
         loading: () => const LoadingView(),
-        error: (_, __) => const MessageView(icon: Icons.cloud_off, title: 'Could not load your circles'),
+        error: (_, __) => MessageView(
+          icon: Icons.cloud_off,
+          title: 'Could not load your circles',
+          message: 'Check your connection and try again.',
+          actions: [
+            FilledButton(
+              onPressed: () => ref.invalidate(myCirclesProvider),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
         data: (list) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
