@@ -186,6 +186,15 @@ class SosScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.privacy_tip_outlined),
+                  title: const Text('Check before sharing'),
+                  subtitle: const Text(
+                    'The map link will go to whoever you choose in the share sheet, including people outside this Circle. Share only with someone you trust.',
+                  ),
+                ),
+              ),
               const SizedBox(height: 18),
               Text('Message preview', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
