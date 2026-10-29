@@ -93,8 +93,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No fresh shared location'), findsOneWidget);
-    expect(find.textContaining('does not have a fresh shared location'), findsOneWidget);
     final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(preview, contains('does not have a fresh shared location'));
     expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
 
