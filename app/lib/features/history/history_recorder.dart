@@ -129,6 +129,13 @@ class HistoryRecorder {
   }
 
   Future<void> flush() async {
+    // Retry completed days first. Remove each only after its write succeeds, so a failed
+    // Firestore request leaves it available for the next fix or the shutdown flush.
+    while (_pendingDays.isNotEmpty) {
+      await _write(_pendingDays.first);
+      _pendingDays.removeAt(0);
+    }
+
     final t = _builder.current;
     if (t == null || !_dirty) return;
     await _write(t);
