@@ -19,6 +19,18 @@ import 'providers.dart';
 
 const _publicRoutes = {'/login', '/signup', '/reset'};
 const _authOnlyRoutes = {'/splash', '/verify-email', '/profile-setup'};
+const _circleRequiredRoutes = {
+  '/map',
+  '/places',
+  '/history',
+  '/sharing',
+  '/history/settings',
+  '/notifications',
+  '/notifications/settings',
+};
+
+bool _requiresCircle(String location) =>
+    _circleRequiredRoutes.contains(location) || location.startsWith('/places/');
 
 String? _safeInternalRedirect(String? value) {
   if (value == null || !value.startsWith('/') || value.startsWith('//')) return null;
@@ -37,6 +49,8 @@ class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
     _ref.listen(authStateProvider, (_, __) => notifyListeners());
     _ref.listen(profileProvider, (_, __) => notifyListeners());
+    // Refresh route gating as soon as circle membership becomes available or changes.
+    _ref.listen(myCirclesProvider, (_, __) => notifyListeners());
   }
   final Ref _ref;
 
@@ -81,6 +95,21 @@ class _RouterNotifier extends ChangeNotifier {
       if (loc == '/profile-setup') return null;
       return _routeWithRedirect('/profile-setup', requestedLocation);
     }
+
+    // Circle-first onboarding: first create or join a Circle. Hide/gate circle-dependent
+    // surfaces until membership exists; if membership cannot be read before any cached result
+    // is available, use one recovery screen rather than repeating Retry across feature tabs.
+    if (_requiresCircle(loc)) {
+      final circles = _ref.read(myCirclesProvider);
+      final noKnownMembership = !circles.isLoading &&
+          circles.hasValue &&
+          (circles.valueOrNull?.isEmpty ?? true);
+      final membershipCouldNotBeRead = circles.hasError && circles.valueOrNull == null;
+      if (noKnownMembership || membershipCouldNotBeRead) {
+        return '/circles';
+      }
+    }
+
     if (_publicRoutes.contains(loc) || _authOnlyRoutes.contains(loc)) {
       return requestedLocation ?? '/map';
     }
@@ -163,7 +192,7 @@ class SplashScreen extends ConsumerWidget {
   }
 }
 
-/// Bottom navigation (Map, Places, History, Circles, Profile).
+/// Main navigation adapts to circle membership: setup/Profile first, then Map, Places, History, Circles and Profile.
 /// Also announces new matching arrival/departure alerts with a snackbar while the app is open.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key, required this.location, required this.child});
@@ -206,20 +235,32 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       }
     });
 
-    const paths = ['/map', '/places', '/history', '/circles', '/profile'];
+    const allPaths = ['/map', '/places', '/history', '/circles', '/profile'];
+    const allDestinations = [
+      NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Map'),
+      NavigationDestination(icon: Icon(Icons.place_outlined), selectedIcon: Icon(Icons.place_rounded), label: 'Places'),
+      NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history_rounded), label: 'History'),
+      NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Circles'),
+      NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
+    ];
+    final circleState = ref.watch(myCirclesProvider);
+    final hasCircles = !circleState.isLoading &&
+        (circleState.valueOrNull?.isNotEmpty ?? false);
+    // Before the first circle exists (or while membership could not be read), keep navigation
+    // focused on setup and the profile. Map/Places/History are available after joining a circle.
+    final paths = hasCircles ? allPaths : const ['/circles', '/profile'];
+    final destinations = hasCircles
+        ? allDestinations
+        : const [
+            NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Circles'),
+            NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
+          ];
     var index = paths.indexWhere((p) => widget.location.startsWith(p));
     if (index < 0) index = 0;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 1000;
         final scheme = Theme.of(context).colorScheme;
-        final destinations = const [
-          NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Map'),
-          NavigationDestination(icon: Icon(Icons.place_outlined), selectedIcon: Icon(Icons.place_rounded), label: 'Places'),
-          NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history_rounded), label: 'History'),
-          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Circles'),
-          NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
-        ];
         return Scaffold(
           body: wide
               ? Row(

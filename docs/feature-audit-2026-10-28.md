@@ -1,4 +1,4 @@
-# Circlo Feature Audit — 2026-10-28
+# Circlo Feature Audit — updated 2026-10-29
 
 This audit reflects a static review of the current Flutter source and project requirements. **“Implemented in code” does not mean tested, production-ready, or reliable in the background.** Flutter/Dart and the Firebase Emulator were not available in the authoring environment, and no real-device runs were performed.
 
@@ -7,7 +7,7 @@ This audit reflects a static review of the current Flutter source and project re
 | Area | Current implementation | Confidence / limit |
 |---|---|---|
 | Accounts | Email/password and Google sign-up/sign-in, password reset, provider-aware verification, birth-year age gate, profile edit | Source exists; Firebase Console/OAuth and end-to-end Google flow not run |
-| Circles | Create/join by code, QR and share-sheet invites, web invite links with prefilled code, code rotation/expiry, pending join approval, member removal/leave, ownership transfer, circle deletion, user-selected manual check-ins with optional saved-place context (place ID/name only, no GPS) | Source exists; emulator suite and end-to-end invite flow not run |
+| Circles | First-use Create/Join onboarding; map/places/history tabs gated until membership exists; create/join by code, QR and share-sheet invites, web invite links with prefilled code, code rotation/expiry, pending join approval, member removal/leave, ownership transfer, circle deletion, manual check-ins with optional saved-place context (place ID/name only, no GPS) | Source exists; emulator suite and end-to-end invite flow not run |
 | Location sharing | Per-circle opt-in with consent, pause/resume (manual, 1 hour, or until 6:00), permission help, live-location documents and status derivation | Background behavior not verified on devices |
 | Map | Circle switcher, status-aware name markers that open member details, mobile people-preview dock, active-sharing summary, quick access to saved places/sharing settings, saved-place overlays and external directions | UX needs manual phone/tablet/desktop and light/dark testing; public tile provider must be chosen/validated before release |
 | Places | Free-geocoder search, tap-to-pin fallback, 100–1000 m radius, per-user arrival/departure preferences and selected members, searchable alert dashboard, persistent per-place pause/resume | Detection is device-side; requires the sharing app to receive location fixes |
@@ -17,6 +17,8 @@ This audit reflects a static review of the current Flutter source and project re
 | Platform support | Flutter project designed for web, Android and iOS | Native Android/iOS folders are generated locally and are not committed; background permissions/service setup remains unverified |
 
 ## Improvements made on the current UI branch
+
+- Added a Circle-first start flow inspired by Life360's create-or-join onboarding: new users see one focused setup screen, circle-dependent tabs stay hidden until membership exists, successful joins open the selected circle's map, and Circle details provide an Open map action. When the initial circle-list query fails before any membership data is available, feature routes return to a single Circles recovery screen rather than repeating Retry states across tabs. This is a source change; automated checks are not run yet.
 
 - Added a consistent light/dark theme, reusable empty-state presentation, polished circle/place cards, and responsive desktop navigation.
 - Added Firebase-backed Google Sign-In entry points on login and sign-up, with web popup and native ID-token flows. Google users retain the age-gate/profile-setup requirement, and destructive account deletion reauthenticates Google users.

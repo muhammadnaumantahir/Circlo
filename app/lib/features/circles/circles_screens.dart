@@ -19,22 +19,29 @@ class CirclesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final circles = ref.watch(myCirclesProvider);
+    final isFirstUse = circles.valueOrNull?.isEmpty == true &&
+        !circles.isLoading &&
+        !circles.hasError;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your circles'),
-        actions: [
-          TextButton.icon(
-            onPressed: () => context.push('/circles/join'),
-            icon: const Icon(Icons.vpn_key),
-            label: const Text('Join'),
-          ),
-        ],
+        title: Text(isFirstUse ? 'Welcome to Circlo' : 'Your circles'),
+        actions: isFirstUse
+            ? const []
+            : [
+                TextButton.icon(
+                  onPressed: () => context.push('/circles/join'),
+                  icon: const Icon(Icons.vpn_key),
+                  label: const Text('Join'),
+                ),
+              ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/circles/create'),
-        icon: const Icon(Icons.add),
-        label: const Text('Create circle'),
-      ),
+      floatingActionButton: isFirstUse
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => context.push('/circles/create'),
+              icon: const Icon(Icons.add),
+              label: const Text('Create circle'),
+            ),
       body: Column(
         children: [
           const _MyPendingRequests(),
@@ -48,14 +55,9 @@ class CirclesScreen extends ConsumerWidget {
         ),
         data: (list) {
           if (list.isEmpty) {
-            return MessageView(
-              icon: Icons.group_add,
-              title: 'No circles yet',
-              message: 'Create a circle for your family or friends, or join one with a code.',
-              actions: [
-                FilledButton(onPressed: () => context.push('/circles/create'), child: const Text('Create a circle')),
-                OutlinedButton(onPressed: () => context.push('/circles/join'), child: const Text('Join with a code')),
-              ],
+            return _CircleOnboarding(
+              onCreate: () => context.push('/circles/create'),
+              onJoin: () => context.push('/circles/join'),
             );
           }
           final scheme = Theme.of(context).colorScheme;
@@ -105,6 +107,112 @@ class CirclesScreen extends ConsumerWidget {
           ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CircleOnboarding extends StatelessWidget {
+  const _CircleOnboarding({required this.onCreate, required this.onJoin});
+
+  final VoidCallback onCreate;
+  final VoidCallback onJoin;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Center(child: PremiumBrandMark(size: 76)),
+              const SizedBox(height: 22),
+              Text(
+                'Your people, in sync.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Start by creating a private circle or joining one with an invite code. '
+                'Your shared map, saved places and travel history will appear once you belong to a circle.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 26),
+              Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          PremiumIconChip(icon: Icons.groups_rounded, color: CircloPalette.brand, size: 46),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Create a circle', style: TextStyle(fontWeight: FontWeight.w800)),
+                                SizedBox(height: 3),
+                                Text('Start a group and invite people you trust.'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      FilledButton.icon(
+                        onPressed: onCreate,
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Create a circle'),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Divider(height: 1),
+                      ),
+                      Row(
+                        children: [
+                          PremiumIconChip(icon: Icons.vpn_key_rounded, color: CircloPalette.mint, size: 46),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Join a circle', style: TextStyle(fontWeight: FontWeight.w800)),
+                                SizedBox(height: 3),
+                                Text('Enter the invite code someone shared with you.'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      OutlinedButton.icon(
+                        onPressed: onJoin,
+                        icon: const Icon(Icons.arrow_forward_rounded),
+                        label: const Text('Join with an invite code'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Location sharing is always your choice. You can decide which circles can see you.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -347,7 +455,21 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
         showSnack(context, 'Request sent. The owner has to approve it before you can join.');
         context.pop();
       } else {
-        context.pushReplacement('/circles/${outcome.circleId}');
+        // Go straight to the shared map after a successful join, as in a Circle-based
+        // location app. Refresh membership first so route gating sees the new circle.
+        ref.read(selectedCircleIdProvider.notifier).state = outcome.circleId;
+        ref.invalidate(myCirclesProvider);
+        try {
+          final circles = await ref.read(myCirclesProvider.future);
+          if (!mounted) return;
+          if (circles.any((circle) => circle.id == outcome.circleId)) {
+            context.go('/map');
+          } else {
+            context.go('/circles/${outcome.circleId}');
+          }
+        } catch (_) {
+          if (mounted) context.go('/circles/${outcome.circleId}');
+        }
       }
     } on JoinFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -402,10 +524,27 @@ class CircleDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final circleAsync = ref.watch(circleProvider(circleId));
     final membersAsync = ref.watch(membersProvider(circleId));
+    final myCircles = ref.watch(myCirclesProvider).valueOrNull ?? const <Circle>[];
+    final canOpenMap = myCircles.any((circle) => circle.id == circleId);
     final uid = ref.watch(currentUidProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(circleAsync.valueOrNull?.name ?? 'Circle')),
+      appBar: AppBar(
+        title: Text(circleAsync.valueOrNull?.name ?? 'Circle'),
+        actions: [
+          TextButton.icon(
+            onPressed: canOpenMap
+                ? () {
+                    ref.read(selectedCircleIdProvider.notifier).state = circleId;
+                    context.go('/map');
+                  }
+                : null,
+            icon: const Icon(Icons.map_outlined),
+            label: const Text('Open map'),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: circleAsync.when(
         loading: () => const LoadingView(),
         error: (e, _) => MessageView(
