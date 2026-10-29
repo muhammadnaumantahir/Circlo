@@ -455,7 +455,21 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
         showSnack(context, 'Request sent. The owner has to approve it before you can join.');
         context.pop();
       } else {
-        context.pushReplacement('/circles/${outcome.circleId}');
+        // Go straight to the shared map after a successful join, as in a Circle-based
+        // location app. Refresh membership first so route gating sees the new circle.
+        ref.read(selectedCircleIdProvider.notifier).state = outcome.circleId;
+        ref.invalidate(myCirclesProvider);
+        try {
+          final circles = await ref.read(myCirclesProvider.future);
+          if (!mounted) return;
+          if (circles.any((circle) => circle.id == outcome.circleId)) {
+            context.go('/map');
+          } else {
+            context.go('/circles/${outcome.circleId}');
+          }
+        } catch (_) {
+          if (mounted) context.go('/circles/${outcome.circleId}');
+        }
       }
     } on JoinFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
