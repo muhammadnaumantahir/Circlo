@@ -24,6 +24,7 @@ Widget _app({
   required DateTime? locationUpdatedAt,
   bool sharingActive = true,
   bool paused = false,
+  bool membershipKnown = true,
 }) {
   final contacts = <SharedContact>[
     const SharedContact(uid: 'self', phone: '+923001111111'),
@@ -52,13 +53,17 @@ Widget _app({
       myCirclesProvider.overrideWith((ref) => Stream.value([_circle])),
       profileProvider.overrideWith((ref) => Stream.value(_profile)),
       myMembershipsProvider.overrideWith(
-        (ref) => Stream.value([
-          MyMembership(
-            circleId: 'family',
-            sharesLocation: sharingActive || paused,
-            paused: paused,
-          ),
-        ]),
+        (ref) => Stream.value(
+          membershipKnown
+              ? [
+                  MyMembership(
+                    circleId: 'family',
+                    sharesLocation: sharingActive || paused,
+                    paused: paused,
+                  ),
+                ]
+              : const <MyMembership>[],
+        ),
       ),
       locationsProvider('family').overrideWith(
         (ref) => Stream.value({'self': myLocation}),
@@ -123,6 +128,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Location sharing is paused for this Circle. No coordinates will be included. Resume sharing and wait for a fresh fix to include your location.'), findsOneWidget);
+    final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(preview, isNot(contains('www.google.com/maps/search/')));
+  });
+
+  testWidgets('unconfirmed sharing state never includes a fresh location', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        locationUpdatedAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        membershipKnown: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sharing status is not yet confirmed for this Circle. No coordinates will be included.'), findsOneWidget);
     final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
     expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
