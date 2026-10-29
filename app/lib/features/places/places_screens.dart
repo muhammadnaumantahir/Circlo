@@ -664,9 +664,21 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
 
 /// Create (placeId == null) or edit a place and the signed-in user's own alert preferences.
 class PlaceFormScreen extends ConsumerStatefulWidget {
-  const PlaceFormScreen({super.key, required this.circleId, this.placeId});
+  const PlaceFormScreen({
+    super.key,
+    required this.circleId,
+    this.placeId,
+    this.initialLat,
+    this.initialLng,
+    this.initialName,
+    this.isSuggested = false,
+  });
   final String circleId;
   final String? placeId;
+  final double? initialLat;
+  final double? initialLng;
+  final String? initialName;
+  final bool isSuggested;
 
   @override
   ConsumerState<PlaceFormScreen> createState() => _PlaceFormScreenState();
@@ -705,6 +717,22 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
     super.initState();
     if (_isEdit) {
       _loadSubscription();
+    } else if (widget.initialLat != null &&
+        widget.initialLng != null &&
+        widget.initialLat!.isFinite &&
+        widget.initialLng!.isFinite &&
+        widget.initialLat! >= -90 &&
+        widget.initialLat! <= 90 &&
+        widget.initialLng! >= -180 &&
+        widget.initialLng! <= 180) {
+      _pin = LatLng(widget.initialLat!, widget.initialLng!);
+      _pendingMove = _pin;
+      _name.text = (widget.initialName ?? '').trim();
+      if (widget.isSuggested) {
+        // A suggestion never silently enables alerts; the user can choose them explicitly.
+        _arrive = false;
+        _leave = false;
+      }
     } else {
       _locateOnce();
     }
