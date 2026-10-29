@@ -105,7 +105,9 @@ class HistoryRecorder {
       );
       final after = _builder.current;
       if (before != null && !identical(before, after)) {
-        await _write(before); // persist the finished day (its open visit was closed)
+        // TrackBuilder will no longer mutate the finished day. Queue it before any await so a
+        // transient write failure cannot silently discard the only in-memory copy of that day.
+        _pendingDays.add(before);
       }
       // Persist lastSeen on the normal flush cadence even while stationary; TrackBuilder can
       // update it without changing the thinned route or visit list.
