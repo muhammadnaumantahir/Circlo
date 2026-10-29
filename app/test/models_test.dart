@@ -49,8 +49,8 @@ void main() {
         'placeSuggestionsEnabled': true,
       });
       expect(invalidState.keepHistory, isFalse);
-      expect(invalidState.placeSuggestionsEnabled, isTrue);
-      // Provider gates reads on both preferences; Firestore Rules reject this combination.
+      expect(invalidState.placeSuggestionsEnabled, isFalse);
+      // The parser fails closed for legacy or malformed inconsistent preferences.
     });
   });
 
