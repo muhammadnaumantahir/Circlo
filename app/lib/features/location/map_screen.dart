@@ -150,6 +150,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.task_alt_rounded),
           ),
+          IconButton(
+            tooltip: 'SOS / emergency message',
+            style: IconButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => context.push('/sos'),
+            icon: const Icon(Icons.emergency_rounded),
+          ),
           const NotificationsBell(),
           const SizedBox(width: 4),
           Padding(
