@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Preserve completed Travel History days for retry when a Firestore write fails during midnight rollover, instead of silently dropping the prior day while moving to the new day.
 - Serialize Travel History fix processing, drain pending callbacks before final flush, and persist stationary last-seen times on the configured flush cadence.
 - Make Travel History deletion load all saved day keys across Firestore pages, so deleting all history cannot leave older records behind after the 200-day display limit.
 - Ignore duplicate-timestamp GPS callbacks in place-arrival detection so repeated copies of one fix cannot satisfy the multi-fix confirmation threshold.
