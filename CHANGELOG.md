@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
-- Gate map, saved places, travel history and related routes until the signed-in user belongs to a circle; route initial/no-membership and circle-query error states to one Circles screen instead of showing repeated Retry states across tabs.
+- Gate map, saved places, travel history and related routes until the signed-in user belongs to a circle; route initial/no-membership states and membership-query errors with no cached result to one Circles screen instead of showing repeated Retry states across tabs.
 - Use the available first-use Circles onboarding to guide new users through creating a circle or joining by invite code, hide circle-dependent tabs before membership, and offer an Open map action after membership is confirmed.
 - Fix Circles screen web compilation: use the available icon palette for circle-card tones and preserve a promoted non-null user ID in the join-code rotation callback.
 - Preserve completed Travel History days for retry when a Firestore write fails during midnight rollover, instead of silently dropping the prior day while moving to the new day.
