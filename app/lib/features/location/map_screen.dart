@@ -1368,7 +1368,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                                 const SizedBox(width: 9),
                                 Expanded(
                                   child: Text(
-                                    'Approximate grid pin · roughly 1–1.6 km from the device. Precise GPS coordinates are not shared with this circle while Bubble is active.',
+                                    'Coarse grid pin · roughly 1–1.6 km from the device. If the sharer was offline at expiry, this coarse pin may remain until their next sync. Other features may still reveal visits.',
                                     style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                                   ),
                                 ),
