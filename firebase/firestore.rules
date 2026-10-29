@@ -218,9 +218,8 @@ service cloud.firestore {
         allow get: if isMember(cid)
           && (request.auth.uid == uid
               || (exists(memberPath(cid, uid)) && resource.data.get('sharePhone', false) == true));
-        allow list: if isMember(cid)
-          && resource.data.get('sharePhone', false) == true
-          && exists(memberPath(cid, resource.data.uid));
+        // The query must filter sharePhone=true; membership deletion atomically removes this document.
+        allow list: if isMember(cid) && resource.data.get('sharePhone', false) == true;
 
         // Only the number's owner can opt in or update it. The shared copy must match the
         // owner's private profile, including when both documents change in the same batch.
