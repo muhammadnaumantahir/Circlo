@@ -5,7 +5,7 @@
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest main HEAD at audit:** `73bfa1134113d94e4472da44d69a241c517e10e4` — prioritize release verification  
-**Active feature branch:** [`feature/sos-emergency-message`](https://github.com/muhammadnaumantahir/Circlo/pull/68) — manual SOS-message sharing is in draft PR #68; not merged and not tested.  
+**Active feature branch:** [`feature/sos-emergency-message`](https://github.com/muhammadnaumantahir/Circlo/pull/68) — draft PR #68 now also offers Call and prefilled Text actions for Circle members who explicitly shared their phone number with that Circle; not merged and not tested.  
 **Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
@@ -40,7 +40,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 ## Recommended next steps (keep this section current)
 
 1. **Release verification first (P0):** run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite; rebuild Cloudflare Pages; verify Android/iOS background tracking and two-account privacy behavior. Until these pass, all recent feature work is code-present but unverified.
-2. **Active branch: limited SOS message handoff.** The current branch only prepares a message for the user to review and share manually; it can include a fresh last-shared location and labels Bubble pins as approximate. It does not send automatically, confirm delivery, provide remote alerts, or implement trusted emergency contacts. Keep release verification P0 and do not claim emergency response.
+2. **Active branch: limited SOS message handoff + opted-in Circle contact actions.** The current draft lets users preview/share/copy a message and call or open a prefilled SMS draft for Circle members who explicitly shared their number. It does not auto-send, confirm delivery, provide remote alerts, or constitute a verified emergency-contact system. Keep release verification P0 and do not claim emergency response.
 3. **Keep deferred under $0/Firebase-only:** remote push notifications until a trusted no-cost delivery architecture is confirmed; never embed sender credentials in the client.
 4. Then evaluate driving/crash detection, flight/landing alerts, tracker integrations and pet tracking as listed below.
 
@@ -50,7 +50,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 |---:|---|---|---|
 | P0 | Release verification | Required before release | Run manual Flutter analyze/tests and Firestore Emulator Rules tests; re-run Cloudflare web build; test Android/iOS background tracking and two-account privacy flows. |
 | P1 | Remote push notifications | Deferred | Requires a trusted delivery path. Do not put server credentials in the Flutter app. Reassess only after confirming a truly no-cost deployable architecture. |
-| P2 | SOS message handoff / emergency contacts | In progress — [draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68) | Manual share sheet and copy fallback; only include a fresh shared fix; clearly label approximate Bubble pins. No automatic delivery, acknowledgement, remote push, or emergency-dispatch claim. Helper tests are authored but not run. Full emergency-contact delivery remains future work after safety review. |
+| P2 | SOS message handoff / emergency contacts | In progress — [draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68) | Manual share sheet/copy plus Call and prefilled SMS actions for members whose phone number they explicitly shared with the selected Circle. Stale locations are omitted and approximate pins labelled. No automatic delivery, acknowledgement, remote push, contact discovery or emergency-dispatch claim. Helper tests are authored but not run. Trusted emergency-contact delivery remains future work after safety review. |
 | P3 | Driving reports / crash detection | Not started — native research | Native motion/location collection, false-positive controls, platform limits and real-device validation are needed. |
 | P4 | Flight / landing alerts | Not started — external integration | Find a suitable data source; clearly disclose coverage and latency before implementing. |
 | P4 | Tile/item tracker integration | Not started — external integration | Requires supported hardware/provider APIs and account linking. |
@@ -66,7 +66,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | #56 Call/Text | Closed, not merged | Superseded by the conflict-resolved implementation in PR #64. |
 | #58 Battery sharing | Closed, not merged | Superseded by the conflict-resolved implementation in PR #65. |
 | #59 Automatic Place Suggestions | Closed, not merged | Superseded by the privacy-reviewed implementation in PR #63. |
-| #68 SOS message handoff | Open draft; branch only | [Draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68); manual share/copy, freshness checks and approximate-pin label. Tests, analyzer, web build and device UX remain unverified. |
+| #68 SOS message handoff | Open draft; branch only | [Draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68); manual share/copy, freshness checks, approximate-pin label and opted-in Circle-member Call/prefilled-SMS actions. Tests, analyzer, web build and device UX remain unverified. |
 
 ## Release checklist
 
@@ -81,7 +81,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 ## Instructions for the next chat / future changes
 
 1. Read this file first, then check the current `main` SHA and latest PRs. Do not assume the previous chat's branch or PR is still current.
-2. Current known work at this handover: [draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68) on `feature/sos-emergency-message` has a manually shared SOS-message draft and unit tests. Inspect its branch and test results before extending or merging it.
+2. Current known work at this handover: [draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68) on `feature/sos-emergency-message` has a manually shared SOS-message draft and opted-in Circle-member Call/prefilled-SMS actions. Review the contact-consent behavior and test results before merging it.
 3. Pick the next unfinished item only after confirming it is not already present in `main`.
 4. Implement one feature per branch and PR; keep GitHub Actions manual-only.
 5. Before reporting completion, review the diff and update this file, `docs/life360-feature-roadmap.md`, `CHANGELOG.md`, and `docs/test-plan.md` as applicable.
