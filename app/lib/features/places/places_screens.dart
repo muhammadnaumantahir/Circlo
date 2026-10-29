@@ -99,6 +99,16 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
     final circle = widget.circle;
     final placesAsync = ref.watch(placesProvider(circle.id));
     final subscriptionsAsync = ref.watch(mySubscriptionsProvider);
+    final arrivalPlansAsync = ref.watch(arrivalPlansProvider(widget.circle.id));
+    final myUid = ref.watch(currentUidProvider);
+    final memberships = ref.watch(myMembershipsProvider).valueOrNull ?? const [];
+    final canScheduleArrival = memberships.any(
+      (m) => m.circleId == widget.circle.id && m.sharesLocation && !m.paused,
+    );
+    final myArrivalPlans = {
+      for (final plan in arrivalPlansAsync.valueOrNull ?? const <ArrivalPlan>[])
+        if (plan.memberUid == myUid) plan.placeId: plan,
+    };
     final subs = subscriptionsAsync.valueOrNull ?? const <PlaceSubscription>[];
     final alertsReady = subscriptionsAsync.hasValue;
     final subByPlace = {for (final s in subs) if (s.circleId == circle.id) s.placeId: s};
@@ -152,6 +162,22 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
             ],
           ),
         ),
+        if (placesAsync.valueOrNull != null && places.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: const Icon(Icons.alarm_rounded),
+                title: const Text('Expected arrival / No Show'),
+                subtitle: Text(
+                  canScheduleArrival
+                      ? 'Set a deadline for your own arrival. Missed-arrival alerts are evaluated in Circlo while it is open and location sharing is active; phone push alerts are not available.'
+                      : 'Turn on location sharing for this circle to schedule an expected arrival.',
+                ),
+              ),
+            ),
+          ),
         if (placesAsync.valueOrNull != null && places.isNotEmpty && !alertsReady)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -357,6 +383,12 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
                         alertsReady: alertsReady,
                         alertsUnavailable: subscriptionsAsync.hasError,
                         colorIndex: i,
+                        arrivalPlan: myArrivalPlans[place.id],
+                        arrivalPlanReady: arrivalPlansAsync.hasValue,
+                        arrivalPlanUnavailable: arrivalPlansAsync.hasError,
+                        canScheduleArrival: canScheduleArrival,
+                        onScheduleArrival: () => _scheduleArrival(place),
+                        onCancelArrival: () => _cancelArrival(place),
                         onOpen: () => context.push('/places/' + circle.id + '/' + place.id),
                       );
                     },
@@ -380,6 +412,77 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
     );
   }
 
+  Future<void> _scheduleArrival(Place place) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    final memberships = ref.read(myMembershipsProvider).valueOrNull ?? const [];
+    final sharingActive = memberships.any(
+      (m) => m.circleId == widget.circle.id && m.sharesLocation && !m.paused,
+    );
+    if (!sharingActive) {
+      showSnack(context, 'Turn on location sharing for this circle before scheduling an arrival.');
+      return;
+    }
+
+    final now = DateTime.now();
+    final lastDay = DateTime(now.year, now.month, now.day).add(const Duration(days: 30));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: lastDay,
+      helpText: 'Expected arrival date',
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(now.add(const Duration(minutes: 30))),
+      helpText: 'Expected arrival time',
+    );
+    if (time == null || !mounted) return;
+
+    final expectedAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    if (!expectedAt.isAfter(DateTime.now().add(const Duration(minutes: 2)))) {
+      showSnack(context, 'Choose an arrival time at least 2 minutes in the future.');
+      return;
+    }
+    try {
+      await ref.read(placesRepositoryProvider).saveArrivalPlan(
+            circleId: widget.circle.id,
+            uid: uid,
+            placeId: place.id,
+            expectedAt: expectedAt,
+          );
+      if (mounted) {
+        showSnack(context, 'Expected arrival saved. Circlo can warn this circle if no arrival is recorded by the deadline.');
+      }
+    } catch (_) {
+      if (mounted) showSnack(context, 'Could not save the expected arrival. Check your connection and sharing settings.');
+    }
+  }
+
+  Future<void> _cancelArrival(Place place) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    final confirmed = await confirmAction(
+      context,
+      title: 'Cancel expected arrival?',
+      message: 'The circle will no longer see an overdue-arrival warning for this plan.',
+      confirmLabel: 'Cancel plan',
+    );
+    if (!confirmed || !mounted) return;
+    try {
+      await ref.read(placesRepositoryProvider).cancelArrivalPlan(
+            circleId: widget.circle.id,
+            uid: uid,
+            placeId: place.id,
+          );
+      if (mounted) showSnack(context, 'Expected arrival cancelled.');
+    } catch (_) {
+      if (mounted) showSnack(context, 'Could not cancel the plan. Try again.');
+    }
+  }
+
   void _add(BuildContext context, int count) {
     if (count >= kMaxPlacesPerCircle) {
       showSnack(context, 'A circle can have up to $kMaxPlacesPerCircle places. Delete one to add another.');
@@ -397,6 +500,12 @@ class _PlaceListTile extends ConsumerStatefulWidget {
     required this.alertsReady,
     required this.alertsUnavailable,
     required this.colorIndex,
+    required this.arrivalPlan,
+    required this.arrivalPlanReady,
+    required this.arrivalPlanUnavailable,
+    required this.canScheduleArrival,
+    required this.onScheduleArrival,
+    required this.onCancelArrival,
     required this.onOpen,
   });
 
@@ -406,6 +515,12 @@ class _PlaceListTile extends ConsumerStatefulWidget {
   final bool alertsReady;
   final bool alertsUnavailable;
   final int colorIndex;
+  final ArrivalPlan? arrivalPlan;
+  final bool arrivalPlanReady;
+  final bool arrivalPlanUnavailable;
+  final bool canScheduleArrival;
+  final VoidCallback onScheduleArrival;
+  final VoidCallback onCancelArrival;
   final VoidCallback onOpen;
 
   @override
@@ -456,44 +571,95 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
   Widget build(BuildContext context) {
     final subscription = widget.subscription;
     final alertsOn = subscription?.enabled ?? false;
+    final plan = widget.arrivalPlan;
+    final loc = plan?.expectedAt.toLocal();
+    final localizations = MaterialLocalizations.of(context);
+    final planSummary = !widget.arrivalPlanReady
+        ? (widget.arrivalPlanUnavailable ? 'Expected-arrival plan unavailable' : 'Loading expected-arrival plan')
+        : plan == null
+            ? 'No expected arrival scheduled'
+            : plan.isPending
+                ? 'Expected by ${localizations.formatShortDate(loc!)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(loc))}'
+                : plan.arrivedLate
+                    ? 'Arrived after the expected time'
+                    : 'Arrival confirmed before the deadline';
     return Card(
       margin: EdgeInsets.zero,
-      child: ListTile(
-        minVerticalPadding: 12,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: PremiumIconChip(
-          icon: Icons.location_on_rounded,
-          color: CircloPalette.accent(widget.colorIndex),
-          size: 48,
-        ),
-        title: Text(widget.place.name, style: Theme.of(context).textTheme.titleMedium),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(widget.place.radiusM.round().toString() + ' m radius · ' +
-              _alertSummary(subscription, loading: !widget.alertsReady, unavailable: widget.alertsUnavailable)),
-        ),
-        trailing: IconButton.filledTonal(
-          tooltip: _saving
-              ? 'Saving alert settings'
-              : !widget.alertsReady
-                  ? 'Alert settings not ready'
-                  : subscription?.paused == true
-                      ? 'Resume alerts'
-                      : alertsOn
-                          ? 'Pause alerts'
-                          : 'Turn arrival and departure alerts on',
-          onPressed: (_saving || !widget.alertsReady) ? null : _toggleAlerts,
-          icon: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : Icon(
-                  subscription?.paused == true
-                      ? Icons.notifications_paused_outlined
-                      : alertsOn
-                          ? Icons.notifications_active_rounded
-                          : Icons.notifications_off_outlined,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            minVerticalPadding: 12,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            leading: PremiumIconChip(
+              icon: Icons.location_on_rounded,
+              color: CircloPalette.accent(widget.colorIndex),
+              size: 48,
+            ),
+            title: Text(widget.place.name, style: Theme.of(context).textTheme.titleMedium),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(widget.place.radiusM.round().toString() + ' m radius · ' +
+                  _alertSummary(subscription, loading: !widget.alertsReady, unavailable: widget.alertsUnavailable)),
+            ),
+            trailing: IconButton.filledTonal(
+              tooltip: _saving
+                  ? 'Saving alert settings'
+                  : !widget.alertsReady
+                      ? 'Alert settings not ready'
+                      : subscription?.paused == true
+                          ? 'Resume alerts'
+                          : alertsOn
+                              ? 'Pause alerts'
+                              : 'Turn arrival and departure alerts on',
+              onPressed: (_saving || !widget.alertsReady) ? null : _toggleAlerts,
+              icon: _saving
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(
+                      subscription?.paused == true
+                          ? Icons.notifications_paused_outlined
+                          : alertsOn
+                              ? Icons.notifications_active_rounded
+                              : Icons.notifications_off_outlined,
+                    ),
+            ),
+            onTap: widget.onOpen,
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
+            child: Row(
+              children: [
+                Icon(
+                  plan?.isPending == true ? Icons.alarm_rounded : Icons.schedule_rounded,
+                  size: 17,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-        ),
-        onTap: widget.onOpen,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    planSummary,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: widget.canScheduleArrival && widget.arrivalPlanReady ? widget.onScheduleArrival : null,
+                  icon: const Icon(Icons.edit_calendar_rounded, size: 17),
+                  label: Text(plan == null ? 'Schedule' : 'Change'),
+                ),
+                if (plan?.isPending == true)
+                  IconButton(
+                    tooltip: 'Cancel expected arrival',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: widget.arrivalPlanReady ? widget.onCancelArrival : null,
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
