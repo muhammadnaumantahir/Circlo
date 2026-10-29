@@ -102,7 +102,64 @@ List<PlaceSuggestion> buildPlaceSuggestions({
   const minimumStopMs = Duration(minutes: 10).inMilliseconds;
 
   for (final track in tracks) {
-    final day = track.day.length == 8 ? track.day : _dayKey(DateTime.fromMillisecondsSinceEpoch(track.lastSeen));
+    // Day keys are expected to be local-calendar yyyymmdd. Ignore malformed legacy records
+    // rather than letting them count as distinct visits/days in a suggestion.
+    final day = track.day;
+    if (!RegExp(r'^\\d{8}
+      if ((visit.placeId ?? '').trim().isNotEmpty) continue;
+      if (!visit.lat.isFinite || !visit.lng.isFinite ||
+          visit.lat < -90 || visit.lat > 90 || visit.lng < -180 || visit.lng > 180) {
+        continue;
+      }
+
+      final endMs = visit.leftAt ?? nowMs;
+      final durationMs = endMs - visit.arrivedAt;
+      if (durationMs < minimumStopMs || durationMs < 0) continue;
+
+      final nearSavedPlace = places.any((place) =>
+          distanceMeters(visit.lat, visit.lng, place.lat, place.lng) <=
+          place.radiusM + kSuggestionPlaceExclusionBufferM);
+      if (nearSavedPlace) continue;
+
+      _SuggestionCluster? closest;
+      var closestDistance = double.infinity;
+      for (final cluster in clusters) {
+        final distance = distanceMeters(visit.lat, visit.lng, cluster.lat, cluster.lng);
+        if (distance <= clusterRadiusM && distance < closestDistance) {
+          closest = cluster;
+          closestDistance = distance;
+        }
+      }
+      if (closest == null) {
+        clusters.add(_SuggestionCluster(visit, day));
+      } else {
+        closest.add(visit, day);
+      }
+    }
+  }
+
+  final suggestions = <PlaceSuggestion>[];
+  for (final cluster in clusters) {
+    if (cluster.visitCount < minimumVisits || cluster.days.length < minimumDays) continue;
+    if (places.any((place) =>
+        distanceMeters(cluster.lat, cluster.lng, place.lat, place.lng) <=
+        place.radiusM + kSuggestionPlaceExclusionBufferM)) {
+      continue;
+    }
+    suggestions.add(cluster.toSuggestion());
+  }
+
+  suggestions.sort((a, b) {
+    final days = b.distinctDayCount.compareTo(a.distinctDayCount);
+    if (days != 0) return days;
+    final visits = b.visitCount.compareTo(a.visitCount);
+    if (visits != 0) return visits;
+    return b.lastVisitedAt.compareTo(a.lastVisitedAt);
+  });
+  return List<PlaceSuggestion>.unmodifiable(suggestions.take(limit));
+}
+
+).hasMatch(day)) continue;
     for (final visit in track.visits) {
       if ((visit.placeId ?? '').trim().isNotEmpty) continue;
       if (!visit.lat.isFinite || !visit.lng.isFinite ||
