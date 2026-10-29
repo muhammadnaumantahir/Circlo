@@ -18,6 +18,7 @@ import 'directions.dart';
 import 'location_models.dart';
 import 'sharing_controller.dart';
 import 'sharing_status.dart';
+import 'battery_status.dart';
 
 /// False = map view, true = full-height people list on compact screens.
 final _peopleListModeProvider = StateProvider<bool>((ref) => false);
@@ -437,6 +438,10 @@ class _MapBodyState extends ConsumerState<_MapBody> {
           v,
     ];
     final located = [for (final v in visibleViews) if (v.location != null) v];
+    final lowBatteryViews = [
+      for (final v in visibleViews)
+        if (v.status == ShareStatus.sharing && isLowBattery(v.location?.batteryLevel)) v,
+    ];
 
     // Fit the camera once per circle as soon as there is something to show.
     if (points.isNotEmpty && fittedFor != circle.id) {
@@ -452,6 +457,24 @@ class _MapBodyState extends ConsumerState<_MapBody> {
       children: [
         _Header(circles: circles, selected: circle),
         _buildPeopleSearchFilters(context, views),
+        if (lowBatteryViews.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: Card(
+              margin: EdgeInsets.zero,
+              color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: .35),
+              child: ListTile(
+                leading: Icon(Icons.battery_alert_rounded, color: Theme.of(context).colorScheme.error),
+                title: Text(
+                  lowBatteryViews.length == 1
+                      ? '${lowBatteryViews.first.member.displayName} has low battery (${lowBatteryViews.first.location!.batteryLevel}%)'
+                      : '${lowBatteryViews.length} people have low battery',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                subtitle: const Text('Based on their last shared location update. In-app warning only; no phone push alert.'),
+              ),
+            ),
+          ),
         if (kIsWeb)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -848,6 +871,33 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.secondary),
                     ),
                   ),
+                if (v.location?.batteryLevel != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isLowBattery(v.location!.batteryLevel) ? Icons.battery_alert_rounded : Icons.battery_std_rounded,
+                          size: 15,
+                          color: isLowBattery(v.location!.batteryLevel)
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            '${isLowBattery(v.location!.batteryLevel) ? 'Low battery · ' : 'Battery '}${v.location!.batteryLevel}% · reported ${formatAgo(v.location!.updatedAt, now)}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: isLowBattery(v.location!.batteryLevel)
+                                      ? Theme.of(context).colorScheme.error
+                                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                                  fontWeight: isLowBattery(v.location!.batteryLevel) ? FontWeight.w700 : FontWeight.normal,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
             trailing: const Icon(Icons.chevron_right_rounded, size: 20),
@@ -979,6 +1029,56 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                       ),
                     )
                   else ...[
+                    if (loc.batteryLevel != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isLowBattery(loc.batteryLevel)
+                              ? scheme.errorContainer.withValues(alpha: .35)
+                              : scheme.surfaceContainerHighest.withValues(alpha: .55),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: .65)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isLowBattery(loc.batteryLevel) ? Icons.battery_alert_rounded : Icons.battery_std_rounded,
+                              color: isLowBattery(loc.batteryLevel) ? scheme.error : scheme.primary,
+                              size: 25,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isLowBattery(loc.batteryLevel)
+                                        ? 'Low battery · ${loc.batteryLevel}%'
+                                        : 'Battery ${loc.batteryLevel}%',
+                                    style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: isLowBattery(loc.batteryLevel) ? scheme.error : null,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Last reported with location ${formatAgo(loc.updatedAt, now)}.',
+                                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                                  ),
+                                  if (v.status == ShareStatus.unavailable)
+                                    Text(
+                                      'This battery reading may be out of date.',
+                                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.error),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
