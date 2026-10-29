@@ -28,19 +28,23 @@ void main() {
   });
 
   test('recipient filtering fails closed until the signed-in user is known', () {
-    final recipients = sosContactRecipients(
-      sharedContacts: const [
-        SharedContact(uid: 'self', phone: '+923001111111'),
-        SharedContact(uid: 'amina', phone: '+923004444444'),
-      ],
-      circleMembers: const [
-        Member(uid: 'self', displayName: 'Me', role: 'member'),
-        Member(uid: 'amina', displayName: 'Amina', role: 'member'),
-      ],
-      currentUid: null,
-    );
+    const sharedContacts = [
+      SharedContact(uid: 'self', phone: '+923001111111'),
+      SharedContact(uid: 'amina', phone: '+923004444444'),
+    ];
+    const members = [
+      Member(uid: 'self', displayName: 'Me', role: 'member'),
+      Member(uid: 'amina', displayName: 'Amina', role: 'member'),
+    ];
 
-    expect(recipients, isEmpty);
+    for (final unresolvedUid in <String?>[null, '']) {
+      final recipients = sosContactRecipients(
+        sharedContacts: sharedContacts,
+        circleMembers: members,
+        currentUid: unresolvedUid,
+      );
+      expect(recipients, isEmpty);
+    }
   });
 
   test('recipient filtering excludes self, former members and malformed phone numbers', () {
