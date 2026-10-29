@@ -13,6 +13,7 @@ import 'features/places/notifications_screen.dart';
 import 'features/circles/circle_models.dart';
 import 'features/places/place_models.dart';
 import 'features/places/places_screens.dart';
+import 'features/places/place_suggestions.dart';
 import 'features/profile/account_deletion_screen.dart';
 import 'features/profile/profile_screens.dart';
 import 'providers.dart';
@@ -150,21 +151,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/places/new',
         builder: (_, state) {
           final query = state.uri.queryParameters;
-          final lat = double.tryParse(query['lat'] ?? '');
-          final lng = double.tryParse(query['lng'] ?? '');
-          final validPin = lat != null &&
-              lng != null &&
-              lat.isFinite &&
-              lng.isFinite &&
-              lat >= -90 &&
-              lat <= 90 &&
-              lng >= -180 &&
-              lng <= 180;
+          final draft = state.extra;
+          final suggestion = draft is PlaceSuggestion ? draft : null;
+          final queryLat = double.tryParse(query['lat'] ?? '');
+          final queryLng = double.tryParse(query['lng'] ?? '');
+          final validQueryPin = queryLat != null &&
+              queryLng != null &&
+              queryLat.isFinite &&
+              queryLng.isFinite &&
+              queryLat >= -90 &&
+              queryLat <= 90 &&
+              queryLng >= -180 &&
+              queryLng <= 180;
+          final lat = suggestion?.lat ?? (validQueryPin ? queryLat : null);
+          final lng = suggestion?.lng ?? (validQueryPin ? queryLng : null);
           return PlaceFormScreen(
             circleId: query['circle'] ?? '',
-            initialLat: validPin ? lat : null,
-            initialLng: validPin ? lng : null,
-            initialName: validPin ? query['name'] : null,
+            initialLat: lat,
+            initialLng: lng,
+            initialName: suggestion?.suggestedName ?? (validQueryPin ? query['name'] : null),
           );
         },
       ),
