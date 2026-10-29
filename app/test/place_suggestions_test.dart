@@ -44,6 +44,25 @@ void main() {
     expect(candidate.single.lastVisitedAt.day, 29);
   });
 
+  test('ignores malformed history day keys when counting distinct days', () {
+    final candidates = buildPlaceSuggestions(
+      tracks: [
+        day('20261027', [
+          stop(arrived: DateTime(2026, 10, 27, 8), left: DateTime(2026, 10, 27, 8, 45)),
+        ]),
+        day('invalid!', [
+          stop(arrived: DateTime(2026, 10, 28, 8), left: DateTime(2026, 10, 28, 8, 45)),
+        ]),
+        day('20261029', [
+          stop(arrived: DateTime(2026, 10, 29, 8), left: DateTime(2026, 10, 29, 8, 45)),
+        ]),
+      ],
+      savedPlaces: const <Place>[],
+      now: now,
+    );
+    expect(candidates, isEmpty);
+  });
+
   test('does not suggest a stop repeated on fewer than three distinct days', () {
     final candidates = buildPlaceSuggestions(
       tracks: [
