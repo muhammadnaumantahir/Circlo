@@ -96,9 +96,9 @@ class _RouterNotifier extends ChangeNotifier {
       return _routeWithRedirect('/profile-setup', requestedLocation);
     }
 
-    // Life360-style onboarding: first create or join a Circle. Hide/gate circle-dependent
-    // surfaces until membership exists; on query failures, keep the user on one recovery screen
-    // instead of repeating the same Retry card across every tab.
+    // Circle-first onboarding: first create or join a Circle. Hide/gate circle-dependent
+    // surfaces until membership exists; if membership cannot be read before any cached result
+    // is available, use one recovery screen rather than repeating Retry across feature tabs.
     if (_requiresCircle(loc)) {
       final circles = _ref.read(myCirclesProvider);
       final noKnownMembership = !circles.isLoading &&
