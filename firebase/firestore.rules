@@ -17,6 +17,7 @@ service cloud.firestore {
     function memberPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/members/$(uid); }
     function placePath(cid, pid) { return /databases/$(database)/documents/circles/$(cid)/places/$(pid); }
     function locationPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/locations/$(uid); }
+    function arrivalPlanPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/arrivalPlans/$(uid); }
     function codePath(code) { return /databases/$(database)/documents/joinCodes/$(code); }
 
     function isMember(cid) {
@@ -261,7 +262,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt'])
           && request.resource.data.keys().hasAll(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt'])
           && request.auth.uid == request.resource.data.memberUid
-          && planId == request.auth.uid + '_' + request.resource.data.placeId
+          && planId == request.auth.uid
           && request.resource.data.placeId is string
           && request.resource.data.placeId.size() > 0
           && request.resource.data.placeId.size() <= 100
@@ -282,7 +283,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasAll(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt'])
           && request.resource.data.memberUid == resource.data.memberUid
           && request.resource.data.placeId == resource.data.placeId
-          && planId == request.auth.uid + '_' + request.resource.data.placeId
+          && planId == request.auth.uid
           && (
             (request.resource.data.status == 'pending'
               && !('arrivedAt' in request.resource.data)
@@ -301,11 +302,16 @@ service cloud.firestore {
               && request.resource.data.createdAt == resource.data.createdAt
               && request.resource.data.arrivedAt == request.time
               && request.resource.data.updatedAt == request.time
+              && get(memberPath(cid, request.auth.uid)).data.get('sharesLocation', false) == true
+              && get(memberPath(cid, request.auth.uid)).data.get('paused', false) == false
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'arrivedAt', 'updatedAt']))
           );
 
         allow delete: if isMember(cid)
-          && (resource.data.memberUid == request.auth.uid || isOwner(cid));
+          && (resource.data.memberUid == request.auth.uid
+              || isOwner(cid)
+              || (exists(placePath(cid, resource.data.placeId))
+                  && get(placePath(cid, resource.data.placeId)).data.get('createdBy', '') == request.auth.uid));
       }
 
       // Arrival/departure events detected on the sharing member's own device (ADR-0002).
@@ -457,7 +463,7 @@ service cloud.firestore {
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sharesLocation', 'paused'])
               || (request.resource.data.get('sharesLocation', false) == true
                   && request.resource.data.get('paused', false) == false)
-              || !existsAfter(locationPath(cid, uid)));
+              || (!existsAfter(locationPath(cid, uid)) && !existsAfter(arrivalPlanPath(cid, uid)));
         // Role flips happen only as part of an ownership transfer batch (circle.ownerUid changes too).
         allow update: if signedIn() && isOwner(cid)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
@@ -470,7 +476,8 @@ service cloud.firestore {
               || (request.auth.uid == uid && !existsAfter(circlePath(cid)))
               || (request.auth.uid != uid && isOwner(cid)))
           // Leaving, removal, and circle deletion must not leave a query-visible location behind.
-          && !existsAfter(locationPath(cid, uid));
+          && !existsAfter(locationPath(cid, uid))
+          && !existsAfter(arrivalPlanPath(cid, uid));
       }
     }
 
