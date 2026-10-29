@@ -56,6 +56,41 @@ class CirclesRepository {
         return members;
       });
 
+  /// Streams phone numbers explicitly shared with this circle. Never reads private profiles.
+  Stream<List<SharedContact>> watchSharedContacts(String circleId) => _circles
+      .doc(circleId)
+      .collection('sharedContacts')
+      .where('sharePhone', isEqualTo: true)
+      .snapshots()
+      .map((snapshot) => [
+            for (final d in snapshot.docs)
+              if (SharedContact.tryFromMap(d.id, d.data()) != null)
+                SharedContact.tryFromMap(d.id, d.data())!,
+          ]);
+
+  Future<void> setPhoneSharing({
+    required String circleId,
+    required String uid,
+    required String? phone,
+    required bool share,
+  }) async {
+    final ref = _circles.doc(circleId).collection('sharedContacts').doc(uid);
+    if (!share) {
+      await ref.delete();
+      return;
+    }
+    final cleanPhone = phone?.trim() ?? '';
+    if (!RegExp(r'^[+][1-9][0-9]{6,14}$').hasMatch(cleanPhone)) {
+      throw ArgumentError('Save a valid international phone number before sharing it.');
+    }
+    await ref.set({
+      'uid': uid,
+      'phone': cleanPhone,
+      'sharePhone': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// Creates the circle, the owner's membership and the join code in one atomic batch.
   Future<String> createCircle({
     required String uid,
@@ -150,6 +185,8 @@ class CirclesRepository {
         'paused': false,
         'historyShared': false,
       });
+      // Joining does not inherit any stale contact-sharing consent.
+      batch.delete(circle.collection('sharedContacts').doc(uid));
       batch.set(circle.collection('activity').doc(),
           activityDoc(type: ActivityType.joined, actorUid: uid, actorName: displayName));
       await batch.commit();
@@ -201,6 +238,8 @@ class CirclesRepository {
       'historyShared': false,
     });
     batch.delete(circle.collection('joinRequests').doc(uid));
+    // Approval never restores a previous phone-sharing choice; rejoin requires fresh opt-in.
+    batch.delete(circle.collection('sharedContacts').doc(uid));
     batch.set(circle.collection('activity').doc(),
         activityDoc(type: ActivityType.joined, actorUid: uid, actorName: displayName));
     return batch.commit();
@@ -243,6 +282,7 @@ class CirclesRepository {
     }
     batch.delete(circle.collection('members').doc(uid));
     batch.delete(circle.collection('locations').doc(uid));
+    batch.delete(circle.collection('sharedContacts').doc(uid));
     batch.delete(circle.collection('arrivalPlans').doc(uid));
     return batch.commit();
   }
@@ -265,6 +305,7 @@ class CirclesRepository {
     }
     batch.delete(circle.collection('members').doc(memberUid));
     batch.delete(circle.collection('locations').doc(memberUid));
+    batch.delete(circle.collection('sharedContacts').doc(memberUid));
     batch.delete(circle.collection('arrivalPlans').doc(memberUid));
     return batch.commit();
   }
@@ -389,6 +430,7 @@ class CirclesRepository {
     final places = await circle.collection('places').get();
     final events = await circle.collection('placeEvents').get();
     final locations = await circle.collection('locations').get();
+    final sharedContacts = await circle.collection('sharedContacts').where('sharePhone', isEqualTo: true).get();
     final requests = await circle.collection('joinRequests').get();
     final arrivalPlans = await circle.collection('arrivalPlans').get();
     final circleSnap = await circle.get();
@@ -400,6 +442,7 @@ class CirclesRepository {
         for (final p in places.docs) circle.collection('placeSubscriptions').doc('${m.id}_${p.id}'),
       for (final d in places.docs) d.reference,
       for (final d in locations.docs) d.reference,
+      for (final d in sharedContacts.docs) d.reference,
       for (final d in arrivalPlans.docs) d.reference,
       for (final d in requests.docs) d.reference,
     ];

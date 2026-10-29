@@ -70,12 +70,45 @@ class ProfileRepository {
     required String uid,
     required String displayName,
     String? phone,
-  }) {
+  }) async {
     final cleanPhone = phone?.trim() ?? '';
-    return _doc(uid).update({
+
+    // Find only this user's memberships, then read only their own contact document in each circle.
+    // Shared contacts are updated in the same batch as the private phone value to avoid stale copies.
+    final memberships = await _db.collectionGroup('members').where('uid', isEqualTo: uid).get();
+    final sharedContactDocs = <DocumentSnapshot<Map<String, dynamic>>>[];
+    for (final membership in memberships.docs) {
+      final circleRef = membership.reference.parent.parent;
+      if (circleRef == null) continue;
+      try {
+        final shared = await circleRef.collection('sharedContacts').doc(uid).get();
+        if (shared.exists && shared.data()?['sharePhone'] == true) {
+          sharedContactDocs.add(shared);
+        }
+      } on FirebaseException catch (e) {
+        if (e.code != 'permission-denied') rethrow;
+      }
+    }
+    // The profile itself plus every shared copy must fit in one atomic Firestore batch.
+    if (sharedContactDocs.length >= 499) {
+      throw StateError('Too many shared contacts to update safely. Turn sharing off in some circles first.');
+    }
+    final batch = _db.batch();
+    batch.update(_doc(uid), {
       'displayName': displayName.trim(),
       'phone': cleanPhone.isEmpty ? FieldValue.delete() : cleanPhone,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    for (final contact in sharedContactDocs) {
+      if (cleanPhone.isEmpty) {
+        batch.delete(contact.reference);
+      } else {
+        batch.update(contact.reference, {
+          'phone': cleanPhone,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+    await batch.commit();
   }
 }
