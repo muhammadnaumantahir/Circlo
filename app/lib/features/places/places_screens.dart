@@ -172,7 +172,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
                 title: const Text('Expected arrival / No Show'),
                 subtitle: Text(
                   canScheduleArrival
-                      ? 'Set a deadline for your own arrival. Missed-arrival alerts are evaluated in Circlo while it is open and location sharing is active; phone push alerts are not available.'
+                      ? 'Set a deadline before travelling. Missed-arrival alerts are evaluated in Circlo while it is open and location sharing is active; phone push alerts are not available.'
                       : 'Turn on location sharing for this circle to schedule an expected arrival.',
                 ),
               ),
@@ -425,7 +425,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
     }
 
     final now = DateTime.now();
-    final lastDay = DateTime(now.year, now.month, now.day).add(const Duration(days: 30));
+    final lastDay = DateTime(now.year, now.month, now.day).add(const Duration(days: 29));
     final date = await showDatePicker(
       context: context,
       initialDate: now,
