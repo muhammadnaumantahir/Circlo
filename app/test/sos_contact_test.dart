@@ -26,15 +26,17 @@ void main() {
 
     expect(Uri.parse(uri.toString()).queryParameters['body'], message);
   });
-  test('recipient list excludes self and contacts no longer in this Circle', () {
+  test('recipient list excludes self, removed members, and malformed phone numbers', () {
     final sharedContacts = [
       const SharedContact(uid: 'self', phone: '+923001111111'),
       const SharedContact(uid: 'removed', phone: '+923002222222'),
+      const SharedContact(uid: 'bad', phone: 'not-a-phone'),
       const SharedContact(uid: 'zara', phone: '+923003333333'),
       const SharedContact(uid: 'amina', phone: '+923004444444'),
     ];
     final members = [
       const Member(uid: 'self', displayName: 'Me', role: 'member'),
+      const Member(uid: 'bad', displayName: 'Bad Contact', role: 'member'),
       const Member(uid: 'zara', displayName: 'Zara', role: 'member'),
       const Member(uid: 'amina', displayName: 'Amina', role: 'owner'),
     ];
