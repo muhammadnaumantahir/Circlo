@@ -5,7 +5,7 @@ import { before, after, beforeEach, describe, it } from 'node:test';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import {
   doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, collection, collectionGroup,
-  query, where, serverTimestamp, Timestamp, deleteField, deleteField,
+  query, where, serverTimestamp, Timestamp, deleteField,
 } from 'firebase/firestore';
 
 const CODE_A = 'ABCDEFGHJK'; // valid format (10 chars, unambiguous alphabet)
@@ -392,57 +392,6 @@ describe('live location sharing (circle-scoped)', () => {
     await assertFails(tooLong.commit());
 
     // Turning Bubble off also atomically removes the old coarse pin, after which precise writes work.
-    const stopBubble = writeBatch(db('bob'));
-    stopBubble.update(memberRef, { bubbleUntil: deleteField() });
-    stopBubble.delete(locationRef);
-    await assertSucceeds(stopBubble.commit());
-    await assertSucceeds(setDoc(locationRef, loc('bob')));
-  });
-
-  it('cannot enable Bubble without active, unpaused location sharing', async () => {
-    await seed({ bob: true });
-    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
-    await assertFails(updateDoc(memberRef, {
-      bubbleUntil: Timestamp.fromMillis(Date.now() + 60 * 60 * 1000),
-    }));
-  });
-
-  it('publishes coarse coordinates only while Bubble is active and restores precise sharing after opt-out', async () => {
-    await seed({ bob: true });
-    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
-    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
-    const locationRef = locRef(db('bob'), 'c1', 'bob');
-    const until = Timestamp.fromMillis(Date.now() + 4 * 60 * 60 * 1000);
-
-    await assertSucceeds(setDoc(locationRef, loc('bob')));
-
-    // Changing precision without deleting the previous exact location is denied.
-    await assertFails(updateDoc(memberRef, { bubbleUntil: until }));
-    const startBubble = writeBatch(db('bob'));
-    startBubble.update(memberRef, { bubbleUntil: until });
-    startBubble.delete(locationRef);
-    await assertSucceeds(startBubble.commit());
-
-    // Once the expiry is active, only a coarse point with a conservative accuracy floor is valid.
-    await assertFails(setDoc(locationRef, loc('bob')));
-    await assertFails(setDoc(locationRef, loc('bob', { approximate: true, accuracy: 1699 })));
-    await assertSucceeds(setDoc(locationRef, loc('bob', { approximate: true, accuracy: 1700 })));
-    await assertFails(setDoc(locationRef, loc('bob', { approximate: false })));
-    await assertSucceeds(getDoc(locRef(db('alice'), 'c1', 'bob')));
-
-    // Even an orphaned/legacy exact document is hidden by direct reads during Bubble mode.
-    await env.withSecurityRulesDisabled(async (ctx) => {
-      await setDoc(locRef(ctx.firestore(), 'c1', 'bob'), loc('bob'));
-    });
-    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
-
-    // A duration over the eight-hour limit must be rejected even when the location is cleared.
-    const tooLong = writeBatch(db('bob'));
-    tooLong.update(memberRef, { bubbleUntil: Timestamp.fromMillis(Date.now() + 9 * 60 * 60 * 1000) });
-    tooLong.delete(locationRef);
-    await assertFails(tooLong.commit());
-
-    // Turning Bubble off also atomically removes the old pin; precise writes then work again.
     const stopBubble = writeBatch(db('bob'));
     stopBubble.update(memberRef, { bubbleUntil: deleteField() });
     stopBubble.delete(locationRef);
