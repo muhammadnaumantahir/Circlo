@@ -148,7 +148,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/notifications/settings', builder: (_, __) => const NotificationSettingsScreen()),
       GoRoute(
         path: '/places/new',
-        builder: (_, state) => PlaceFormScreen(circleId: state.uri.queryParameters['circle'] ?? ''),
+        builder: (_, state) {
+          final query = state.uri.queryParameters;
+          final lat = double.tryParse(query['lat'] ?? '');
+          final lng = double.tryParse(query['lng'] ?? '');
+          final validPin = lat != null &&
+              lng != null &&
+              lat.isFinite &&
+              lng.isFinite &&
+              lat >= -90 &&
+              lat <= 90 &&
+              lng >= -180 &&
+              lng <= 180;
+          return PlaceFormScreen(
+            circleId: query['circle'] ?? '',
+            initialLat: validPin ? lat : null,
+            initialLng: validPin ? lng : null,
+            initialName: validPin ? query['name'] : null,
+          );
+        },
       ),
       GoRoute(
         path: '/places/:circleId/:placeId',
