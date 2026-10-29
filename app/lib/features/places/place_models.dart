@@ -170,7 +170,7 @@ class ArrivalPlan {
     final status = d['status'];
     final rawCreated = d['createdAt'];
     final rawArrived = d['arrivedAt'];
-    if (memberUid is! String || memberUid.trim().isEmpty) return null;
+    if (memberUid is! String || memberUid.trim().isEmpty || id != memberUid) return null;
     if (placeId is! String || placeId.trim().isEmpty) return null;
     if (rawExpected is! Timestamp) return null;
     if (status != 'pending' && status != 'arrived') return null;
