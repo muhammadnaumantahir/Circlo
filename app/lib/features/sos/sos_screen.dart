@@ -62,12 +62,11 @@ Widget _circleContactSection({
           ),
           data: (members) {
             final memberByUid = {for (final member in members) member.uid: member};
-            final available = contacts
-                .where((contact) => contact.uid != currentUid && memberByUid.containsKey(contact.uid))
-                .toList()
-              ..sort((a, b) => memberByUid[a.uid]!.displayName
-                  .toLowerCase()
-                  .compareTo(memberByUid[b.uid]!.displayName.toLowerCase()));
+            final available = sosContactRecipients(
+              sharedContacts: contacts,
+              circleMembers: members,
+              currentUid: currentUid,
+            );
 
             if (available.isEmpty) {
               return const Card(
