@@ -47,19 +47,30 @@ void main() {
     expect(message, contains('www.google.com/maps/search/'));
   });
 
-  test('does not include coordinates when location sharing is paused or stopped', () {
-    for (final active in [false, true]) {
-      final message = buildSosMessage(
-        displayName: 'Nauman',
-        sharingActive: active,
-        location: location(updatedAt: now.subtract(const Duration(hours: 1))),
-        now: now,
-      );
+  test('does not include coordinates when sharing is paused or stopped, even if a fix is fresh', () {
+    final message = buildSosMessage(
+      displayName: 'Nauman',
+      sharingActive: false,
+      location: location(),
+      now: now,
+    );
 
-      expect(message, contains('does not have a fresh shared location'));
-      expect(message, isNot(contains('www.google.com/maps/search/')));
-      expect(message, isNot(contains('31.5204')));
-    }
+    expect(message, contains('does not have a fresh shared location'));
+    expect(message, isNot(contains('www.google.com/maps/search/')));
+    expect(message, isNot(contains('31.5204')));
+  });
+
+  test('does not include a stale location', () {
+    final message = buildSosMessage(
+      displayName: 'Nauman',
+      sharingActive: true,
+      location: location(updatedAt: now.subtract(const Duration(hours: 1))),
+      now: now,
+    );
+
+    expect(message, contains('does not have a fresh shared location'));
+    expect(message, isNot(contains('www.google.com/maps/search/')));
+    expect(message, isNot(contains('31.5204')));
   });
 
   test('does not include stale or implausibly future-dated coordinates', () {
