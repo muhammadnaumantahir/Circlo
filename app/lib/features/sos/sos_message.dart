@@ -3,9 +3,10 @@ import '../location/sharing_status.dart';
 
 /// Returns whether an SOS may safely include the last shared location.
 ///
-/// Sharing must be active and the saved fix must be recent and not materially
-/// future-dated. Keep the screen's status label and outgoing message on this
-/// shared predicate so they cannot disagree.
+/// Sharing must be active, the coordinates/accuracy must be valid, and the
+/// saved fix must be recent and not materially future-dated. Keep the screen's
+/// status label and outgoing message on this shared predicate so they cannot
+/// disagree.
 bool hasFreshSosLocation({
   required bool sharingActive,
   required MemberLocation? location,
@@ -14,14 +15,19 @@ bool hasFreshSosLocation({
   final updatedAt = location?.updatedAt;
   return sharingActive &&
       location != null &&
+      isValidLocationSample(
+        lat: location.lat,
+        lng: location.lng,
+        accuracy: location.accuracy,
+      ) &&
       updatedAt != null &&
       isLocationFixFresh(capturedAt: updatedAt, now: now);
 }
 
 /// Builds a user-reviewed SOS message without inventing a current location.
 ///
-/// A location is included only when location sharing is active and the last
-/// shared fix is fresh. Approximate/Bubble pins are always explicitly labelled.
+/// A location is included only when sharing is active and the last shared fix
+/// is fresh and has valid coordinates. Approximate/Bubble pins are labelled.
 String buildSosMessage({
   required String displayName,
   required bool sharingActive,
