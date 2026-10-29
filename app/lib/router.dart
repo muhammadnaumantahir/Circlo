@@ -19,6 +19,18 @@ import 'providers.dart';
 
 const _publicRoutes = {'/login', '/signup', '/reset'};
 const _authOnlyRoutes = {'/splash', '/verify-email', '/profile-setup'};
+const _circleRequiredRoutes = {
+  '/map',
+  '/places',
+  '/history',
+  '/sharing',
+  '/history/settings',
+  '/notifications',
+  '/notifications/settings',
+};
+
+bool _requiresCircle(String location) =>
+    _circleRequiredRoutes.contains(location) || location.startsWith('/places/');
 
 String? _safeInternalRedirect(String? value) {
   if (value == null || !value.startsWith('/') || value.startsWith('//')) return null;
@@ -37,6 +49,8 @@ class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
     _ref.listen(authStateProvider, (_, __) => notifyListeners());
     _ref.listen(profileProvider, (_, __) => notifyListeners());
+    // Refresh route gating as soon as circle membership becomes available or changes.
+    _ref.listen(myCirclesProvider, (_, __) => notifyListeners());
   }
   final Ref _ref;
 
@@ -81,6 +95,18 @@ class _RouterNotifier extends ChangeNotifier {
       if (loc == '/profile-setup') return null;
       return _routeWithRedirect('/profile-setup', requestedLocation);
     }
+
+    // Life360-style onboarding: first create or join a Circle. Hide/gate circle-dependent
+    // surfaces until membership exists; on query failures, keep the user on one recovery screen
+    // instead of repeating the same Retry card across every tab.
+    if (_requiresCircle(loc)) {
+      final circles = _ref.read(myCirclesProvider);
+      if (circles.hasError ||
+          (circles.hasValue && (circles.valueOrNull?.isEmpty ?? true))) {
+        return '/circles';
+      }
+    }
+
     if (_publicRoutes.contains(loc) || _authOnlyRoutes.contains(loc)) {
       return requestedLocation ?? '/map';
     }
