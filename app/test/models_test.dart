@@ -1,4 +1,5 @@
 import 'package:circlo/features/circles/circle_models.dart';
+import 'package:circlo/features/location/approximate_location.dart';
 import 'package:circlo/features/location/location_models.dart';
 import 'package:circlo/features/places/place_models.dart';
 import 'package:circlo/features/profile/profile_models.dart';
@@ -39,6 +40,24 @@ void main() {
       expect(location.lng, 74.35);
       expect(location.accuracy, 0);
       expect(location.batteryLevel, isNull);
+      expect(location.approximate, isFalse);
+    });
+
+    test('parses an explicit approximate-location flag', () {
+      final approximate = MemberLocation.tryFromMap('u1', {
+        'lat': 31.52,
+        'lng': 74.36,
+        'accuracy': kApproximateAccuracyFloorM,
+        'approximate': true,
+      });
+      expect(approximate, isNotNull);
+      expect(approximate!.approximate, isTrue);
+      expect(approximate.accuracy, kApproximateAccuracyFloorM);
+
+      final precise = MemberLocation.tryFromMap('u1', {
+        'lat': 31.52, 'lng': 74.36, 'approximate': false,
+      });
+      expect(precise!.approximate, isFalse);
     });
 
     test('accepts only valid integer battery percentages', () {
@@ -101,11 +120,13 @@ void main() {
   group('MyMembership.fromMap', () {
     test('reads sharing switches and a valid pause timestamp', () {
       final until = DateTime(2026, 10, 30, 12);
+      final bubbleUntil = until.add(const Duration(hours: 2));
       final membership = MyMembership.fromMap('c1', {
         'sharesLocation': true,
         'paused': true,
         'historyShared': true,
         'pausedUntil': Timestamp.fromDate(until),
+        'bubbleUntil': Timestamp.fromDate(bubbleUntil),
       });
       expect(membership.circleId, 'c1');
       expect(membership.sharesLocation, isTrue);
@@ -115,6 +136,10 @@ void main() {
       expect(MyMembership.fromMap('c2', {'shareBattery': true}).shareBattery, isTrue);
       expect(MyMembership.fromMap('c3', {'shareBattery': 'yes'}).shareBattery, isFalse);
       expect(membership.pausedUntil, until);
+      expect(membership.bubbleUntil, bubbleUntil);
+      expect(membership.isApproximateAt(until), isTrue);
+      expect(membership.isApproximateAt(bubbleUntil), isFalse);
+      expect(MyMembership.fromMap('c4', {'bubbleUntil': 'invalid'}).bubbleUntil, isNull);
       expect(membership.isActive, isFalse);
     });
 
