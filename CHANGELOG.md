@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- Add per-circle phone-sharing consent and Call/Text shortcuts in circle member cards and map details. Private profiles remain owner-only; shared copies are synchronized and removed when consent or membership ends.
 - Add optional Automatic Place Suggestions from the user's own private Travel History: local on-device clustering of unlabeled stops seen on at least three different days, with explicit opt-in, retention-window bounds, dismissible cards, and a review step before saving into a circle. No coordinates are uploaded by the suggestion engine itself.
 
 ### Added
