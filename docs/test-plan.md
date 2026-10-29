@@ -6,6 +6,7 @@ Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are ma
 |---|---|---|---|---|
 | FR-001–003 | Sign-up/log-in/reset flows | manual with Firebase project/emulator | `flutter run` | Not run |
 | FR-001, FR-002 | Login form validation | `app/test/login_screen_test.dart` | `flutter test` | Not run (CI) |
+| Contact sharing | Per-circle opt-in, member-scoped reads, private-profile isolation, atomic phone updates, cleanup on leave/removal/account deletion and Call/Text handler behavior | `app/test/models_test.dart`; `firebase/tests/rules.test.mjs`; manual Android/iOS/web | `cd app && flutter test test/models_test.dart`; `cd firebase && npm test` | Added on 2026-10-29; Not run here |
 | FR-004, FR-102 | Validators: name, phone, email, password, birth year, min age 13 | `app/test/validators_test.dart` | `flutter test` | Not run (CI) |
 | FR-011, NFR-011 | Join-code generation/format | `app/test/join_code_test.dart` | `flutter test` | Not run (CI) |
 | FR-012 | Web invite code prefill and manual join-code entry | `app/test/circle_invite_test.dart` | `cd app && flutter test test/circle_invite_test.dart` | Added on 2026-10-28; Not run here |
