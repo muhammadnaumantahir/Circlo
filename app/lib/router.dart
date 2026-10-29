@@ -148,7 +148,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/notifications/settings', builder: (_, __) => const NotificationSettingsScreen()),
       GoRoute(
         path: '/places/new',
-        builder: (_, state) => PlaceFormScreen(circleId: state.uri.queryParameters['circle'] ?? ''),
+        builder: (_, state) => PlaceFormScreen(
+          circleId: state.uri.queryParameters['circle'] ?? '',
+          initialLat: double.tryParse(state.uri.queryParameters['lat'] ?? ''),
+          initialLng: double.tryParse(state.uri.queryParameters['lng'] ?? ''),
+          initialName: state.uri.queryParameters['name'],
+          isSuggested: state.uri.queryParameters['suggestion'] == 'true',
+        ),
       ),
       GoRoute(
         path: '/places/:circleId/:placeId',
