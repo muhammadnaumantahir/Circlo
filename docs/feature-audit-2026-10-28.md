@@ -1,6 +1,6 @@
 # Circlo Feature Audit — updated 2026-10-29
 
-This audit reflects a static review of the current Flutter source and project requirements. **“Implemented in code” does not mean tested, production-ready, or reliable in the background.** Flutter/Dart and the Firebase Emulator were not available in the authoring environment, and no real-device runs were performed.
+Use [feature-status.md](feature-status.md) as the canonical feature checklist and cross-chat handover. This audit reflects a static review of the current Flutter source and project requirements. **“Implemented in code” does not mean tested, production-ready, or reliable in the background.** Flutter/Dart and the Firebase Emulator were not available in the authoring environment, and no real-device runs were performed.
 
 ## What exists in the code
 
