@@ -181,13 +181,30 @@ service cloud.firestore {
           && get(memberPath(cid, memberUid)).data.get('paused', false) == false;
       }
 
+      // True only while the circle member's temporary approximate-location consent is unexpired.
+      function bubbleIsActive(memberUid) {
+        return exists(memberPath(cid, memberUid))
+          && get(memberPath(cid, memberUid)).data.get('bubbleUntil', request.time) is timestamp
+          && get(memberPath(cid, memberUid)).data.get('bubbleUntil', request.time) > request.time;
+      }
+
+      function locationPrecisionMatches(d, memberUid) {
+        return (bubbleIsActive(memberUid)
+            && d.get('approximate', false) == true
+            && d.accuracy >= 1700)
+          || (!bubbleIsActive(memberUid)
+            && d.get('approximate', false) == false);
+      }
+
       // ---- Circle-scoped live location projection (Increment 2) ----
       // One document per (circle, sharing member). The owner of the location writes it only while
       // sharing is ON and NOT paused for that exact circle; the app deletes it atomically when sharing
       // is switched off/paused/left, so viewers never keep seeing stale data after revocation.
       function validLocation(d, memberUid) {
-        return d.keys().hasOnly(['uid', 'lat', 'lng', 'accuracy', 'sharing', 'updatedAt', 'batteryLevel'])
+        return d.keys().hasOnly(['uid', 'lat', 'lng', 'accuracy', 'sharing', 'updatedAt', 'batteryLevel', 'approximate'])
           && d.keys().hasAll(['uid', 'lat', 'lng', 'accuracy', 'sharing', 'updatedAt'])
+          && (!('approximate' in d) || d.approximate is bool)
+          && locationPrecisionMatches(d, memberUid)
           && d.uid == memberUid
           && d.sharing == true
           && d.lat is number && d.lat >= -90 && d.lat <= 90
@@ -204,6 +221,7 @@ service cloud.firestore {
         // Direct reads re-check the member's current consent, even if an old document is left behind.
         allow get: if isMember(cid)
           && resource.data.get('sharing', false) == true
+          && locationPrecisionMatches(resource.data, uid)
           && canSeeLocation(uid);
         // The client queries only sharing=true documents. The member-update rules below enforce
         // atomic deletion when sharing is paused/off, so inactive members cannot retain new documents.
@@ -511,7 +529,7 @@ service cloud.firestore {
           && validMemberCreate(request.resource.data, cid, uid);
         // A member may only change their own display name and their own sharing switches.
         allow update: if signedIn() && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'sharesLocation', 'paused', 'historyShared', 'pausedUntil', 'shareBattery'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'sharesLocation', 'paused', 'historyShared', 'pausedUntil', 'shareBattery', 'bubbleUntil'])
           && nameOk(request.resource.data.displayName, 50)
           && request.resource.data.get('sharesLocation', false) is bool
           && request.resource.data.get('paused', false) is bool
@@ -521,6 +539,15 @@ service cloud.firestore {
           && (request.resource.data.get('sharesLocation', false) == true
               || request.resource.data.get('shareBattery', false) == false)
           && (!('pausedUntil' in request.resource.data) || request.resource.data.pausedUntil is timestamp)
+          // Bubble is optional, time-limited to eight hours and only valid while location sharing is active.
+          && (!('bubbleUntil' in request.resource.data)
+              || (request.resource.data.bubbleUntil is timestamp
+                  && request.resource.data.bubbleUntil > request.time
+                  && request.resource.data.bubbleUntil <= request.time + duration.value(8, 'h')
+                  && request.resource.data.get('sharesLocation', false) == true
+                  && request.resource.data.get('paused', false) == false))
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['bubbleUntil'])
+              || !existsAfter(locationPath(cid, uid)))
           // Turning battery consent on requires active, unpaused location sharing. Turning it off
           // requires the location projection to be deleted or have the battery field removed.
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shareBattery'])
