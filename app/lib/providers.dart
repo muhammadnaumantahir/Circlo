@@ -238,6 +238,7 @@ final placeSuggestionsProvider = FutureProvider.autoDispose.family<List<PlaceSug
   return findPlaceSuggestions(
     tracks: tracks.whereType<DayTrack>(),
     savedPlaces: places,
+    limit: 3,
   );
 });
 
