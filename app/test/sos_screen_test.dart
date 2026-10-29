@@ -107,7 +107,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Location sharing is off, paused, or not yet confirmed for this Circle'), findsOneWidget);
+    expect(find.text('Location sharing is off for this Circle. No coordinates will be included. Turn it on and wait for a fresh fix to include your location.'), findsOneWidget);
+    final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(preview, isNot(contains('www.google.com/maps/search/')));
+  });
+
+  testWidgets('paused sharing omits a fresh location and explains how to resume', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        locationUpdatedAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        sharingActive: true,
+        paused: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Location sharing is paused for this Circle. No coordinates will be included. Resume sharing and wait for a fresh fix to include your location.'), findsOneWidget);
     final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
     expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
