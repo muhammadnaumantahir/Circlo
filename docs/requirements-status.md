@@ -6,6 +6,7 @@ Legend: **Written** = code exists in the repo but has **never been compiled or r
 |---|---|---|
 | FR-001–003 | Written | Email/password sign-up, log-in/out, reset |
 | FR-004 | Partial | Name and phone done; **profile picture not built** (Cloud Storage needs billing; initials shown) |
+| Contact sharing | Written; tests not run | A member may share their phone separately with each circle; private user profiles remain unreadable to other members; member cards show Call/Text only for explicitly shared numbers. Phone changes sync shared copies atomically; leave/removal/account deletion revoke the circle copy. |
 | FR-005 | Written | Permission status + shortcut to OS settings on the Location sharing screen |
 | FR-006 | Written (best-effort) | Client-side deletion with re-authentication; cannot guarantee completeness (see risks) |
 | FR-007 | Written | Verify-email gate in the app and in the rules |
