@@ -14,6 +14,7 @@ class MemberLocation {
     required this.accuracy,
     required this.updatedAt,
     this.batteryLevel,
+    this.approximate = false,
   });
 
   final String uid;
@@ -23,6 +24,8 @@ class MemberLocation {
   final DateTime? updatedAt; // null while the server timestamp is still pending
   /// Last battery percentage shared with this circle. Null when not opted in or unavailable.
   final int? batteryLevel;
+  /// True when this is a coarse grid point, not the member's precise GPS coordinates.
+  final bool approximate;
 
   /// Returns null for malformed or out-of-range coordinates instead of letting
   /// one bad Firestore document break the entire live-location stream.
@@ -55,6 +58,7 @@ class MemberLocation {
       accuracy: accuracy,
       updatedAt: rawUpdatedAt is Timestamp ? rawUpdatedAt.toDate() : null,
       batteryLevel: batteryLevel,
+      approximate: data['approximate'] == true,
     );
   }
 
@@ -75,6 +79,7 @@ class MyMembership {
     required this.paused,
     this.historyShared = false,
     this.shareBattery = false,
+    this.bubbleUntil,
     this.pausedUntil,
   });
 
@@ -83,17 +88,26 @@ class MyMembership {
   final bool paused;
   final bool historyShared;
   final bool shareBattery; // independent per-circle consent; off by default
-  final DateTime? pausedUntil; // timed pause: resume automatically after this moment
+  /// Expiry of temporary coarse map sharing for this circle. Null means precise sharing.
+  final DateTime? bubbleUntil;
+  final DateTime? pausedUntil;
+
+  bool isApproximateAt(DateTime now) => bubbleUntil?.isAfter(now) ?? false;
+
+  bool get isApproximate => isApproximateAt(DateTime.now()); // timed pause: resume automatically after this moment
 
   /// Builds membership state without trusting the Firestore field types.
   factory MyMembership.fromMap(String circleId, Map<String, dynamic> data) {
     final rawPausedUntil = data['pausedUntil'];
+    final rawBubbleUntil = data['bubbleUntil'];
     return MyMembership(
       circleId: circleId,
       sharesLocation: data['sharesLocation'] == true,
       paused: data['paused'] == true,
       historyShared: data['historyShared'] == true,
       shareBattery: data['shareBattery'] == true,
+      // A malformed optional timestamp fails closed: it does not enable approximate mode.
+      bubbleUntil: rawBubbleUntil is Timestamp ? rawBubbleUntil.toDate() : null,
       // A malformed optional timestamp should not terminate the whole memberships stream.
       pausedUntil: rawPausedUntil is Timestamp ? rawPausedUntil.toDate() : null,
     );
