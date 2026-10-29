@@ -463,7 +463,7 @@ service cloud.firestore {
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sharesLocation', 'paused'])
               || (request.resource.data.get('sharesLocation', false) == true
                   && request.resource.data.get('paused', false) == false)
-              || (!existsAfter(locationPath(cid, uid)) && !existsAfter(arrivalPlanPath(cid, uid)));
+              || (!existsAfter(locationPath(cid, uid)) && !existsAfter(arrivalPlanPath(cid, uid))));
         // Role flips happen only as part of an ownership transfer batch (circle.ownerUid changes too).
         allow update: if signedIn() && isOwner(cid)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
