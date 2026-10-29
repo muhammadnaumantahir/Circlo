@@ -562,12 +562,17 @@ describe('scheduled arrival / No Show plans', () => {
     if (saved.data()?.placeId !== 'p2') throw new Error('rescheduled plan should target the new place');
   });
 
-  it('lets the creator remove expected-arrival plans when deleting their place', async () => {
+  it('lets a non-owner place creator remove a different member\'s arrival plan', async () => {
     await seed({ bob: true });
-    await seedExpectedPlace();
-    await assertSucceeds(shareOn('bob'));
-    await assertSucceeds(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
-    await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/arrivalPlans/bob'))); // Alice created p1; Bob owns the plan.
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles/c1/places/p1'), {
+        name: 'School', lat: 31.5, lng: 74.3, radiusM: 150,
+        createdBy: 'bob', createdAt: Timestamp.now(),
+      });
+    });
+    await assertSucceeds(shareOn('alice'));
+    await assertSucceeds(setDoc(ref('alice'), plan('alice', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
+    await assertSucceeds(deleteDoc(doc(db('bob'), 'circles/c1/arrivalPlans/alice')));
   });
 
   it('requires a plan to be cleared atomically when sharing stops or pauses', async () => {
