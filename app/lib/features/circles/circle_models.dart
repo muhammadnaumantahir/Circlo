@@ -24,6 +24,21 @@ class Circle {
       );
 }
 
+/// A phone number the member explicitly shares with this circle.
+class SharedContact {
+  const SharedContact({required this.uid, required this.phone});
+
+  final String uid;
+  final String phone;
+
+  static SharedContact? tryFromMap(String uid, Map<String, dynamic> data) {
+    final phone = data['phone'];
+    if (data['uid'] != uid || data['sharePhone'] != true || phone is! String) return null;
+    if (!RegExp(r'^[+][1-9][0-9]{6,14}$').hasMatch(phone)) return null;
+    return SharedContact(uid: uid, phone: phone);
+  }
+}
+
 class Member {
   const Member({
     required this.uid,
