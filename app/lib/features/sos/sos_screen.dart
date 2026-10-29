@@ -8,7 +8,7 @@ import '../../core/widgets.dart';
 import '../../providers.dart';
 import '../circles/circle_models.dart';
 import '../location/location_models.dart';
-import '../location/sharing_status.dart';
+
 import 'sos_contact.dart';
 import 'sos_message.dart';
 
@@ -228,10 +228,11 @@ class SosScreen extends ConsumerWidget {
             location: ownLocation,
             now: now,
           );
-          final updatedAt = ownLocation?.updatedAt;
-          final hasFreshLocation = sharingActive &&
-              updatedAt != null &&
-              isLocationFixFresh(capturedAt: updatedAt, now: now);
+          final hasFreshLocation = hasFreshSosLocation(
+            sharingActive: sharingActive,
+            location: ownLocation,
+            now: now,
+          );
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
