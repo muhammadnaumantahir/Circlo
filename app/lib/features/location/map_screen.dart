@@ -15,6 +15,7 @@ import '../circles/activity.dart';
 import '../circles/circle_models.dart';
 import '../places/notifications_screen.dart';
 import '../places/place_models.dart';
+import 'approximate_location.dart';
 import 'battery_status.dart';
 import 'directions.dart';
 import 'location_models.dart';
@@ -501,6 +502,10 @@ class _MapBodyState extends ConsumerState<_MapBody> {
       for (final v in visibleViews)
         if (v.status == ShareStatus.sharing && isLowBattery(v.location?.batteryLevel)) v,
     ];
+    final myMemberships = ref.watch(myMembershipsProvider).valueOrNull ?? const <MyMembership>[];
+    final selectedMembership = myMemberships.where((m) => m.circleId == circle.id).firstOrNull;
+    final bubbleUntil = selectedMembership?.bubbleUntil;
+    final bubbleActive = selectedMembership?.isApproximateAt(now) ?? false;
 
     // Fit the camera once per circle as soon as there is something to show.
     if (points.isNotEmpty && fittedFor != circle.id) {
@@ -516,6 +521,25 @@ class _MapBodyState extends ConsumerState<_MapBody> {
       children: [
         _Header(circles: circles, selected: circle),
         _buildPeopleSearchFilters(context, views),
+        if (bubbleActive && bubbleUntil != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: Card(
+              margin: EdgeInsets.zero,
+              color: Theme.of(context).colorScheme.tertiaryContainer.withValues(alpha: .45),
+              child: ListTile(
+                leading: Icon(Icons.blur_on_rounded, color: Theme.of(context).colorScheme.onTertiaryContainer),
+                title: const Text('Approximate Location is on'),
+                subtitle: Text(
+                  'This circle sees a coarse grid pin (~1–1.6 km), not precise GPS. Expires at ${_formatDateTime(bubbleUntil)}. Other sharing features may still reveal visits.',
+                ),
+                trailing: TextButton(
+                  onPressed: () => _turnOffBubble(context, circle),
+                  child: const Text('Turn off'),
+                ),
+              ),
+            ),
+          ),
         if (lowBatteryViews.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -751,6 +775,20 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                   borderStrokeWidth: 2,
                 ),
             ]),
+            CircleLayer(circles: [
+              for (final v in located)
+                if (v.location!.approximate)
+                  CircleMarker(
+                    point: LatLng(v.location!.lat, v.location!.lng),
+                    radius: v.location!.accuracy < kApproximateAccuracyFloorM
+                        ? kApproximateAccuracyFloorM
+                        : v.location!.accuracy,
+                    useRadiusInMeter: true,
+                    color: Theme.of(context).colorScheme.tertiary.withValues(alpha: .10),
+                    borderColor: Theme.of(context).colorScheme.tertiary.withValues(alpha: .8),
+                    borderStrokeWidth: 2,
+                  ),
+            ]),
             MarkerLayer(markers: [
               for (final p in places)
                 Marker(
@@ -770,11 +808,12 @@ class _MapBodyState extends ConsumerState<_MapBody> {
               for (final v in located)
                 Marker(
                   point: LatLng(v.location!.lat, v.location!.lng),
-                  width: 116,
-                  height: 78,
+                  width: 124,
+                  height: v.location!.approximate ? 94 : 78,
                   child: Semantics(
                     button: true,
-                    label: '${v.member.displayName}, ${statusLabel(v.status)}. Open member details.',
+                    label: '${v.member.displayName}, ${statusLabel(v.status)}'
+                        '${v.location!.approximate ? ', approximate grid pin roughly 1–1.6 km' : ''}. Open member details.',
                     onTap: () => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid], sharedPhone: sharedPhones[v.member.uid]),
                     child: GestureDetector(
                       onTap: () => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid], sharedPhone: sharedPhones[v.member.uid]),
@@ -783,6 +822,25 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                         children: [
                           _Avatar(name: v.member.displayName, color: _statusColor(context, v.status), size: 42),
                           const SizedBox(height: 3),
+                          if (v.location!.approximate)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.tertiaryContainer,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'Approximate',
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.onTertiaryContainer,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
+                            ),
                           Container(
                             constraints: const BoxConstraints(maxWidth: 112),
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -927,6 +985,19 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                     Flexible(child: Text('${statusLabel(v.status)}$ago')),
                   ],
                 ),
+                if (v.location?.approximate == true)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      children: [
+                        Icon(Icons.blur_on_rounded, size: 15, color: Theme.of(context).colorScheme.tertiary),
+                        const SizedBox(width: 5),
+                        const Expanded(
+                          child: Text('Approximate grid pin · roughly 1–1.6 km from device coordinates'),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (checkIn?.occurredAt != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
@@ -981,7 +1052,26 @@ class _MapBodyState extends ConsumerState<_MapBody> {
     );
   }
 
+  Future<void> _turnOffBubble(BuildContext context, Circle circle) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    try {
+      await ref.read(locationRepositoryProvider).setApproximateLocation(
+            uid: uid,
+            circleId: circle.id,
+            until: null,
+          );
+      if (mounted) showSnack(context, 'Approximate Location turned off for ${circle.name}. Precise sharing resumes with the next GPS update.');
+    } catch (_) {
+      if (mounted) showSnack(context, 'Could not change Approximate Location. Check your connection and try again.');
+    }
+  }
+
   Future<void> _openDirections(BuildContext context, MemberLocation location) async {
+    if (location.approximate) {
+      showSnack(context, 'Directions are unavailable for an approximate map pin. Turn off Bubble to share the precise destination.');
+      return;
+    }
     final mode = await showModalBottomSheet<TravelMode>(
       context: context,
       showDragHandle: true,
@@ -1263,15 +1353,30 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                             ],
                           ),
                           const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Icon(Icons.gps_fixed_rounded, color: scheme.primary, size: 19),
-                              const SizedBox(width: 9),
-                              Expanded(
-                                child: Text('Estimated GPS accuracy ±${loc.accuracy.round()} m', style: Theme.of(ctx).textTheme.bodyMedium),
-                              ),
-                            ],
-                          ),
+                          if (loc.approximate)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.blur_on_rounded, color: scheme.tertiary, size: 19),
+                                const SizedBox(width: 9),
+                                Expanded(
+                                  child: Text(
+                                    'Approximate grid pin · roughly 1–1.6 km from the device. Precise GPS coordinates are not shared with this circle while Bubble is active.',
+                                    style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Row(
+                              children: [
+                                Icon(Icons.gps_fixed_rounded, color: scheme.primary, size: 19),
+                                const SizedBox(width: 9),
+                                Expanded(
+                                  child: Text('Estimated GPS accuracy ±${loc.accuracy.round()} m', style: Theme.of(ctx).textTheme.bodyMedium),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
@@ -1284,19 +1389,26 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                         ),
                       ),
                     const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () => _openDirections(ctx, loc),
-                        icon: const Icon(Icons.directions_rounded),
-                        label: const Text('Directions & ETA'),
+                    if (loc.approximate)
+                      Text(
+                        'Directions & ETA are disabled for an approximate pin to avoid misleading navigation. The member may turn off Bubble to share a precise destination.',
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                      )
+                    else ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () => _openDirections(ctx, loc),
+                          icon: const Icon(Icons.directions_rounded),
+                          label: const Text('Directions & ETA'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Choose a travel mode. Google Maps calculates the route and ETA outside Circlo.',
-                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-                    ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Choose a travel mode. Google Maps calculates the route and ETA outside Circlo.',
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ],
                   ],
                 ],
               ),
