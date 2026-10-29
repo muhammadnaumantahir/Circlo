@@ -105,7 +105,7 @@ List<PlaceSuggestion> buildPlaceSuggestions({
     // Day keys are expected to be local-calendar yyyymmdd. Ignore malformed legacy records
     // rather than letting them count as distinct visits/days in a suggestion.
     final day = track.day;
-    if (!RegExp(r'^\\d{8}
+    if (day.length != 8 || day.codeUnits.any((code) => code < 48 || code > 57)) continue;
       if ((visit.placeId ?? '').trim().isNotEmpty) continue;
       if (!visit.lat.isFinite || !visit.lng.isFinite ||
           visit.lat < -90 || visit.lat > 90 || visit.lng < -180 || visit.lng > 180) {
