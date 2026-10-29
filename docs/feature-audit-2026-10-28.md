@@ -18,7 +18,7 @@ This audit reflects a static review of the current Flutter source and project re
 
 ## Improvements made on the current UI branch
 
-- Added a Circle-first start flow inspired by Life360's create-or-join onboarding: new users see one focused setup screen, circle-dependent tabs stay hidden until membership exists, and Circle details provide an Open map action. When the circle-list query fails, feature routes return to a single Circles recovery screen rather than repeating Retry states across tabs. This is a source change; automated checks are not run yet.
+- Added a Circle-first start flow inspired by Life360's create-or-join onboarding: new users see one focused setup screen, circle-dependent tabs stay hidden until membership exists, successful joins open the selected circle's map, and Circle details provide an Open map action. When the initial circle-list query fails before any membership data is available, feature routes return to a single Circles recovery screen rather than repeating Retry states across tabs. This is a source change; automated checks are not run yet.
 
 - Added a consistent light/dark theme, reusable empty-state presentation, polished circle/place cards, and responsive desktop navigation.
 - Added Firebase-backed Google Sign-In entry points on login and sign-up, with web popup and native ID-token flows. Google users retain the age-gate/profile-setup requirement, and destructive account deletion reauthenticates Google users.
