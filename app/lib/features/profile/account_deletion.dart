@@ -102,6 +102,7 @@ class AccountDeletionService {
       // cannot be removed while their live-location projection remains.
       final revoke = _db.batch();
       revoke.delete(circleRef.collection('locations').doc(uid));
+      revoke.delete(circleRef.collection('sharedContacts').doc(uid));
       revoke.delete(m.reference);
       await revoke.commit();
     }
