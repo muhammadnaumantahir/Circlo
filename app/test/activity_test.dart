@@ -3,6 +3,33 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('quick emoji notes', () {
+    test('uses only the curated one-tap messages', () {
+      expect(kQuickNotes['❤️'], 'Love you');
+      expect(kQuickNotes['🚗'], 'On the road');
+      expect(kQuickNotes.length, 8);
+    });
+
+    test('parses a quick note as a message rather than a location check-in', () {
+      final event = ActivityEvent.fromMap('circle-1', 'note-1', {
+        'type': 'quick_note',
+        'actorUid': 'member-1',
+        'actorName': 'Sam',
+        'quickNoteEmoji': '❤️',
+        'quickNoteText': 'Love you',
+        'occurredAt': Timestamp.fromDate(DateTime(2026, 10, 29, 12)),
+      });
+
+      expect(event, isNotNull);
+      expect(event!.type, ActivityType.quickNote);
+      expect(event.text, 'Sam sent a quick note: ❤️ Love you');
+      expect(event.quickNoteEmoji, '❤️');
+      expect(event.quickNoteText, 'Love you');
+      expect(event.checkInStatus, isNull);
+      expect(event.checkInPlaceName, isNull);
+    });
+  });
+
   group('manual member check-ins', () {
     test('supports the four user-selected statuses', () {
       expect(kCheckInStatuses.keys, [
