@@ -107,7 +107,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Location sharing is off or paused for this Circle'), findsOneWidget);
+    expect(find.textContaining('Location sharing is off, paused, or not yet confirmed for this Circle'), findsOneWidget);
     final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
     expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
