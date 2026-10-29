@@ -58,6 +58,9 @@ void main() {
         'lat': 31.52, 'lng': 74.36, 'approximate': false,
       });
       expect(precise!.approximate, isFalse);
+      expect(MemberLocation.tryFromMap('u1', {
+        'lat': 31.52, 'lng': 74.36, 'approximate': 'yes',
+      }), isNull);
     });
 
     test('accepts only valid integer battery percentages', () {
