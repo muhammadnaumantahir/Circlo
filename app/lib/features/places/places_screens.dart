@@ -131,6 +131,11 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
             onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
           ),
         ),
+        _AutoPlaceSuggestions(
+          circleId: circle.id,
+          circleName: circle.name,
+          placeCount: count,
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Row(
@@ -386,6 +391,164 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
       return;
     }
     context.push('/places/new?circle=' + widget.circle.id);
+  }
+}
+
+class _AutoPlaceSuggestions extends ConsumerWidget {
+  const _AutoPlaceSuggestions({
+    required this.circleId,
+    required this.circleName,
+    required this.placeCount,
+  });
+
+  final String circleId;
+  final String circleName;
+  final int placeCount;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(profileProvider).valueOrNull;
+    if (profile == null) return const SizedBox.shrink();
+
+    if (!profile.keepHistory) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        child: Card(
+          margin: EdgeInsets.zero,
+          child: ListTile(
+            leading: const Icon(Icons.auto_awesome_outlined),
+            title: const Text('Find places from your routines'),
+            subtitle: const Text(
+              'Turn on Keep my travel history to find repeat stops from your private history. Nothing is suggested without your opt-in.',
+            ),
+            trailing: TextButton(
+              onPressed: () => context.push('/history/settings'),
+              child: const Text('Settings'),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final suggestions = ref.watch(placeSuggestionsProvider(circleId));
+    return suggestions.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
+        child: Card(
+          margin: EdgeInsets.zero,
+          child: ListTile(
+            leading: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            title: Text('Looking for repeat stops…'),
+            subtitle: Text('Uses up to 14 days of your private saved history.'),
+          ),
+        ),
+      ),
+      error: (_, __) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        child: Card(
+          margin: EdgeInsets.zero,
+          child: ListTile(
+            leading: const Icon(Icons.cloud_off_outlined),
+            title: const Text('Could not load place suggestions'),
+            trailing: IconButton(
+              tooltip: 'Retry suggestions',
+              onPressed: () => ref.invalidate(placeSuggestionsProvider(circleId)),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          ),
+        ),
+      ),
+      data: (items) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        child: Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.auto_awesome_rounded, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('Suggested places', style: Theme.of(context).textTheme.titleSmall)),
+                    if (items.isNotEmpty) Text('${items.length}', style: Theme.of(context).textTheme.labelMedium),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  items.isEmpty
+                      ? 'No repeat stops found yet. A suggestion needs a completed unknown stop on at least two different days.'
+                      : 'Repeat stops found in your private history. Review the map pin and name before saving to $circleName.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                for (final suggestion in items) ...[
+                  const Divider(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.location_searching_rounded, color: Theme.of(context).colorScheme.onSecondaryContainer),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Frequent stop', style: Theme.of(context).textTheme.titleSmall),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${suggestion.visitCount} visits on ${suggestion.distinctDays} days · Last visited ${_suggestionDate(suggestion.lastVisitedAt)}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: OutlinedButton.icon(
+                                onPressed: placeCount >= kMaxPlacesPerCircle
+                                    ? null
+                                    : () {
+                                        final uri = Uri(
+                                          path: '/places/new',
+                                          queryParameters: {
+                                            'circle': circleId,
+                                            'lat': suggestion.lat.toStringAsFixed(6),
+                                            'lng': suggestion.lng.toStringAsFixed(6),
+                                            'name': 'Frequent stop',
+                                            'suggestion': 'true',
+                                          },
+                                        );
+                                        context.push(uri.toString());
+                                      },
+                                icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
+                                label: Text(placeCount >= kMaxPlacesPerCircle ? 'Place limit reached' : 'Review map & save'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _suggestionDate(int epochMs) {
+    final date = DateTime.fromMillisecondsSinceEpoch(epochMs).toLocal();
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 }
 
