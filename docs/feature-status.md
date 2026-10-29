@@ -40,7 +40,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 ## Recommended next steps (keep this section current)
 
 1. **Release verification first (P0):** run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite; rebuild Cloudflare Pages; verify Android/iOS background tracking and two-account privacy behavior. Until these pass, all recent feature work is code-present but unverified.
-2. **Active branch: limited SOS message handoff + opted-in Circle contact actions.** The current draft lets users preview/share/copy a message and call or open a prefilled SMS draft for Circle members who explicitly shared their number. It does not auto-send, confirm delivery, provide remote alerts, or constitute a verified emergency-contact system. Keep release verification P0 and do not claim emergency response.
+2. **Active branch: limited SOS message handoff + opted-in Circle contact actions.** The current draft lets users preview/share/copy a message and call or open a prefilled SMS draft for Circle members who explicitly shared their number. It does not auto-send, confirm delivery, provide remote alerts, or constitute a verified emergency-contact system. The screen re-evaluates location freshness every minute without additional Firebase reads, and tests cover freshness boundaries; tests remain unrun. Keep release verification P0 and do not claim emergency response.
 3. **Keep deferred under $0/Firebase-only:** remote push notifications until a trusted no-cost delivery architecture is confirmed; never embed sender credentials in the client.
 4. Then evaluate driving/crash detection, flight/landing alerts, tracker integrations and pet tracking as listed below.
 
@@ -66,7 +66,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | #56 Call/Text | Closed, not merged | Superseded by the conflict-resolved implementation in PR #64. |
 | #58 Battery sharing | Closed, not merged | Superseded by the conflict-resolved implementation in PR #65. |
 | #59 Automatic Place Suggestions | Closed, not merged | Superseded by the privacy-reviewed implementation in PR #63. |
-| #68 SOS message handoff | Open draft; branch only | [Draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68); manual share/copy, freshness checks, approximate-pin label and opted-in Circle-member Call/prefilled-SMS actions. Tests, analyzer, web build and device UX remain unverified. |
+| #68 SOS message handoff | Open draft; branch only | [Draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68); manual share/copy, freshness checks refreshed every minute, approximate-pin label and opted-in Circle-member Call/prefilled-SMS actions. Boundary and URI tests are authored but unrun; analyzer, web build and device UX remain unverified. |
 
 ## Release checklist
 
