@@ -304,7 +304,12 @@ final historyRepositoryProvider = Provider<HistoryRepository>(
 final recentPrivateHistoryForSuggestionsProvider = FutureProvider.autoDispose<List<DayTrack>>((ref) async {
   final uid = ref.watch(currentUidProvider);
   final profile = ref.watch(profileProvider).valueOrNull;
-  if (uid == null || profile == null || !profile.keepHistory) return const <DayTrack>[];
+  if (uid == null ||
+      profile == null ||
+      !profile.keepHistory ||
+      !profile.placeSuggestionsEnabled) {
+    return const <DayTrack>[];
+  }
   return ref.watch(historyRepositoryProvider).getRecentMine(
         uid,
         retentionDays: profile.retentionDays,
