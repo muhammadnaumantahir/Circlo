@@ -2,13 +2,158 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/widgets.dart';
 import '../../providers.dart';
 import '../circles/circle_models.dart';
 import '../location/location_models.dart';
 import '../location/sharing_status.dart';
+import 'sos_contact.dart';
 import 'sos_message.dart';
+
+
+Widget _circleContactSection({
+  required BuildContext context,
+  required AsyncValue<List<SharedContact>> contactsAsync,
+  required AsyncValue<List<Member>> membersAsync,
+  required String? currentUid,
+  required String message,
+}) {
+  final theme = Theme.of(context);
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Contact someone in this Circle', style: theme.textTheme.titleMedium),
+      const SizedBox(height: 4),
+      Text(
+        'Only members who explicitly shared their phone number with this Circle appear here. '
+        'Call opens the dialer; Text opens a draft that you must review and send.',
+        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
+      const SizedBox(height: 8),
+      contactsAsync.when(
+        loading: () => const Card(
+          child: Padding(
+            padding: EdgeInsets.all(18),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+        error: (_, __) => const Card(
+          child: ListTile(
+            leading: Icon(Icons.cloud_off),
+            title: Text('Could not load shared contacts'),
+            subtitle: Text('You can still copy or share the SOS message manually.'),
+          ),
+        ),
+        data: (contacts) => membersAsync.when(
+          loading: () => const Card(
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+          error: (_, __) => const Card(
+            child: ListTile(
+              leading: Icon(Icons.cloud_off),
+              title: Text('Could not load Circle members'),
+              subtitle: Text('You can still copy or share the SOS message manually.'),
+            ),
+          ),
+          data: (members) {
+            final memberByUid = {for (final member in members) member.uid: member};
+            final available = contacts
+                .where((contact) => contact.uid != currentUid && memberByUid.containsKey(contact.uid))
+                .toList()
+              ..sort((a, b) => memberByUid[a.uid]!.displayName
+                  .toLowerCase()
+                  .compareTo(memberByUid[b.uid]!.displayName.toLowerCase()));
+
+            if (available.isEmpty) {
+              return const Card(
+                child: ListTile(
+                  leading: Icon(Icons.contact_phone_outlined),
+                  title: Text('No shared phone numbers yet'),
+                  subtitle: Text(
+                    'Circle members can opt in under Profile → Calls and texts. '
+                    'Circlo does not access your address book.',
+                  ),
+                ),
+              );
+            }
+
+            return Card(
+              child: Column(
+                children: [
+                  for (var i = 0; i < available.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    Builder(builder: (context) {
+                      final contact = available[i];
+                      final member = memberByUid[contact.uid]!;
+                      final initial = member.displayName.trim().isEmpty
+                          ? '?'
+                          : member.displayName.trim().substring(0, 1).toUpperCase();
+                      return ListTile(
+                        leading: CircleAvatar(child: Text(initial)),
+                        title: Text(member.displayName),
+                        subtitle: const Text('Phone shared with this Circle'),
+                        trailing: Wrap(
+                          spacing: 0,
+                          children: [
+                            IconButton(
+                              tooltip: 'Call ${member.displayName}',
+                              icon: const Icon(Icons.call_rounded),
+                              onPressed: () => _launchSosContact(context, 'tel', contact.phone),
+                            ),
+                            IconButton(
+                              tooltip: 'Text ${member.displayName} with SOS draft',
+                              icon: const Icon(Icons.sms_outlined),
+                              onPressed: () => _launchSosContact(
+                                context,
+                                'sms',
+                                contact.phone,
+                                message: message,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    ],
+  );
+}
+
+Future<void> _launchSosContact(
+  BuildContext context,
+  String scheme,
+  String phone, {
+  String? message,
+}) async {
+  try {
+    final uri = scheme == 'sms' && message != null
+        ? sosTextUri(phone, message)
+        : sosCallUri(phone);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      showSnack(context, scheme == 'sms'
+          ? 'Could not open the messaging app. Copy the SOS message instead.'
+          : 'Could not open the phone app.');
+    }
+  } catch (_) {
+    if (context.mounted) {
+      showSnack(context, scheme == 'sms'
+          ? 'Could not open the messaging app. Copy the SOS message instead.'
+          : 'Could not open the phone app.');
+    }
+  }
+}
 
 class SosScreen extends ConsumerWidget {
   const SosScreen({super.key});
@@ -53,6 +198,8 @@ class SosScreen extends ConsumerWidget {
           }
 
           final uid = ref.watch(currentUidProvider);
+          final membersAsync = ref.watch(membersProvider(circle.id));
+          final contactsAsync = ref.watch(sharedContactsProvider(circle.id));
           final profileName = ref.watch(profileProvider).valueOrNull?.displayName ?? '';
           final memberships =
               ref.watch(myMembershipsProvider).valueOrNull ?? const <MyMembership>[];
@@ -194,6 +341,14 @@ class SosScreen extends ConsumerWidget {
                     'The map link will go to whoever you choose in the share sheet, including people outside this Circle. Share only with someone you trust.',
                   ),
                 ),
+              ),
+              const SizedBox(height: 18),
+              _circleContactSection(
+                context: context,
+                contactsAsync: contactsAsync,
+                membersAsync: membersAsync,
+                currentUid: uid,
+                message: message,
               ),
               const SizedBox(height: 18),
               Text('Message preview', style: Theme.of(context).textTheme.titleMedium),
