@@ -511,7 +511,8 @@ class _MapBodyState extends ConsumerState<_MapBody> {
       }
     }
     final bubbleUntil = selectedMembership?.bubbleUntil;
-    final bubbleActive = selectedMembership?.isApproximateAt(now) ?? false;
+    final bubbleActive = selectedMembership?.isActive == true &&
+        (selectedMembership?.isApproximateAt(now) ?? false);
 
     // Fit the camera once per circle as soon as there is something to show.
     if (points.isNotEmpty && fittedFor != circle.id) {
