@@ -1054,7 +1054,8 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  if (loc?.batteryLevel != null &&
+                  if (loc != null &&
+                      loc.batteryLevel != null &&
                       (v.status == ShareStatus.sharing || v.status == ShareStatus.unavailable)) ...[
                     Container(
                       width: double.infinity,
