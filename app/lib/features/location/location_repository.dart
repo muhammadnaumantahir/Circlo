@@ -118,6 +118,28 @@ class LocationRepository {
     await batch.commit();
   }
 
+  /// Clears Bubble only if the same expiry is still current and has elapsed.
+  /// The transaction avoids an old expiry timer clearing a Bubble the user just renewed.
+  Future<bool> clearExpiredApproximateLocation({
+    required String uid,
+    required String circleId,
+    required DateTime expectedUntil,
+  }) =>
+      _db.runTransaction<bool>((transaction) async {
+        final memberRef = _member(circleId, uid);
+        final snapshot = await transaction.get(memberRef);
+        final rawUntil = snapshot.data()?['bubbleUntil'];
+        if (!snapshot.exists || rawUntil is! Timestamp) return false;
+        final actualUntil = rawUntil.toDate();
+        if (actualUntil.millisecondsSinceEpoch != expectedUntil.millisecondsSinceEpoch ||
+            actualUntil.isAfter(DateTime.now())) {
+          return false;
+        }
+        transaction.update(memberRef, {'bubbleUntil': FieldValue.delete()});
+        transaction.delete(_location(circleId, uid));
+        return true;
+      });
+
   /// Pause/resume in all given circles (those where sharing is on). Pausing removes the locations.
   /// [until] makes the pause timed: the app resumes sharing automatically once it has passed.
   Future<void> setPausedForCircles({
