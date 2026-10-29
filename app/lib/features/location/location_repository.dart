@@ -54,6 +54,7 @@ class LocationRepository {
       'paused': false,
       'pausedUntil': FieldValue.delete(),
       if (!enabled) 'historyShared': false, // history sharing never outlives location sharing
+      if (!enabled) 'shareBattery': false, // stopping location sharing also revokes battery consent
     });
     if (name != null) {
       batch.set(
@@ -73,6 +74,20 @@ class LocationRepository {
     final data = (await _member(circleId, uid).get()).data();
     final name = data?['displayName'];
     return name is String ? name : null;
+  }
+
+  /// Changes battery sharing for one circle. Battery is off by default and is published
+  /// only with the user's normal location sync, so it does not create a separate write stream.
+  /// Opting out deletes the live projection in the same batch to remove any previous percentage.
+  Future<void> setBatterySharing({
+    required String uid,
+    required String circleId,
+    required bool enabled,
+  }) async {
+    final batch = _db.batch();
+    batch.update(_member(circleId, uid), {'shareBattery': enabled});
+    if (!enabled) batch.delete(_location(circleId, uid));
+    await batch.commit();
   }
 
   /// Pause/resume in all given circles (those where sharing is on). Pausing removes the locations.
@@ -101,11 +116,17 @@ class LocationRepository {
     required double lat,
     required double lng,
     required double accuracy,
+    Iterable<String> batteryCircleIds = const <String>[],
+    int? batteryLevel,
   }) {
     if (!isValidLocationSample(lat: lat, lng: lng, accuracy: accuracy)) {
       throw ArgumentError('Cannot publish an invalid location sample.');
     }
     final batch = _db.batch();
+    final batteryCircles = batteryCircleIds.toSet();
+    final validBatteryLevel = batteryLevel != null && batteryLevel >= 0 && batteryLevel <= 100
+        ? batteryLevel
+        : null;
     for (final id in circleIds) {
       batch.set(_location(id, uid), {
         'uid': uid,
@@ -114,6 +135,7 @@ class LocationRepository {
         'accuracy': accuracy,
         'sharing': true,
         'updatedAt': FieldValue.serverTimestamp(),
+        if (validBatteryLevel != null && batteryCircles.contains(id)) 'batteryLevel': validBatteryLevel,
       });
     }
     return batch.commit();
@@ -129,6 +151,7 @@ class LocationRepository {
         'paused': false,
         'pausedUntil': FieldValue.delete(),
         'historyShared': false,
+        'shareBattery': false,
       });
       batch.delete(_location(id, uid));
       if (name != null) {
