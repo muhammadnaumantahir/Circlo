@@ -58,6 +58,10 @@ This audit reflects a static review of the current Flutter source and project re
 
 - Added curated one-tap Quick Notes in the map check-in sheet and in-app feed; Firestore Rules restrict values to approved emoji/text pairs, and notes contain no location coordinates. Test status remains not run.
 
+## Improvement added in this branch
+
+- Automatic Place Suggestions are now implemented in code behind two separate opt-ins: private Travel History and Place Suggestions. A bounded query reads only the signed-in user's history within the 7/30/90-day retention window. Suggestions are calculated locally from unlabeled stops recurring on at least three days, remain dismissible in the current view, and open the normal place editor for review. Candidate coordinates are not uploaded or saved until the user saves a place to the selected circle. Tests are authored but not run.
+
 ## Important gaps before release
 
 1. **Run the automated checks.** Run `cd app && flutter pub get && flutter analyze && flutter test`, then run `cd firebase && npm ci && npm test` with the Firestore Emulator available. These checks have not been executed for this branch.
