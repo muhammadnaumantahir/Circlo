@@ -6,12 +6,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/join_code.dart';
 import '../../core/validators.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
 import 'circle_models.dart';
+
+Future<void> _openMemberContact(BuildContext context, String scheme, String phone) async {
+  try {
+    final launched = await launchUrl(
+      Uri(scheme: scheme, path: phone),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && context.mounted) showSnack(context, 'Could not open the phone app.');
+  } catch (_) {
+    if (context.mounted) showSnack(context, 'Could not open the phone app.');
+  }
+}
 
 class CirclesScreen extends ConsumerWidget {
   const CirclesScreen({super.key});
@@ -524,6 +537,8 @@ class CircleDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final circleAsync = ref.watch(circleProvider(circleId));
     final membersAsync = ref.watch(membersProvider(circleId));
+    final sharedContacts = ref.watch(sharedContactsProvider(circleId)).valueOrNull ?? const <SharedContact>[];
+    final sharedPhones = {for (final contact in sharedContacts) contact.uid: contact.phone};
     final myCircles = ref.watch(myCirclesProvider).valueOrNull ?? const <Circle>[];
     final canOpenMap = myCircles.any((circle) => circle.id == circleId);
     final uid = ref.watch(currentUidProvider);
@@ -593,43 +608,77 @@ class CircleDetailScreen extends ConsumerWidget {
                     for (var i = 0; i < list.length; i++)
                       Card(
                         margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          minVerticalPadding: 12,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                          leading: CircleAvatar(
-                            radius: 23,
-                            backgroundColor: CircloPalette.accent(i).withValues(alpha: .14),
-                            foregroundColor: CircloPalette.accent(i),
-                            child: Text(
-                              list[i].displayName.isEmpty ? '?' : list[i].displayName[0].toUpperCase(),
-                              style: const TextStyle(fontWeight: FontWeight.w900),
-                            ),
-                          ),
-                          title: Text(
-                            list[i].uid == uid ? '${list[i].displayName} (you)' : list[i].displayName,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  list[i].isOwner ? Icons.shield_rounded : Icons.person_outline_rounded,
-                                  size: 14,
-                                  color: list[i].isOwner ? CircloPalette.brand : Theme.of(context).colorScheme.onSurfaceVariant,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              minVerticalPadding: 12,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                              leading: CircleAvatar(
+                                radius: 23,
+                                backgroundColor: CircloPalette.accent(i).withValues(alpha: .14),
+                                foregroundColor: CircloPalette.accent(i),
+                                child: Text(
+                                  list[i].displayName.isEmpty ? '?' : list[i].displayName[0].toUpperCase(),
+                                  style: const TextStyle(fontWeight: FontWeight.w900),
                                 ),
-                                const SizedBox(width: 5),
-                                Text(list[i].isOwner ? 'Circle owner' : 'Member'),
-                              ],
+                              ),
+                              title: Text(
+                                list[i].uid == uid ? '${list[i].displayName} (you)' : list[i].displayName,
+                                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      list[i].isOwner ? Icons.shield_rounded : Icons.person_outline_rounded,
+                                      size: 14,
+                                      color: list[i].isOwner ? CircloPalette.brand : Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(list[i].isOwner ? 'Circle owner' : 'Member'),
+                                  ],
+                                ),
+                              ),
+                              trailing: (isOwner && list[i].uid != uid)
+                                  ? IconButton(
+                                      tooltip: 'Remove ${list[i].displayName}',
+                                      icon: const Icon(Icons.person_remove_outlined),
+                                      onPressed: () => _remove(context, ref, list[i]),
+                                    )
+                                  : null,
                             ),
-                          ),
-                          trailing: (isOwner && list[i].uid != uid)
-                              ? IconButton(
-                                  tooltip: 'Remove ${list[i].displayName}',
-                                  icon: const Icon(Icons.person_remove_outlined),
-                                  onPressed: () => _remove(context, ref, list[i]),
-                                )
-                              : null,
+                            if (list[i].uid != uid && sharedPhones.containsKey(list[i].uid))
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        sharedPhones[list[i].uid]!,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Call ${list[i].displayName}',
+                                      visualDensity: VisualDensity.compact,
+                                      icon: const Icon(Icons.call_rounded),
+                                      onPressed: () => _openMemberContact(context, 'tel', sharedPhones[list[i].uid]!),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Text ${list[i].displayName}',
+                                      visualDensity: VisualDensity.compact,
+                                      icon: const Icon(Icons.sms_outlined),
+                                      onPressed: () => _openMemberContact(context, 'sms', sharedPhones[list[i].uid]!),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                   ],
