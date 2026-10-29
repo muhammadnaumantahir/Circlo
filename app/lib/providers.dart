@@ -48,6 +48,10 @@ final circleProvider = StreamProvider.family<Circle?, String>(
 final membersProvider = StreamProvider.family<List<Member>, String>(
     (ref, id) => ref.watch(circlesRepositoryProvider).watchMembers(id));
 
+/// Only phone numbers explicitly shared by members of this circle.
+final sharedContactsProvider = StreamProvider.family<List<SharedContact>, String>(
+    (ref, circleId) => ref.watch(circlesRepositoryProvider).watchSharedContacts(circleId));
+
 /// Birth year typed at sign-up, used to pre-fill profile setup.
 final signupBirthYearProvider = StateProvider<int?>((ref) => null);
 
