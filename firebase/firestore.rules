@@ -220,9 +220,9 @@ service cloud.firestore {
         allow get: if isMember(cid)
           && (request.auth.uid == uid
               || (exists(memberPath(cid, uid)) && resource.data.get('sharePhone', false) == true));
-        allow list: if isMember(cid)
-          && resource.data.get('sharePhone', false) == true
-          && exists(memberPath(cid, resource.data.uid));
+        // Query clients filter sharePhone=true; membership deletion requires this document
+        // to be removed atomically, so an orphaned shared number cannot remain query-visible.
+        allow list: if isMember(cid) && resource.data.get('sharePhone', false) == true;
 
         // Only the number's owner can opt in/update. Shared copies must match the private profile.
         allow create, update: if signedIn()
