@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Draft release-blocker fix in [PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69) repairs malformed Dart source in `place_suggestions.dart`: restores the visit loop inside `buildPlaceSuggestions` and removes an orphaned duplicate implementation fragment. Existing malformed-day-key regression coverage remains in place. This fix is not merged; Flutter tests/analyzer and Cloudflare build have not run.
+
 ### Added
 - Add per-circle Approximate Location (Bubble): choose 1, 4 or 8 hours to share a grid-snapped map pin (~1–1.6 km) instead of exact coordinates. The old live location is deleted during precision changes, the map shows the coarse-pin uncertainty region and label, and directions are disabled for coarse pins. Expiry is client-side; if the app is closed, precise sharing resumes on the next sync after reopen. Place alerts, manual check-ins and separately opted-in Travel History remain independent and can still disclose visits.
 
