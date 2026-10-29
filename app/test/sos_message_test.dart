@@ -129,6 +129,26 @@ void main() {
     expect(justTooFarAhead, isNot(contains('www.google.com/maps/search/')));
   });
 
+  test('omits a map link when the shared location has no timestamp', () {
+    final missingTimestamp = MemberLocation(
+      uid: 'self',
+      lat: 31.5204,
+      lng: 74.3587,
+      accuracy: 25,
+      updatedAt: null,
+    );
+
+    final message = buildSosMessage(
+      displayName: 'Nauman',
+      sharingActive: true,
+      location: missingTimestamp,
+      now: now,
+    );
+
+    expect(message, contains('does not have a fresh shared location'));
+    expect(message, isNot(contains('www.google.com/maps/search/')));
+  });
+
   test('uses a safe generic sender name when the profile name is blank', () {
     final message = buildSosMessage(
       displayName: '  ',
