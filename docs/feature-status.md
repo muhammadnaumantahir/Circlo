@@ -66,7 +66,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | #56 Call/Text | Closed, not merged | Superseded by the conflict-resolved implementation in PR #64. |
 | #58 Battery sharing | Closed, not merged | Superseded by the conflict-resolved implementation in PR #65. |
 | #59 Automatic Place Suggestions | Closed, not merged | Superseded by the privacy-reviewed implementation in PR #63. |
-| #68 SOS message handoff | Open draft; branch only | [Draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68); manual share/copy, freshness checks refreshed every minute, approximate-pin label, opted-in Circle-member Call/prefilled-SMS actions, recipient validation, SOS/check-in quick-menu layout below 440 px, and screen widget tests authored for valid recipients, stale/missing locations, and sharing-off guidance. Boundary and URI tests are authored but unrun; static review corrected a malformed duplicated contact-helper implementation, so analyzer, web build and device UX remain unverified. |
+| #68 SOS message handoff | Open draft; branch only | [Draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68); manual share/copy, freshness checks refreshed every minute, approximate-pin label, opted-in Circle-member Call/prefilled-SMS actions, recipient validation, SOS/check-in quick-menu layout below 440 px, and screen widget tests authored for valid recipients, stale/missing locations, and distinct sharing-off/paused guidance. Boundary and URI tests are authored but unrun; static review corrected a malformed duplicated contact-helper implementation, so analyzer, web build and device UX remain unverified. |
 
 ## Release checklist
 
