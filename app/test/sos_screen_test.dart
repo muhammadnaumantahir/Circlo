@@ -20,7 +20,11 @@ const _profile = UserProfile(
   birthYear: 1990,
 );
 
-Widget _app({required DateTime? locationUpdatedAt}) {
+Widget _app({
+  required DateTime? locationUpdatedAt,
+  bool sharingActive = true,
+  bool paused = false,
+}) {
   final contacts = <SharedContact>[
     const SharedContact(uid: 'self', phone: '+923001111111'),
     const SharedContact(uid: 'removed', phone: '+923002222222'),
@@ -51,8 +55,8 @@ Widget _app({required DateTime? locationUpdatedAt}) {
         (ref) => Stream.value(const [
           MyMembership(
             circleId: 'family',
-            sharesLocation: true,
-            paused: false,
+            sharesLocation: sharingActive || paused,
+            paused: paused,
           ),
         ]),
       ),
@@ -90,6 +94,20 @@ void main() {
 
     expect(find.text('No fresh shared location'), findsOneWidget);
     expect(find.textContaining('does not have a fresh shared location'), findsOneWidget);
+    final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(preview, isNot(contains('www.google.com/maps/search/')));
+  });
+
+  testWidgets('sharing-off guidance does not tell the user that sharing is already on', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        locationUpdatedAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        sharingActive: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Location sharing is off or paused for this Circle'), findsOneWidget);
     final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
     expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
