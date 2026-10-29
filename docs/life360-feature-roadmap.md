@@ -1,6 +1,6 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-29 (working branch: automatic place suggestions; tests not run)
+Last reviewed: 2026-10-29 (No Show alert edge-case coverage added; tests not run)
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 
@@ -21,7 +21,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 | 2 | Member call/text shortcuts | Implemented in code; tests not run | Per-circle phone opt-in, Call/Text actions on circle member cards and map details, owner-only private profiles, atomic phone updates and cleanup on opt-out/membership changes. |
 | 3 | Better ETA and map handoff | Implemented in code; tests not run | Member details offer driving, walking, cycling and transit modes and hand route/ETA calculation to Google Maps; Circlo does not display an in-app estimate. |
 | 4 | Low-battery status/alerts | Implemented in code; tests not run | Per-circle opt-in; uses battery_plus to attach valid 0–100% readings to normal location updates, displays last-reported status and warns at 20% or below in-app. Off by default; no push or guaranteed background delivery. |
-| 5 | Scheduled No Show alerts | Implemented in main; client-side limits | One expected-arrival plan per member and circle, with in-app overdue/late-arrival feed entries while Circlo is open; no remote push or guaranteed background scheduler. |
+| 5 | Scheduled No Show alerts | Implemented in main; edge-case hardening added on branch, tests not run | One expected-arrival plan per member and circle, with in-app overdue/late-arrival feed entries while Circlo is open; future-dated location timestamps are treated as potentially unavailable; no remote push or guaranteed background scheduler. |
 | 6 | Automatic Place Suggestions | Implemented in code; tests not run | Optional private-history analysis, off by default; requires both Keep Travel History and separate opt-in; only local candidate computation, at least 3 visits across 3 days; dismissed per view; explicit review before saving to the selected circle. No background scanning or push alert. |
 | 7 | Remote push notifications | Deferred | Requires a trusted sending path. Keep deferred under the current no-billing setup; never ship sender credentials in client code. |
 | 8 | SOS and emergency contacts | Safety review required | Separate opt-in contacts and a tested alert path; clearly show delivery state and fallback. No false assurance of emergency response. |

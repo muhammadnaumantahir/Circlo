@@ -13,6 +13,7 @@ import 'features/location/location_repository.dart';
 import 'features/places/geocoder.dart';
 import 'features/places/place_models.dart';
 import 'features/places/places_repository.dart';
+import 'features/places/no_show_alerts.dart';
 import 'features/profile/profile_models.dart';
 import 'features/profile/profile_repository.dart';
 
@@ -175,9 +176,6 @@ final notificationFeedProvider = Provider<AsyncValue<List<FeedItem>>>((ref) {
       final recentPlaceEvents = ref.watch(recentEventsProvider(c.id)).valueOrNull ?? const <PlaceEvent>[];
 
       for (final plan in plans) {
-        // The target member is responsible for their own plan; other current circle members get
-        // the in-app alert. No remote push or reliable background scheduler is implied.
-        if (plan.memberUid == uid) continue;
         Member? member;
         for (final candidate in members) {
           if (candidate.uid == plan.memberUid) {
@@ -192,61 +190,27 @@ final notificationFeedProvider = Provider<AsyncValue<List<FeedItem>>>((ref) {
             break;
           }
         }
-        if (member == null || place == null || !member.sharesLocation || member.paused) continue;
-
-        if (plan.isPending) {
-          if (plan.expectedAt.isAfter(now) || plan.expectedAt.isBefore(cutoff)) continue;
-          PlaceEvent? recordedArrival;
-          for (final event in recentPlaceEvents) {
-            if (event.memberUid == plan.memberUid &&
-                event.placeId == plan.placeId &&
-                event.type == 'arrive' &&
-                event.occurredAt != null &&
-                plan.createdAt != null &&
-                !event.occurredAt!.isBefore(plan.createdAt!)) {
-              recordedArrival = event;
-              break;
-            }
-          }
-          if (recordedArrival?.occurredAt != null) {
-            final arrivedAt = recordedArrival!.occurredAt!;
-            if (!arrivedAt.isAfter(plan.expectedAt)) {
-              // A recorded on-time arrival resolves an otherwise still-pending plan.
-              continue;
-            }
-            // A location event might have succeeded even when the separate plan-completion
-            // write failed. Preserve the late-arrival notification instead of showing "no arrival".
-            items.add(FeedItem(
-              id: '${c.id}/no-show-late-event/${plan.id}',
-              circleId: c.id,
-              circleName: c.name,
-              kind: FeedKind.noShow,
-              text: 'Circlo recorded ${member.displayName} arriving at ${place.name} after the expected time.',
-              at: arrivedAt,
-            ));
-            continue;
-          }
-
-          final latestLocation = locations[plan.memberUid]?.updatedAt;
-          final stale = latestLocation == null || now.difference(latestLocation) > const Duration(minutes: 15);
+        final alert = evaluateNoShowAlert(
+          circleId: c.id,
+          viewerUid: uid,
+          plan: plan,
+          memberName: member?.displayName,
+          memberSharesLocation: member?.sharesLocation ?? false,
+          memberPaused: member?.paused ?? true,
+          place: place,
+          latestLocationAt: locations[plan.memberUid]?.updatedAt,
+          recentPlaceEvents: recentPlaceEvents,
+          now: now,
+          cutoff: cutoff,
+        );
+        if (alert != null) {
           items.add(FeedItem(
-            id: '${c.id}/no-show/${plan.id}',
+            id: alert.id,
             circleId: c.id,
             circleName: c.name,
             kind: FeedKind.noShow,
-            text: stale
-                ? '${member.displayName} has no arrival recorded at ${place.name} by the expected time. Their location may be unavailable.'
-                : '${member.displayName} has no arrival recorded at ${place.name} by the expected time.',
-            at: plan.expectedAt,
-          ));
-        } else if (plan.arrivedLate && plan.arrivedAt != null && !plan.arrivedAt!.isBefore(cutoff)) {
-          items.add(FeedItem(
-            id: '${c.id}/no-show-late/${plan.id}',
-            circleId: c.id,
-            circleName: c.name,
-            kind: FeedKind.noShow,
-            text: '${member.displayName} arrived at ${place.name} after the expected time.',
-            at: plan.arrivedAt!,
+            text: alert.text,
+            at: alert.at,
           ));
         }
       }

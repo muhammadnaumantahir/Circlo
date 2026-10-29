@@ -14,6 +14,7 @@
 - Add a route-mode chooser to member map details (driving, walking, cycling and public transport) and hand off the selected mode to Google Maps for route/ETA calculation. Circlo does not display an in-app estimate or require a paid directions API.
 
 ### Fixed
+- Hardened No Show alert evaluation: future-dated location timestamps more than two minutes ahead are described as potentially unavailable, and extracted overdue/arrival matching into a testable helper with regression coverage.
 - Gate map, saved places, travel history and related routes until the signed-in user belongs to a circle; route initial/no-membership states and membership-query errors with no cached result to one Circles screen instead of showing repeated Retry states across tabs.
 - Use the first-use Circles onboarding to guide users through creating a circle or joining by invite code, hide circle-dependent tabs before membership, open the map after a successful join, and offer an Open map action on circle details after membership is confirmed.
 - Fix Circles screen web compilation: use the available icon palette for circle-card tones and preserve a promoted non-null user ID in the join-code rotation callback.
