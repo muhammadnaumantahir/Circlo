@@ -189,7 +189,10 @@ class LocationRepository {
         'uid': uid,
         'lat': coarse?.lat ?? lat,
         'lng': coarse?.lng ?? lng,
-        'accuracy': approximate ? math.max(accuracy, kApproximateAccuracyFloorM) : accuracy,
+        // Approximation offset and the device's reported GPS uncertainty accumulate.
+        'accuracy': approximate
+            ? math.min(100000, accuracy + kApproximateAccuracyFloorM)
+            : accuracy,
         'sharing': true,
         'approximate': approximate,
         'updatedAt': FieldValue.serverTimestamp(),
