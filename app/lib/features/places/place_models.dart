@@ -137,6 +137,61 @@ class PlaceSubscription {
   }
 }
 
+/// A member's expected arrival time at a saved place. The plan is self-owned and
+/// circle-scoped; overdue status is evaluated by active clients only (no server scheduler).
+class ArrivalPlan {
+  const ArrivalPlan({
+    required this.id,
+    required this.circleId,
+    required this.memberUid,
+    required this.placeId,
+    required this.expectedAt,
+    required this.status,
+    this.createdAt,
+    this.arrivedAt,
+  });
+
+  final String id;
+  final String circleId;
+  final String memberUid;
+  final String placeId;
+  final DateTime expectedAt;
+  final String status; // pending | arrived
+  final DateTime? createdAt;
+  final DateTime? arrivedAt;
+
+  bool get isPending => status == 'pending';
+  bool get arrivedLate => status == 'arrived' && arrivedAt != null && arrivedAt!.isAfter(expectedAt);
+
+  static ArrivalPlan? tryFromMap(String circleId, String id, Map<String, dynamic> d) {
+    final memberUid = d['memberUid'];
+    final placeId = d['placeId'];
+    final rawExpected = d['expectedAt'];
+    final status = d['status'];
+    final rawCreated = d['createdAt'];
+    final rawArrived = d['arrivedAt'];
+    if (memberUid is! String || memberUid.trim().isEmpty || id != memberUid) return null;
+    if (placeId is! String || placeId.trim().isEmpty) return null;
+    if (rawExpected is! Timestamp) return null;
+    if (status != 'pending' && status != 'arrived') return null;
+    if (rawCreated != null && rawCreated is! Timestamp) return null;
+    if (rawArrived != null && rawArrived is! Timestamp) return null;
+    if (status == 'arrived' && rawArrived is! Timestamp) return null;
+    if (status == 'pending' && rawArrived != null) return null;
+
+    return ArrivalPlan(
+      id: id,
+      circleId: circleId,
+      memberUid: memberUid,
+      placeId: placeId,
+      expectedAt: rawExpected.toDate(),
+      status: status as String,
+      createdAt: (rawCreated as Timestamp?)?.toDate(),
+      arrivedAt: (rawArrived as Timestamp?)?.toDate(),
+    );
+  }
+}
+
 class PlaceEvent {
   const PlaceEvent({
     required this.id,
@@ -201,7 +256,7 @@ class PlaceEvent {
 }
 
 /// Notification categories the user can switch off (FR-081).
-enum FeedKind { place, membership, sharing, unavailable, requests, checkIns }
+enum FeedKind { place, noShow, membership, sharing, unavailable, requests, checkIns }
 
 String feedKindName(FeedKind k) => k.name;
 
@@ -209,6 +264,8 @@ String feedKindLabel(FeedKind k) {
   switch (k) {
     case FeedKind.place:
       return 'Arrivals and departures at places';
+    case FeedKind.noShow:
+      return 'Scheduled arrival and No Show alerts';
     case FeedKind.membership:
       return 'Members joining, leaving or removed';
     case FeedKind.sharing:

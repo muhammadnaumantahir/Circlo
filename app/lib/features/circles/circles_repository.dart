@@ -243,6 +243,7 @@ class CirclesRepository {
     }
     batch.delete(circle.collection('members').doc(uid));
     batch.delete(circle.collection('locations').doc(uid));
+    batch.delete(circle.collection('arrivalPlans').doc(uid));
     return batch.commit();
   }
 
@@ -264,6 +265,7 @@ class CirclesRepository {
     }
     batch.delete(circle.collection('members').doc(memberUid));
     batch.delete(circle.collection('locations').doc(memberUid));
+    batch.delete(circle.collection('arrivalPlans').doc(memberUid));
     return batch.commit();
   }
 
@@ -366,6 +368,7 @@ class CirclesRepository {
     final events = await circle.collection('placeEvents').get();
     final locations = await circle.collection('locations').get();
     final requests = await circle.collection('joinRequests').get();
+    final arrivalPlans = await circle.collection('arrivalPlans').get();
     final circleSnap = await circle.get();
     final currentCode = circleSnap.data()?['joinCode'] as String?;
 
@@ -375,6 +378,7 @@ class CirclesRepository {
         for (final p in places.docs) circle.collection('placeSubscriptions').doc('${m.id}_${p.id}'),
       for (final d in places.docs) d.reference,
       for (final d in locations.docs) d.reference,
+      for (final d in arrivalPlans.docs) d.reference,
       for (final d in requests.docs) d.reference,
     ];
     final today = DateTime.now();
@@ -393,7 +397,7 @@ class CirclesRepository {
       await batch.commit();
     }
 
-    // Location documents are gone before membership deletion. Delete membership docs in small
+    // Location and expected-arrival documents are gone before membership deletion. Delete membership docs in small
     // batches because the security rules check each member's location with existsAfter(), and
     // Firestore has a per-request document-access-call limit.
     final departingMembers = members.docs.where((m) => m.id != ownerUid).toList();

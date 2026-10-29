@@ -65,7 +65,10 @@ class LocationRepository {
         ),
       );
     }
-    if (!enabled) batch.delete(_location(circleId, uid));
+    if (!enabled) {
+      batch.delete(_location(circleId, uid));
+      batch.delete(_db.collection('circles').doc(circleId).collection('arrivalPlans').doc(uid));
+    }
     return batch.commit();
   }
 
@@ -89,7 +92,10 @@ class LocationRepository {
         'paused': paused,
         'pausedUntil': (paused && until != null) ? Timestamp.fromDate(until) : FieldValue.delete(),
       });
-      if (paused) batch.delete(_location(id, uid));
+      if (paused) {
+        batch.delete(_location(id, uid));
+        batch.delete(_db.collection('circles').doc(id).collection('arrivalPlans').doc(uid));
+      }
     }
     return batch.commit();
   }
@@ -131,6 +137,7 @@ class LocationRepository {
         'historyShared': false,
       });
       batch.delete(_location(id, uid));
+      batch.delete(_db.collection('circles').doc(id).collection('arrivalPlans').doc(uid));
       if (name != null) {
         batch.set(
           _db.collection('circles').doc(id).collection('activity').doc(),

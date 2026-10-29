@@ -12,6 +12,7 @@ iOS/Play distribution (needs paid accounts), driving/trip detection, low-battery
 - Increment 3 done in code: saved places, alert preferences, in-app arrival/departure feed.
 - Increment 4 done in code: opt-in travel history with daily compact documents, per-circle sharing, client-side retention/deletion.
 - Increments 5–6 done in code: circle lifecycle (verification, approval, transfer, deletion, account deletion best-effort) and notifications/polish.
+- Expected-arrival/No Show v1: one saved-place deadline commitment per member and circle, reschedulable to another place, in-app overdue warnings for other circle members, and late-arrival status when tracking confirms it; evaluation is client-side and only while the app is open. Reliable background scheduling and phone push remain deferred.
 - Next: hardening/release prep (first CI run + fixes, real-device test matrix, accessibility pass, privacy/legal review, replace free map/geocoder providers, store prep).
 
 ## Deferred until a trusted no-cost server exists

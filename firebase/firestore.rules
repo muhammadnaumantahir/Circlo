@@ -17,6 +17,7 @@ service cloud.firestore {
     function memberPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/members/$(uid); }
     function placePath(cid, pid) { return /databases/$(database)/documents/circles/$(cid)/places/$(pid); }
     function locationPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/locations/$(uid); }
+    function arrivalPlanPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/arrivalPlans/$(uid); }
     function codePath(code) { return /databases/$(database)/documents/joinCodes/$(code); }
 
     function isMember(cid) {
@@ -252,6 +253,72 @@ service cloud.firestore {
         allow delete: if signedIn() && (subId.matches(request.auth.uid + '_.*') || isOwner(cid));
       }
 
+      // A member's own expected arrival commitment. The app evaluates overdue plans only
+      // while it is open and receiving location updates; these documents are not server-scheduled jobs.
+      match /arrivalPlans/{planId} {
+        allow get, list: if isMember(cid);
+
+        allow create: if isMember(cid)
+          && request.resource.data.keys().hasOnly(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt'])
+          && request.auth.uid == request.resource.data.memberUid
+          && planId == request.auth.uid
+          && request.resource.data.placeId is string
+          && request.resource.data.placeId.size() > 0
+          && request.resource.data.placeId.size() <= 100
+          && request.resource.data.expectedAt is timestamp
+          && request.resource.data.expectedAt > request.time
+          && request.resource.data.expectedAt <= request.time + duration.value(30, 'd')
+          && request.resource.data.status == 'pending'
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && get(memberPath(cid, request.auth.uid)).data.get('sharesLocation', false) == true
+          && get(memberPath(cid, request.auth.uid)).data.get('paused', false) == false
+          && exists(placePath(cid, request.resource.data.placeId));
+
+        // A member can reschedule only their own plan, or the arrival detector can mark it arrived.
+        allow update: if isMember(cid)
+          && resource.data.memberUid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt', 'arrivedAt'])
+          && request.resource.data.keys().hasAll(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt'])
+          && request.resource.data.memberUid == resource.data.memberUid
+          && planId == request.auth.uid
+          && (
+            (request.resource.data.status == 'pending'
+              && !('arrivedAt' in request.resource.data)
+              && request.resource.data.placeId is string
+              && request.resource.data.placeId.size() > 0
+              && request.resource.data.placeId.size() <= 100
+              && request.resource.data.expectedAt is timestamp
+              && request.resource.data.expectedAt > request.time
+              && request.resource.data.expectedAt <= request.time + duration.value(30, 'd')
+              && request.resource.data.createdAt == request.time
+              && exists(placePath(cid, request.resource.data.placeId))
+              && request.resource.data.updatedAt == request.time
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt', 'arrivedAt'])
+              && exists(placePath(cid, request.resource.data.placeId))
+              && get(memberPath(cid, request.auth.uid)).data.get('sharesLocation', false) == true
+              && get(memberPath(cid, request.auth.uid)).data.get('paused', false) == false)
+            ||
+            (resource.data.status == 'pending'
+              && request.resource.data.status == 'arrived'
+              && request.resource.data.placeId == resource.data.placeId
+              && request.resource.data.expectedAt == resource.data.expectedAt
+              && request.resource.data.createdAt == resource.data.createdAt
+              && request.resource.data.arrivedAt == request.time
+              && request.resource.data.updatedAt == request.time
+              && get(memberPath(cid, request.auth.uid)).data.get('sharesLocation', false) == true
+              && get(memberPath(cid, request.auth.uid)).data.get('paused', false) == false
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'arrivedAt', 'updatedAt']))
+          );
+
+        allow delete: if isMember(cid)
+          && (planId == request.auth.uid
+              || isOwner(cid)
+              || (exists(placePath(cid, resource.data.placeId))
+                  && get(placePath(cid, resource.data.placeId)).data.get('createdBy', '') == request.auth.uid));
+      }
+
       // Arrival/departure events detected on the sharing member's own device (ADR-0002).
       // Client-created and therefore UNTRUSTED for anything beyond this circle's in-app feed.
       match /placeEvents/{eventId} {
@@ -401,7 +468,7 @@ service cloud.firestore {
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sharesLocation', 'paused'])
               || (request.resource.data.get('sharesLocation', false) == true
                   && request.resource.data.get('paused', false) == false)
-              || !existsAfter(locationPath(cid, uid)));
+              || (!existsAfter(locationPath(cid, uid)) && !existsAfter(arrivalPlanPath(cid, uid))));
         // Role flips happen only as part of an ownership transfer batch (circle.ownerUid changes too).
         allow update: if signedIn() && isOwner(cid)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
@@ -414,7 +481,8 @@ service cloud.firestore {
               || (request.auth.uid == uid && !existsAfter(circlePath(cid)))
               || (request.auth.uid != uid && isOwner(cid)))
           // Leaving, removal, and circle deletion must not leave a query-visible location behind.
-          && !existsAfter(locationPath(cid, uid));
+          && !existsAfter(locationPath(cid, uid))
+          && !existsAfter(arrivalPlanPath(cid, uid));
       }
     }
 

@@ -219,6 +219,88 @@ void main() {
     expect(const JoinFailure(JoinFailureKind.invalid).message, contains('not valid or has expired'));
   });
 
+  group('ArrivalPlan.tryFromMap', () {
+    test('parses pending and late-arrival plans', () {
+      final expected = DateTime(2026, 10, 29, 15);
+      final pending = ArrivalPlan.tryFromMap('c1', 'u1', {
+        'memberUid': 'u1',
+        'placeId': 'p1',
+        'expectedAt': Timestamp.fromDate(expected),
+        'createdAt': Timestamp.fromDate(expected.subtract(const Duration(hours: 1))),
+        'status': 'pending',
+      });
+      expect(pending, isNotNull);
+      expect(pending!.isPending, isTrue);
+      expect(pending.arrivedLate, isFalse);
+
+      final late = ArrivalPlan.tryFromMap('c1', 'u1', {
+        'memberUid': 'u1',
+        'placeId': 'p1',
+        'expectedAt': Timestamp.fromDate(expected),
+        'createdAt': Timestamp.fromDate(expected.subtract(const Duration(hours: 1))),
+        'status': 'arrived',
+        'arrivedAt': Timestamp.fromDate(expected.add(const Duration(minutes: 10))),
+      });
+      expect(late, isNotNull);
+      expect(late!.arrivedLate, isTrue);
+    });
+
+    test('rejects malformed statuses, timestamps, and owner fields', () {
+      final base = {
+        'memberUid': 'u1',
+        'placeId': 'p1',
+        'expectedAt': Timestamp.fromDate(DateTime(2026, 10, 29, 15)),
+        'status': 'pending',
+      };
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'status': 'missed'}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'memberUid': ''}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'not-u1', base), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'expectedAt': 'tomorrow'}), isNull);
+    });
+  });
+
+  group('ArrivalPlan.tryFromMap', () {
+    test('parses pending and late-arrival plans', () {
+      final expected = DateTime(2026, 10, 29, 15);
+      final pending = ArrivalPlan.tryFromMap('c1', 'u1', {
+        'memberUid': 'u1',
+        'placeId': 'p1',
+        'expectedAt': Timestamp.fromDate(expected),
+        'createdAt': Timestamp.fromDate(expected.subtract(const Duration(hours: 1))),
+        'status': 'pending',
+      });
+      expect(pending, isNotNull);
+      expect(pending!.isPending, isTrue);
+      expect(pending.arrivedLate, isFalse);
+
+      final late = ArrivalPlan.tryFromMap('c1', 'u1', {
+        'memberUid': 'u1',
+        'placeId': 'p1',
+        'expectedAt': Timestamp.fromDate(expected),
+        'createdAt': Timestamp.fromDate(expected.subtract(const Duration(hours: 1))),
+        'status': 'arrived',
+        'arrivedAt': Timestamp.fromDate(expected.add(const Duration(minutes: 10))),
+      });
+      expect(late, isNotNull);
+      expect(late!.arrivedLate, isTrue);
+    });
+
+    test('rejects malformed statuses, timestamps, and owner fields', () {
+      final base = {
+        'memberUid': 'u1',
+        'placeId': 'p1',
+        'expectedAt': Timestamp.fromDate(DateTime(2026, 10, 29, 15)),
+        'status': 'pending',
+      };
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'status': 'missed'}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'memberUid': ''}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'expectedAt': 'tomorrow'}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {
+        ...base, 'status': 'arrived',
+      }), isNull);
+    });
+  });
+
   group('PlaceEvent.tryFromMap', () {
     test('accepts valid arrival and departure events', () {
       final arrival = PlaceEvent.tryFromMap('c1', 'e1', {

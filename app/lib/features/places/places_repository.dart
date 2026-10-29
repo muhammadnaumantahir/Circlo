@@ -63,17 +63,24 @@ class PlacesRepository {
         'radiusM': radiusM,
       });
 
-  /// Deletes the place and the caller's own preferences (other members' preference documents
-  /// become harmless orphans: there is no server to clean them).
+  /// Deletes the place, the caller's alert preference, and any scheduled arrival plans that target
+  /// it. Rules permit the place creator or circle owner to clean up the attached plans.
   Future<void> deletePlace({
     required String circleId,
     required String placeId,
     required String uid,
-  }) {
+  }) async {
+    final plans = await _circle(circleId)
+        .collection('arrivalPlans')
+        .where('placeId', isEqualTo: placeId)
+        .get();
     final batch = _db.batch();
     batch.delete(_circle(circleId).collection('places').doc(placeId));
     batch.delete(_subRef(circleId, uid, placeId));
-    return batch.commit();
+    for (final plan in plans.docs) {
+      batch.delete(plan.reference);
+    }
+    await batch.commit();
   }
 
   DocumentReference<Map<String, dynamic>> _subRef(String circleId, String uid, String placeId) =>
@@ -119,6 +126,92 @@ class PlacesRepository {
         }
         return subscriptions;
       });
+
+  /// All expected-arrival plans for members of the circle. Readers only see plans
+  /// scoped to circles they still belong to (enforced by Firestore Rules).
+  Stream<List<ArrivalPlan>> watchArrivalPlans(String circleId) => _circle(circleId)
+      .collection('arrivalPlans')
+      .snapshots()
+      .map((snapshot) => [
+            for (final d in snapshot.docs)
+              if (ArrivalPlan.tryFromMap(circleId, d.id, d.data()) != null)
+                ArrivalPlan.tryFromMap(circleId, d.id, d.data())!,
+          ]);
+
+  /// Set or reschedule the caller's own plan for a single place.
+  /// Expected times must be in the future and within 30 days.
+  Future<void> saveArrivalPlan({
+    required String circleId,
+    required String uid,
+    required String placeId,
+    required DateTime expectedAt,
+  }) {
+    final now = DateTime.now();
+    if (!expectedAt.isAfter(now) || expectedAt.isAfter(now.add(const Duration(days: 30)))) {
+      throw ArgumentError('Choose an arrival time within the next 30 days.');
+    }
+    return _circle(circleId).collection('arrivalPlans').doc(uid).set({
+      'memberUid': uid,
+      'placeId': placeId,
+      'expectedAt': Timestamp.fromDate(expectedAt),
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Marks a plan complete when the target member's own place detector confirms arrival.
+  Future<void> completeArrivalPlan({
+    required String circleId,
+    required String uid,
+    required String placeId,
+  }) async {
+    final ref = _circle(circleId).collection('arrivalPlans').doc(uid);
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(ref);
+      final data = snapshot.data();
+      if (!snapshot.exists ||
+          data == null ||
+          data['memberUid'] != uid ||
+          data['placeId'] != placeId ||
+          data['status'] != 'pending') {
+        return;
+      }
+      // Check and update atomically: a simultaneous reschedule to another place must not be
+      // marked as arrived by the old place's detector callback.
+      transaction.update(ref, {
+        'status': 'arrived',
+        'arrivedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  /// Clears all of the caller's plans when this device stops sharing in a circle.
+  Future<void> deleteMyArrivalPlans({
+    required String circleId,
+    required String uid,
+  }) async {
+    await _circle(circleId).collection('arrivalPlans').doc(uid).delete();
+  }
+
+  /// Cancels the caller's own plan (the rules also allow the circle owner to clean up).
+  Future<void> cancelArrivalPlan({
+    required String circleId,
+    required String uid,
+    required String placeId,
+  }) async {
+    final ref = _circle(circleId).collection('arrivalPlans').doc(uid);
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(ref);
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null || data['memberUid'] != uid || data['placeId'] != placeId) {
+        return;
+      }
+      // Don't let a stale cancel tap delete a plan that was just rescheduled to another place.
+      transaction.delete(ref);
+    });
+  }
 
   Stream<List<PlaceEvent>> watchRecentEvents(String circleId, {int limit = 50}) => _circle(circleId)
       .collection('placeEvents')

@@ -54,6 +54,8 @@ This audit reflects a static review of the current Flutter source and project re
 - Pinned Flutter **3.47.2** in `app/.fvmrc`; CI and the Cloudflare build read the same pin. Cloudflare rejects a stale/mismatched SDK instead of silently reusing it.
 - Aligned generated Android Gradle settings through `tools/apply_platform_config.py` with AGP **9.4.0**, Gradle **9.8.0**, Kotlin **2.4.10**, Java/JVM target **17**, and Google Services plugin **4.5.0** when present. The native project is generated locally, so this still requires a real generated Android build.
 
+- Added one active expected-arrival plan per member and circle, reschedulable to another saved place. Other circle members see an in-app "no arrival recorded" warning after the deadline; device-recorded late arrivals are shown in the feed. Warnings are computed in-app; there is no server scheduler, push delivery, or background guarantee.
+
 ## Important gaps before release
 
 1. **Run the automated checks.** Run `cd app && flutter pub get && flutter analyze && flutter test`, then run `cd firebase && npm ci && npm test` with the Firestore Emulator available. These checks have not been executed for this branch.
