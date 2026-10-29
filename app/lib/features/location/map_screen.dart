@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart' hide Circle;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/map_config.dart';
 import '../../core/widgets.dart';
@@ -44,6 +45,18 @@ IconData _statusIcon(ShareStatus s) {
       return Icons.location_off;
     case ShareStatus.notSharing:
       return Icons.visibility_off;
+  }
+}
+
+Future<void> _launchMemberContact(BuildContext context, String scheme, String phone) async {
+  try {
+    final launched = await launchUrl(
+      Uri(scheme: scheme, path: phone),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && context.mounted) showSnack(context, 'Could not open the phone app.');
+  } catch (_) {
+    if (context.mounted) showSnack(context, 'Could not open the phone app.');
   }
 }
 
@@ -413,6 +426,8 @@ class _MapBodyState extends ConsumerState<_MapBody> {
     final membersAsync = ref.watch(membersProvider(circle.id));
     final locationsAsync = ref.watch(locationsProvider(circle.id));
     final places = ref.watch(placesProvider(circle.id)).valueOrNull ?? const <Place>[];
+    final sharedContacts = ref.watch(sharedContactsProvider(circle.id)).valueOrNull ?? const <SharedContact>[];
+    final sharedPhones = {for (final contact in sharedContacts) contact.uid: contact.phone};
     final activityAsync = ref.watch(activityProvider(circle.id));
     final latestCheckIns = <String, ActivityEvent>{};
     for (final event in activityAsync.valueOrNull ?? const <ActivityEvent>[]) {
@@ -444,8 +459,8 @@ class _MapBodyState extends ConsumerState<_MapBody> {
       WidgetsBinding.instance.addPostFrameCallback((_) => onFit(points));
     }
 
-    final mapWidget = _buildMap(context, ref, visibleViews, located, uid, places, latestCheckIns);
-    final list = _buildList(context, ref, visibleViews, uid, now, membersAsync.isLoading, membersAsync.hasError, latestCheckIns);
+    final mapWidget = _buildMap(context, ref, visibleViews, located, uid, places, latestCheckIns, sharedPhones);
+    final list = _buildList(context, ref, visibleViews, uid, now, membersAsync.isLoading, membersAsync.hasError, latestCheckIns, sharedPhones);
     final peopleOnly = ref.watch(_peopleListModeProvider);
 
     return Column(
@@ -640,6 +655,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
     String? uid,
     List<Place> places,
     Map<String, ActivityEvent> latestCheckIns,
+    Map<String, String> sharedPhones,
   ) {
     return Stack(
       children: [
@@ -687,9 +703,9 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                   child: Semantics(
                     button: true,
                     label: '${v.member.displayName}, ${statusLabel(v.status)}. Open member details.',
-                    onTap: () => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid]),
+                    onTap: () => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid], sharedPhone: sharedPhones[v.member.uid]),
                     child: GestureDetector(
-                      onTap: () => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid]),
+                      onTap: () => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid], sharedPhone: sharedPhones[v.member.uid]),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -758,7 +774,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
             child: _PeoplePeekCard(
               views: views,
               onAllPeople: () => ref.read(_peopleListModeProvider.notifier).state = true,
-              onMemberTap: (v) => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid]),
+              onMemberTap: (v) => _showDetails(context, v, DateTime.now(), latestCheckIn: latestCheckIns[v.member.uid], sharedPhone: sharedPhones[v.member.uid]),
               onPlaces: () => context.go('/places'),
               onSharing: () => context.push('/sharing'),
             ),
@@ -786,6 +802,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
     bool loading,
     bool hasError,
     Map<String, ActivityEvent> latestCheckIns,
+    Map<String, String> sharedPhones,
   ) {
     if (loading && views.isEmpty) return const LoadingView();
     if (hasError) return const MessageView(icon: Icons.lock_outline, title: 'Could not load members');
@@ -851,14 +868,26 @@ class _MapBodyState extends ConsumerState<_MapBody> {
               ],
             ),
             trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-            onTap: () => _showDetails(context, v, now, latestCheckIn: latestCheckIns[v.member.uid]),
+            onTap: () => _showDetails(
+              context,
+              v,
+              now,
+              latestCheckIn: latestCheckIns[v.member.uid],
+              sharedPhone: sharedPhones[v.member.uid],
+            ),
           ),
         );
       },
     );
   }
 
-  void _showDetails(BuildContext context, _MemberView v, DateTime now, {ActivityEvent? latestCheckIn}) {
+  void _showDetails(
+    BuildContext context,
+    _MemberView v,
+    DateTime now, {
+    ActivityEvent? latestCheckIn,
+    String? sharedPhone,
+  }) {
     final loc = v.location;
     final statusColor = _statusColor(context, v.status);
     showModalBottomSheet<void>(
@@ -907,6 +936,59 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                     ],
                   ),
                   const SizedBox(height: 18),
+                  if (sharedPhone != null && v.member.uid != ref.read(currentUidProvider)) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest.withValues(alpha: .55),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.phone_rounded, color: scheme.primary, size: 19),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Phone shared with this circle',
+                                  style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 5),
+                          SelectableText(
+                            sharedPhone,
+                            style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: () => _launchMemberContact(ctx, 'tel', sharedPhone),
+                                  icon: const Icon(Icons.call_rounded),
+                                  label: const Text('Call'),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _launchMemberContact(ctx, 'sms', sharedPhone),
+                                  icon: const Icon(Icons.sms_outlined),
+                                  label: const Text('Text'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   if (latestCheckIn != null && latestCheckIn.occurredAt != null) ...[
                     Container(
                       width: double.infinity,
