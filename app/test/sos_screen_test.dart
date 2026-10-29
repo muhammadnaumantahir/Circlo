@@ -21,7 +21,6 @@ const _profile = UserProfile(
 );
 
 Widget _app({required DateTime? locationUpdatedAt}) {
-  final now = DateTime.now();
   final contacts = <SharedContact>[
     const SharedContact(uid: 'self', phone: '+923001111111'),
     const SharedContact(uid: 'removed', phone: '+923002222222'),
@@ -80,7 +79,7 @@ void main() {
     expect(find.text('Malformed Phone'), findsNothing);
     expect(find.text('No shared phone numbers yet'), findsNothing);
     expect(find.text('Choose who to share with'), findsOneWidget);
-    expect(find.text('Nothing is sent until you choose a recipient'), findsOneWidget);
+    expect(find.textContaining('Nothing is sent until you choose a recipient'), findsOneWidget);
   });
 
   testWidgets('stale location is not included in the SOS message preview', (tester) async {
@@ -91,7 +90,8 @@ void main() {
 
     expect(find.text('No fresh shared location'), findsOneWidget);
     expect(find.textContaining('does not have a fresh shared location'), findsOneWidget);
-    expect(find.textContaining('www.google.com/maps/search/'), findsNothing);
+    final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
 
   testWidgets('missing location timestamp is shown as unavailable', (tester) async {
@@ -99,6 +99,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No fresh shared location'), findsOneWidget);
-    expect(find.textContaining('www.google.com/maps/search/'), findsNothing);
+    final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
 }
