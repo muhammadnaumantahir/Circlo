@@ -1,6 +1,7 @@
 # Circlo Feature Status & Cross-Chat Handover
 
 **Last updated:** 2026-10-29  
+**Latest status audit:** 2026-10-29 — reconciled against merged PRs #60–#67. Expected-arrival/No Show hardening (#66), battery sharing (#65), phone sharing (#64), place suggestions (#63), Quick Notes (#62), route handoff (#61), scheduled No Show (#60), and Approximate Location/Bubble (#67) are already in `main`.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest application/code commit at audit:** `9e460f613a5a5f0dbc5438d80dd16b85ddc11f91` — PR #67, Approximate Location (Bubble)  
@@ -34,6 +35,13 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | 13 | Web build error fix | In main — code fix | Fixed the reported undefined `backgrounds`, integer-index, and nullable `uid` compile errors. [PR #53](https://github.com/muhammadnaumantahir/Circlo/pull/53) | Re-run the Cloudflare Pages web build; the fix has not been confirmed by a later build log in this audit. |
 | 14 | In-app activity / manual check-ins | In main — unverified | Searchable activity feed, filters, unread state, membership/location/place events, self-reported check-ins and Quick Notes. | Cross-account authorization, feed parsing, stale/offline states and UI tests. These are in-app items, not remote phone pushes. |
 
+## Recommended next steps (keep this section current)
+
+1. **Release verification first (P0):** run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite; rebuild Cloudflare Pages; verify Android/iOS background tracking and two-account privacy behavior. Until these pass, all recent feature work is code-present but unverified.
+2. **Next product feature after verification:** design an SOS / emergency-contact flow only after defining consent, delivery acknowledgement, retry/fallback, abuse controls, and truthful “sent/delivered” states. Do not describe it as emergency dispatch without a tested trusted delivery path.
+3. **Keep deferred under $0/Firebase-only:** remote push notifications until a trusted no-cost delivery architecture is confirmed; never embed sender credentials in the client.
+4. Then evaluate driving/crash detection, flight/landing alerts, tracker integrations and pet tracking as listed below.
+
 ## Not implemented or deferred
 
 | Priority | Feature | Status | Next step / limitation |
@@ -55,6 +63,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | #57 ETA map handoff | Closed, superseded | Closed 2026-10-29; ETA/map handoff is in `main` via PR #61. |
 | #56 Call/Text | Closed, not merged | Superseded by the conflict-resolved implementation in PR #64. |
 | #58 Battery sharing | Closed, not merged | Superseded by the conflict-resolved implementation in PR #65. |
+| #59 Automatic Place Suggestions | Closed, not merged | Superseded by the privacy-reviewed implementation in PR #63. |
 
 ## Release checklist
 
