@@ -86,6 +86,9 @@ final mySubscriptionsProvider = StreamProvider<List<PlaceSubscription>>((ref) {
 final recentEventsProvider = StreamProvider.family<List<PlaceEvent>, String>(
     (ref, circleId) => ref.watch(placesRepositoryProvider).watchRecentEvents(circleId));
 
+final arrivalPlansProvider = StreamProvider.family<List<ArrivalPlan>, String>(
+    (ref, circleId) => ref.watch(placesRepositoryProvider).watchArrivalPlans(circleId));
+
 final activityProvider = StreamProvider.family<List<ActivityEvent>, String>(
     (ref, circleId) => ref.watch(circlesRepositoryProvider).watchActivity(circleId));
 
@@ -157,6 +160,56 @@ final notificationFeedProvider = Provider<AsyncValue<List<FeedItem>>>((ref) {
           text: a.text,
           at: at,
         ));
+      }
+    }
+
+    if (wants(FeedKind.noShow)) {
+      final plans = ref.watch(arrivalPlansProvider(c.id)).valueOrNull ?? const <ArrivalPlan>[];
+      final places = ref.watch(placesProvider(c.id)).valueOrNull ?? const <Place>[];
+      final members = ref.watch(membersProvider(c.id)).valueOrNull ?? const <Member>[];
+      final locations = ref.watch(locationsProvider(c.id)).valueOrNull ?? const <String, MemberLocation>{};
+      final recentPlaceEvents = ref.watch(recentEventsProvider(c.id)).valueOrNull ?? const <PlaceEvent>[];
+
+      for (final plan in plans) {
+        // The target member is responsible for their own plan; other current circle members get
+        // the in-app alert. No remote push or reliable background scheduler is implied.
+        if (plan.memberUid == uid) continue;
+        final member = members.where((m) => m.uid == plan.memberUid).firstOrNull;
+        final place = places.where((p) => p.id == plan.placeId).firstOrNull;
+        if (member == null || place == null || !member.sharesLocation || member.paused) continue;
+
+        if (plan.isPending) {
+          if (plan.expectedAt.isAfter(now) || plan.expectedAt.isBefore(cutoff)) continue;
+          final arrivalWasRecorded = recentPlaceEvents.any((event) =>
+              event.memberUid == plan.memberUid &&
+              event.placeId == plan.placeId &&
+              event.type == 'arrive' &&
+              event.occurredAt != null &&
+              (plan.createdAt == null || !event.occurredAt!.isBefore(plan.createdAt!)));
+          if (arrivalWasRecorded) continue;
+
+          final latestLocation = locations[plan.memberUid]?.updatedAt;
+          final stale = latestLocation == null || now.difference(latestLocation) > const Duration(minutes: 15);
+          items.add(FeedItem(
+            id: '${c.id}/no-show/${plan.id}',
+            circleId: c.id,
+            circleName: c.name,
+            kind: FeedKind.noShow,
+            text: stale
+                ? '${member.displayName} has no arrival recorded at ${place.name} by the expected time. Their location may be unavailable.'
+                : '${member.displayName} has no arrival recorded at ${place.name} by the expected time.',
+            at: plan.expectedAt,
+          ));
+        } else if (plan.arrivedLate && plan.arrivedAt != null && !plan.arrivedAt!.isBefore(cutoff)) {
+          items.add(FeedItem(
+            id: '${c.id}/no-show-late/${plan.id}',
+            circleId: c.id,
+            circleName: c.name,
+            kind: FeedKind.noShow,
+            text: '${member.displayName} arrived at ${place.name} after the expected time.',
+            at: plan.arrivedAt!,
+          ));
+        }
       }
     }
 
