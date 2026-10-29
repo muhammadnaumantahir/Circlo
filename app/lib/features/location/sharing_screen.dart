@@ -345,6 +345,15 @@ class _CircleSharingTile extends ConsumerWidget {
     final state = !on ? 'Off' : (paused ? 'Paused' : 'Sharing');
     final visible = others == null ? '' : ' · Visible to $others other ${others == 1 ? 'member' : 'members'}';
 
+    final bubbleActive = membership?.isApproximateAt(DateTime.now()) ?? false;
+    final bubbleUntil = membership?.bubbleUntil;
+    final bubbleSubtitle = bubbleActive && bubbleUntil != null
+        ? 'Coarse map pin until ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(bubbleUntil))}. Other features may still reveal visits.'
+        : !on
+            ? 'Turn on location sharing before enabling this temporary mode.'
+            : paused
+                ? 'Resume location sharing before enabling approximate location.'
+                : 'Temporarily share a coarse map pin (roughly 1–1.6 km), then return to precise sharing automatically.';
     final batteryShared = membership?.shareBattery ?? false;
     final batterySubtitle = !on
         ? 'Turn on location sharing before enabling battery sharing.'
@@ -377,8 +386,85 @@ class _CircleSharingTile extends ConsumerWidget {
                 ? null
                 : (v) => _toggleBattery(context, ref, v),
           ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          SwitchListTile(
+            secondary: const Icon(Icons.blur_on_rounded),
+            title: const Text('Approximate location (Bubble)'),
+            subtitle: Text(bubbleSubtitle),
+            value: bubbleActive,
+            onChanged: ((!on || paused) && !bubbleActive)
+                ? null
+                : (v) => _toggleApproximate(context, ref, v),
+          ),
         ],
       ),
+    );
+  }
+
+  Future<void> _toggleApproximate(BuildContext context, WidgetRef ref, bool enable) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    DateTime? until;
+
+    if (enable) {
+      final duration = await showModalBottomSheet<Duration>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Approximate location duration', style: Theme.of(sheetContext).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                const Text(
+                  'Your circle will see a grid-snapped map pin instead of your precise coordinates. '
+                  'When the timer ends, your existing precise-sharing consent resumes.',
+                ),
+                const SizedBox(height: 12),
+                for (final option in const [
+                  (Duration(hours: 1), '1 hour'),
+                  (Duration(hours: 4), '4 hours'),
+                  (Duration(hours: 8), '8 hours'),
+                ])
+                  ListTile(
+                    leading: const Icon(Icons.blur_on_rounded),
+                    title: Text(option.$2),
+                    subtitle: Text(
+                      'Returns to precise map sharing at ${MaterialLocalizations.of(sheetContext).formatTimeOfDay(TimeOfDay.fromDateTime(DateTime.now().add(option.$1)))}',
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.of(sheetContext).pop(option.$1),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (duration == null || !context.mounted) return;
+
+      final confirmed = await confirmAction(
+        context,
+        title: 'Use approximate location in ${circle.name}?',
+        message: 'For this circle, Circlo will share a grid-snapped map pin roughly 1–1.6 km from your actual coordinates for the selected time. The previous precise location is removed before the coarse pin is sent. When the timer ends, your current location is shared precisely again.
+
+'
+            'Important: this changes only the map pin. Saved Place arrival/departure alerts, expected-arrival alerts, manual check-ins and separately enabled Travel History may still reveal places you visit. Existing history/activity is not deleted. Use Pause or Stop sharing if you need to hide your location completely.',
+        confirmLabel: 'Use approximate location',
+      );
+      if (!confirmed || !context.mounted) return;
+      until = DateTime.now().add(duration);
+    }
+
+    await _run(
+      context,
+      () => ref.read(locationRepositoryProvider).setApproximateLocation(
+            uid: uid,
+            circleId: circle.id,
+            until: until,
+          ),
     );
   }
 
