@@ -34,7 +34,7 @@ class UserProfile {
         phone: data['phone'] as String?,
         keepHistory: data['keepHistory'] == true,
         retentionDays: (data['retentionDays'] as num?)?.toInt() ?? 30,
-        placeSuggestionsEnabled: data['placeSuggestionsEnabled'] == true,
+        placeSuggestionsEnabled: data['placeSuggestionsEnabled'] == true && data['keepHistory'] == true,
         notifOff: [for (final x in (data['notifOff'] as List? ?? const [])) x.toString()],
         notifMuted: [for (final x in (data['notifMuted'] as List? ?? const [])) x.toString()],
         notifSeenAt: (data['notifSeenAt'] as Timestamp?)?.toDate(),
