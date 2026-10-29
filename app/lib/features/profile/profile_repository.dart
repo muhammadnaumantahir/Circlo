@@ -65,17 +65,17 @@ class ProfileRepository {
     // Keep every explicitly shared per-circle copy in sync with the private profile.
     // Query per circle because Firestore Rules intentionally prohibit cross-circle contact discovery.
     final memberships = await _db.collectionGroup('members').where('uid', isEqualTo: uid).get();
-    final sharedContactDocs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+    final sharedContactDocs = <DocumentSnapshot<Map<String, dynamic>>>[];
     for (final membership in memberships.docs) {
       final circleRef = membership.reference.parent.parent;
       if (circleRef == null) continue;
       try {
-        final shared = await circleRef
-            .collection('sharedContacts')
-            .where('uid', isEqualTo: uid)
-            .where('sharePhone', isEqualTo: true)
-            .get();
-        sharedContactDocs.addAll(shared.docs);
+        // Read only the user's own contact document; this avoids an extra composite index and
+        // doesn't read any other member's shared phone numbers during profile edits.
+        final shared = await circleRef.collection('sharedContacts').doc(uid).get();
+        if (shared.exists && shared.data()?['sharePhone'] == true) {
+          sharedContactDocs.add(shared);
+        }
       } on FirebaseException catch (e) {
         // If membership was revoked between the query and this read, the old contact is already
         // inaccessible to that circle member. Do not let that stale membership block profile edits.
