@@ -186,14 +186,18 @@ service cloud.firestore {
       // sharing is ON and NOT paused for that exact circle; the app deletes it atomically when sharing
       // is switched off/paused/left, so viewers never keep seeing stale data after revocation.
       function validLocation(d, memberUid) {
-        return d.keys().hasOnly(['uid', 'lat', 'lng', 'accuracy', 'sharing', 'updatedAt'])
+        return d.keys().hasOnly(['uid', 'lat', 'lng', 'accuracy', 'sharing', 'updatedAt', 'batteryLevel'])
           && d.keys().hasAll(['uid', 'lat', 'lng', 'accuracy', 'sharing', 'updatedAt'])
           && d.uid == memberUid
           && d.sharing == true
           && d.lat is number && d.lat >= -90 && d.lat <= 90
           && d.lng is number && d.lng >= -180 && d.lng <= 180
           && d.accuracy is number && d.accuracy >= 0 && d.accuracy <= 100000
-          && d.updatedAt == request.time;
+          && d.updatedAt == request.time
+          // Battery is optional, and requires separate consent in the same circle.
+          && (!('batteryLevel' in d)
+              || (d.batteryLevel is int && d.batteryLevel >= 0 && d.batteryLevel <= 100
+                  && get(memberPath(cid, memberUid)).data.get('shareBattery', false) == true));
       }
 
       match /locations/{uid} {
@@ -507,12 +511,25 @@ service cloud.firestore {
           && validMemberCreate(request.resource.data, cid, uid);
         // A member may only change their own display name and their own sharing switches.
         allow update: if signedIn() && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'sharesLocation', 'paused', 'historyShared', 'pausedUntil'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'sharesLocation', 'paused', 'historyShared', 'pausedUntil', 'shareBattery'])
           && nameOk(request.resource.data.displayName, 50)
           && request.resource.data.get('sharesLocation', false) is bool
           && request.resource.data.get('paused', false) is bool
           && request.resource.data.get('historyShared', false) is bool
+          && request.resource.data.get('shareBattery', false) is bool
+          // Battery sharing is subordinate to active location sharing and can never outlive it.
+          && (request.resource.data.get('sharesLocation', false) == true
+              || request.resource.data.get('shareBattery', false) == false)
           && (!('pausedUntil' in request.resource.data) || request.resource.data.pausedUntil is timestamp)
+          // Turning battery consent on requires active, unpaused location sharing. Turning it off
+          // requires the location projection to be deleted or have the battery field removed.
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shareBattery'])
+              || (request.resource.data.get('shareBattery', false) == true
+                  && request.resource.data.get('sharesLocation', false) == true
+                  && request.resource.data.get('paused', false) == false)
+              || (request.resource.data.get('shareBattery', false) == false
+                  && (!existsAfter(locationPath(cid, uid))
+                      || !('batteryLevel' in getAfter(locationPath(cid, uid)).data))))
           // Turning sharing off or pausing must remove the live location in the same atomic batch.
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['sharesLocation', 'paused'])
               || (request.resource.data.get('sharesLocation', false) == true
