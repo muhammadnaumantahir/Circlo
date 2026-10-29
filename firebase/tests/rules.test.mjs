@@ -557,6 +557,7 @@ describe('scheduled arrival / No Show plans', () => {
     await assertSucceeds(shareOn('bob'));
     const refBob = ref('bob');
     await assertSucceeds(setDoc(refBob, plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
+    await assertFails(setDoc(refBob, plan('bob', Timestamp.fromMillis(Date.now() + 2 * 60 * 60 * 1000), { placeId: 'missing-place' })));
     await assertSucceeds(setDoc(refBob, plan('bob', Timestamp.fromMillis(Date.now() + 2 * 60 * 60 * 1000), { placeId: 'p2' })));
     const saved = await getDoc(refBob);
     if (saved.data()?.placeId !== 'p2') throw new Error('rescheduled plan should target the new place');
