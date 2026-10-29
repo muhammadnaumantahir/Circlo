@@ -286,10 +286,14 @@ service cloud.firestore {
           && (
             (request.resource.data.status == 'pending'
               && !('arrivedAt' in request.resource.data)
+              && request.resource.data.placeId is string
+              && request.resource.data.placeId.size() > 0
+              && request.resource.data.placeId.size() <= 100
               && request.resource.data.expectedAt is timestamp
               && request.resource.data.expectedAt > request.time
               && request.resource.data.expectedAt <= request.time + duration.value(30, 'd')
               && request.resource.data.createdAt == request.time
+              && exists(placePath(cid, request.resource.data.placeId))
               && request.resource.data.updatedAt == request.time
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt', 'arrivedAt'])
               && exists(placePath(cid, request.resource.data.placeId))
