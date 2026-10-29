@@ -101,9 +101,11 @@ class _RouterNotifier extends ChangeNotifier {
     // instead of repeating the same Retry card across every tab.
     if (_requiresCircle(loc)) {
       final circles = _ref.read(myCirclesProvider);
-      if (!circles.isLoading &&
-          (circles.hasError ||
-              (circles.hasValue && (circles.valueOrNull?.isEmpty ?? true)))) {
+      final noKnownMembership = !circles.isLoading &&
+          circles.hasValue &&
+          (circles.valueOrNull?.isEmpty ?? true);
+      final membershipCouldNotBeRead = circles.hasError && circles.valueOrNull == null;
+      if (noKnownMembership || membershipCouldNotBeRead) {
         return '/circles';
       }
     }
@@ -243,7 +245,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ];
     final circleState = ref.watch(myCirclesProvider);
     final hasCircles = !circleState.isLoading &&
-        !circleState.hasError &&
         (circleState.valueOrNull?.isNotEmpty ?? false);
     // Before the first circle exists (or while membership could not be read), keep navigation
     // focused on setup and the profile. Map/Places/History are available after joining a circle.
