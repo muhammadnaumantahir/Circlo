@@ -59,12 +59,51 @@ class ProfileRepository {
     required String uid,
     required String displayName,
     String? phone,
-  }) {
+  }) async {
     final cleanPhone = phone?.trim() ?? '';
-    return _doc(uid).update({
+
+    // Keep every explicitly shared per-circle copy in sync with the private profile.
+    // Query per circle because Firestore Rules intentionally prohibit cross-circle contact discovery.
+    final memberships = await _db.collectionGroup('members').where('uid', isEqualTo: uid).get();
+    final sharedContactDocs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+    for (final membership in memberships.docs) {
+      final circleRef = membership.reference.parent.parent;
+      if (circleRef == null) continue;
+      try {
+        final shared = await circleRef
+            .collection('sharedContacts')
+            .where('uid', isEqualTo: uid)
+            .where('sharePhone', isEqualTo: true)
+            .get();
+        sharedContactDocs.addAll(shared.docs);
+      } on FirebaseException catch (e) {
+        // If membership was revoked between the query and this read, the old contact is already
+        // inaccessible to that circle member. Do not let that stale membership block profile edits.
+        if (e.code != 'permission-denied') rethrow;
+      }
+    }
+
+    // A single atomic write prevents the private profile and shared copies disagreeing if a
+    // phone number changes or is removed. Refuse excessive fan-out rather than partially updating.
+    if (sharedContactDocs.length >= 499) {
+      throw StateError('Too many shared phone contacts to update safely. Turn off sharing in some circles first.');
+    }
+    final batch = _db.batch();
+    batch.update(_doc(uid), {
       'displayName': displayName.trim(),
       'phone': cleanPhone.isEmpty ? FieldValue.delete() : cleanPhone,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    for (final contact in sharedContactDocs) {
+      if (cleanPhone.isEmpty) {
+        batch.delete(contact.reference);
+      } else {
+        batch.update(contact.reference, {
+          'phone': cleanPhone,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+    await batch.commit();
   }
 }
