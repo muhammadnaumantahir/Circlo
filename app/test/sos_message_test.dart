@@ -93,6 +93,42 @@ void main() {
     }
   });
 
+  test('freshness boundary accepts exactly ten minutes and rejects older fixes', () {
+    final atLimit = buildSosMessage(
+      displayName: 'Nauman',
+      sharingActive: true,
+      location: location(updatedAt: now.subtract(const Duration(minutes: 10))),
+      now: now,
+    );
+    final justTooOld = buildSosMessage(
+      displayName: 'Nauman',
+      sharingActive: true,
+      location: location(updatedAt: now.subtract(const Duration(minutes: 10, seconds: 1))),
+      now: now,
+    );
+
+    expect(atLimit, contains('www.google.com/maps/search/'));
+    expect(justTooOld, isNot(contains('www.google.com/maps/search/')));
+  });
+
+  test('freshness boundary tolerates two minutes of future clock skew only', () {
+    final atLimit = buildSosMessage(
+      displayName: 'Nauman',
+      sharingActive: true,
+      location: location(updatedAt: now.add(const Duration(minutes: 2))),
+      now: now,
+    );
+    final justTooFarAhead = buildSosMessage(
+      displayName: 'Nauman',
+      sharingActive: true,
+      location: location(updatedAt: now.add(const Duration(minutes: 2, seconds: 1))),
+      now: now,
+    );
+
+    expect(atLimit, contains('www.google.com/maps/search/'));
+    expect(justTooFarAhead, isNot(contains('www.google.com/maps/search/')));
+  });
+
   test('uses a safe generic sender name when the profile name is blank', () {
     final message = buildSosMessage(
       displayName: '  ',
