@@ -510,6 +510,8 @@ class CircleDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final circleAsync = ref.watch(circleProvider(circleId));
     final membersAsync = ref.watch(membersProvider(circleId));
+    final myCircles = ref.watch(myCirclesProvider).valueOrNull ?? const <Circle>[];
+    final canOpenMap = myCircles.any((circle) => circle.id == circleId);
     final uid = ref.watch(currentUidProvider);
 
     return Scaffold(
@@ -517,10 +519,12 @@ class CircleDetailScreen extends ConsumerWidget {
         title: Text(circleAsync.valueOrNull?.name ?? 'Circle'),
         actions: [
           TextButton.icon(
-            onPressed: () {
-              ref.read(selectedCircleIdProvider.notifier).state = circleId;
-              context.go('/map');
-            },
+            onPressed: canOpenMap
+                ? () {
+                    ref.read(selectedCircleIdProvider.notifier).state = circleId;
+                    context.go('/map');
+                  }
+                : null,
             icon: const Icon(Icons.map_outlined),
             label: const Text('Open map'),
           ),
