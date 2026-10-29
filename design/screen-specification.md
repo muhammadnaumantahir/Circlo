@@ -40,4 +40,4 @@ Banner on web: "Location is shared only while this tab is open." Background-only
 Sign-up asks age/birth year; blocks under minimum age with a friendly message; consent text for minors uses simple language; pause/leave always one tap away.
 
 ## Navigation
-Bottom nav: Map · Circles · Places · History · Profile; Notifications via bell icon on Map app bar. Deep links from push notifications.
+Before the first circle exists, start on a dedicated Circles onboarding screen with **Create a circle** and **Join with an invite code** actions; show only Circles and Profile in main navigation. Gate Map, Places, History, sharing and history settings until the signed-in user has circle membership. After membership is confirmed, reveal the full navigation: Map · Places · History · Circles · Profile; Notifications remains accessible from the Map app bar. Circle details provide an **Open map** action. If the circle query fails, route users to one Circles recovery screen rather than repeating a Retry state in every feature tab.
