@@ -1,6 +1,7 @@
 import 'package:circlo/features/circles/circle_models.dart';
 import 'package:circlo/features/location/location_models.dart';
 import 'package:circlo/features/places/place_models.dart';
+import 'package:circlo/features/profile/profile_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
