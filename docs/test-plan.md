@@ -4,6 +4,8 @@ Current feature progress and handover: [feature-status.md](feature-status.md). S
 
 | Req | Check | Where | Command | Status |
 |---|---|---|---|---|
+| SOS message builder | Include a map link only for a fresh shared fix; suppress coordinates when sharing is off or the fix is stale/future-dated; label approximate Bubble pins; handle a blank display name | `app/test/sos_message_test.dart` | `cd app && flutter test test/sos_message_test.dart` | Added on 2026-10-29 on `feature/sos-emergency-message`; Not run here |
+| UX / SOS | Open from the map; review the message; verify the platform share sheet and copy fallback; test sharing on/off, stale/unavailable location, precise and approximate pins, Circle switch and small screens. Confirm no sent/delivered claim is displayed. | Manual Android/iOS/web + two accounts | Manual | Not run — required |
 | FR-001–003 | Sign-up/log-in/reset flows | manual with Firebase project/emulator | `flutter run` | Not run |
 | FR-001, FR-002 | Login form validation | `app/test/login_screen_test.dart` | `flutter test` | Not run (CI) |
 | Contact sharing | Per-circle opt-in, member-scoped reads, private-profile isolation, atomic phone updates, cleanup on leave/removal/account deletion and Call/Text handler behavior | `app/test/models_test.dart`; `firebase/tests/rules.test.mjs`; manual Android/iOS/web | `cd app && flutter test test/models_test.dart`; `cd firebase && npm test` | Added on 2026-10-29; Not run here |
