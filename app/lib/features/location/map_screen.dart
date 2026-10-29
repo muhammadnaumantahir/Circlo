@@ -143,7 +143,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ],
         ),
         actions: [
-          if (MediaQuery.sizeOf(context).width < 380)
+          // Four separate actions do not fit reliably beside the map title on narrow phones.
+          if (MediaQuery.sizeOf(context).width < 440)
             PopupMenuButton<String>(
               tooltip: 'Quick actions',
               onSelected: (action) {
