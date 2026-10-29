@@ -37,6 +37,24 @@ void main() {
       expect(location!.lat, 31.52);
       expect(location.lng, 74.35);
       expect(location.accuracy, 0);
+      expect(location.batteryLevel, isNull);
+    });
+
+    test('accepts only valid integer battery percentages', () {
+      final low = MemberLocation.tryFromMap('u1', {
+        'lat': 31.52, 'lng': 74.35, 'batteryLevel': 18,
+      });
+      expect(low, isNotNull);
+      expect(low!.batteryLevel, 18);
+      expect(MemberLocation.tryFromMap('u1', {
+        'lat': 31.52, 'lng': 74.35, 'batteryLevel': -1,
+      })!.batteryLevel, isNull);
+      expect(MemberLocation.tryFromMap('u1', {
+        'lat': 31.52, 'lng': 74.35, 'batteryLevel': 101,
+      })!.batteryLevel, isNull);
+      expect(MemberLocation.tryFromMap('u1', {
+        'lat': 31.52, 'lng': 74.35, 'batteryLevel': 'low',
+      })!.batteryLevel, isNull);
     });
 
     test('rejects missing, non-finite, and out-of-range coordinates', () {
@@ -92,6 +110,9 @@ void main() {
       expect(membership.sharesLocation, isTrue);
       expect(membership.paused, isTrue);
       expect(membership.historyShared, isTrue);
+      expect(membership.shareBattery, isFalse);
+      expect(MyMembership.fromMap('c2', {'shareBattery': true}).shareBattery, isTrue);
+      expect(MyMembership.fromMap('c3', {'shareBattery': 'yes'}).shareBattery, isFalse);
       expect(membership.pausedUntil, until);
       expect(membership.isActive, isFalse);
     });
