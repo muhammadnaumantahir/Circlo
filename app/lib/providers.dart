@@ -174,8 +174,20 @@ final notificationFeedProvider = Provider<AsyncValue<List<FeedItem>>>((ref) {
         // The target member is responsible for their own plan; other current circle members get
         // the in-app alert. No remote push or reliable background scheduler is implied.
         if (plan.memberUid == uid) continue;
-        final member = members.where((m) => m.uid == plan.memberUid).firstOrNull;
-        final place = places.where((p) => p.id == plan.placeId).firstOrNull;
+        Member? member;
+        for (final candidate in members) {
+          if (candidate.uid == plan.memberUid) {
+            member = candidate;
+            break;
+          }
+        }
+        Place? place;
+        for (final candidate in places) {
+          if (candidate.id == plan.placeId) {
+            place = candidate;
+            break;
+          }
+        }
         if (member == null || place == null || !member.sharesLocation || member.paused) continue;
 
         if (plan.isPending) {
