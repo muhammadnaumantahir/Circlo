@@ -170,6 +170,23 @@ class PlacesRepository {
     });
   }
 
+  /// Clears all of the caller's plans when this device stops sharing in a circle.
+  Future<void> deleteMyArrivalPlans({
+    required String circleId,
+    required String uid,
+  }) async {
+    final snapshot = await _circle(circleId)
+        .collection('arrivalPlans')
+        .where('memberUid', isEqualTo: uid)
+        .get();
+    if (snapshot.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final document in snapshot.docs) {
+      batch.delete(document.reference);
+    }
+    await batch.commit();
+  }
+
   /// Cancels the caller's own plan (the rules also allow the circle owner to clean up).
   Future<void> cancelArrivalPlan({
     required String circleId,
