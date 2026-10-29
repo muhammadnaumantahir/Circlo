@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Add curated one-tap emoji quick notes to the map check-in sheet; share notes only to the selected circle's in-app activity feed, with Firestore validation and no location fields.
+
 ### Fixed
 - Gate map, saved places, travel history and related routes until the signed-in user belongs to a circle; route initial/no-membership states and membership-query errors with no cached result to one Circles screen instead of showing repeated Retry states across tabs.
 - Use the first-use Circles onboarding to guide users through creating a circle or joining by invite code, hide circle-dependent tabs before membership, open the map after a successful join, and offer an Open map action on circle details after membership is confirmed.
