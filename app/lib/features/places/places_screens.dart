@@ -172,7 +172,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
                 title: const Text('Expected arrival / No Show'),
                 subtitle: Text(
                   canScheduleArrival
-                      ? 'Set a deadline before travelling. Missed-arrival alerts are evaluated in Circlo while it is open and location sharing is active; phone push alerts are not available.'
+                      ? 'Set a deadline before travelling. One expected arrival is active per circle; scheduling another place replaces this plan. Missed-arrival warnings are in-app only, not phone push alerts.'
                       : 'Turn on location sharing for this circle to schedule an expected arrival.',
                 ),
               ),
@@ -454,7 +454,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
             expectedAt: expectedAt,
           );
       if (mounted) {
-        showSnack(context, 'Expected arrival saved. Circlo can warn this circle if no arrival is recorded by the deadline.');
+        showSnack(context, 'Expected arrival saved. This replaces your previous expected-arrival plan in this circle.');
       }
     } catch (_) {
       if (mounted) showSnack(context, 'Could not save the expected arrival. Check your connection and sharing settings.');
@@ -579,7 +579,7 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
         : plan == null
             ? 'No expected arrival scheduled'
             : plan.isPending
-                ? 'Expected by ${localizations.formatShortDate(loc!)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(loc))}'
+                ? 'Expected by ${localizations.formatShortDate(loc!)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(loc!))}'
                 : plan.arrivedLate
                     ? 'Arrived after the expected time'
                     : 'Arrival confirmed before the deadline';
