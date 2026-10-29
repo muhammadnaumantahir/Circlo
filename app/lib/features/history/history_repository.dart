@@ -23,6 +23,35 @@ class HistoryRepository {
     return (s.exists && d != null) ? DayTrack.fromMap(d) : null;
   }
 
+  /// Reads only the signed-in user's private history within their current retention window.
+  /// This is used by optional place suggestions; shared circle-history copies are never read.
+  /// One bounded query replaces a per-day fan-out of reads.
+  Future<List<DayTrack>> getRecentMine(
+    String uid, {
+    required int retentionDays,
+    DateTime? now,
+  }) async {
+    final days = const [7, 30, 90].contains(retentionDays) ? retentionDays : 30;
+    final cutoff = (now ?? DateTime.now()).subtract(Duration(days: days - 1));
+    final cutoffKey = '${cutoff.year.toString().padLeft(4, '0')}'
+        '${cutoff.month.toString().padLeft(2, '0')}'
+        '${cutoff.day.toString().padLeft(2, '0')}';
+    final snapshot = await _master(uid)
+        .where('day', isGreaterThanOrEqualTo: cutoffKey)
+        .orderBy('day', descending: true)
+        .limit(days)
+        .get();
+    final tracks = <DayTrack>[];
+    for (final document in snapshot.docs) {
+      try {
+        tracks.add(DayTrack.fromMap(document.data()));
+      } on FormatException {
+        // Ignore a corrupt day rather than preventing all other suggestions.
+      }
+    }
+    return tracks;
+  }
+
   /// Reads a circle member's shared day. Returns null when there is nothing to show
   /// (no data, or the rules deny it because sharing/history sharing is off).
   Future<DayTrack?> getShared(String circleId, String memberUid, String day) async {
