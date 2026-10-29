@@ -161,4 +161,54 @@ void main() {
 
     expect(reads, 2);
   });
+
+  test('a failed day-rollover write is retried without losing the previous day', () async {
+    final attemptedDays = <String>[];
+    final persistedDays = <String>[];
+    var failPreviousDayOnce = false;
+
+    final recorder = HistoryRecorder(
+      uid: 'u1',
+      flushEvery: Duration.zero,
+      loadDay: (uid, day) async => null,
+      saveDay: (uid, track, sharedCircleIds) async {
+        attemptedDays.add(track.day);
+        if (track.day == '20261029' && failPreviousDayOnce) {
+          failPreviousDayOnce = false;
+          throw FirebaseException(plugin: 'cloud_firestore', code: 'unavailable');
+        }
+        persistedDays.add(track.day);
+      },
+    )..configure(
+        keepHistory: true,
+        sharedCircleIds: <String>{},
+        places: const [],
+      );
+
+    await recorder.onFix(
+      lat: 31.52,
+      lng: 74.35,
+      accuracy: 10,
+      time: DateTime(2026, 10, 29, 23, 59),
+    );
+    failPreviousDayOnce = true;
+
+    // Midnight rollover first tries to save yesterday, but that request fails once.
+    await recorder.onFix(
+      lat: 31.52,
+      lng: 74.35,
+      accuracy: 10,
+      time: DateTime(2026, 10, 30, 0, 1),
+    );
+
+    // Shutdown must retry yesterday before writing today's final track.
+    await recorder.dispose();
+
+    expect(
+      attemptedDays.where((day) => day == '20261029').length,
+      greaterThanOrEqualTo(3),
+    );
+    expect(persistedDays, contains('20261029'));
+    expect(persistedDays, contains('20261030'));
+  });
 }

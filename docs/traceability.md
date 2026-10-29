@@ -11,6 +11,7 @@ Implementation tasks and test IDs are placeholders to be created in Phase 6/7 (s
 | FR-030–038 (Inc. 2: FR-030–037 partly; FR-038 not built) | S2, S3 | location service, `live_locations` | T-LOC (after ADR-0003 spike) | TC-LOC-* (device field tests) |
 | FR-040–051 | S5 | places module, on-device evaluator + `place_events` (ADR-0002) | T-PLACE | TC-PLC-* (simulated tracks, dedup) |
 | FR-060–068 | S6 | history module, visit builder, retention cleanup (trusted mechanism unresolved) | T-HIST | TC-HIS-* |
+| FR-060–068 | S6 | `HistoryRecorder` finished-day retry queue | T-HIST-ROLLOVER | `app/test/history_recorder_test.dart` — rollover write failure/retry (added; not run here) |
 | FR-070–074 | S3 | map module | T-MAP | TC-MAP-* |
 | FR-080–084 | S7, S8 | notifications module, FCM (trusted sender unresolved) | T-NOTIF | TC-NOT-* |
 | FR-100–105 | S1, S2, web specifics | Flutter web build, age gate, on-device evaluator (ADR-0002) | T-PLATFORM/T-PLACE | TC-PLAT-*, TC-MIN-*, TC-PLC-* |

@@ -53,6 +53,8 @@ class HistoryRecorder {
   // Process them in arrival order so mutable track state cannot change mid-write.
   Future<void> _fixQueue = Future<void>.value();
   bool _dirty = false;
+  // Finished days stay queued until Firestore confirms their write.
+  final List<DayTrack> _pendingDays = [];
   DateTime? _lastFlush;
   String _signature = '';
 
@@ -103,7 +105,9 @@ class HistoryRecorder {
       );
       final after = _builder.current;
       if (before != null && !identical(before, after)) {
-        await _write(before); // persist the finished day (its open visit was closed)
+        // TrackBuilder will no longer mutate the finished day. Queue it before any await so a
+        // transient write failure cannot silently discard the only in-memory copy of that day.
+        _pendingDays.add(before);
       }
       // Persist lastSeen on the normal flush cadence even while stationary; TrackBuilder can
       // update it without changing the thinned route or visit list.
@@ -125,6 +129,13 @@ class HistoryRecorder {
   }
 
   Future<void> flush() async {
+    // Retry completed days first. Remove each only after its write succeeds, so a failed
+    // Firestore request leaves it available for the next fix or the shutdown flush.
+    while (_pendingDays.isNotEmpty) {
+      await _write(_pendingDays.first);
+      _pendingDays.removeAt(0);
+    }
+
     final t = _builder.current;
     if (t == null || !_dirty) return;
     await _write(t);
