@@ -15,9 +15,9 @@ import '../circles/activity.dart';
 import '../circles/circle_models.dart';
 import '../places/notifications_screen.dart';
 import '../places/place_models.dart';
+import 'battery_status.dart';
 import 'directions.dart';
 import 'location_models.dart';
-import 'battery_status.dart';
 import 'sharing_controller.dart';
 import 'sharing_status.dart';
 
