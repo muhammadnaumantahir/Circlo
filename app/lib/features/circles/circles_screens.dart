@@ -71,7 +71,7 @@ class CirclesScreen extends ConsumerWidget {
             itemBuilder: (context, i) {
               if (i == 0) return _CircleCollectionHero(count: list.length);
               final c = list[i - 1];
-              final tone = (i - 1) % backgrounds.length;
+              final tone = ((i - 1) % icons.length).toInt();
               return Card(
                 margin: EdgeInsets.zero,
                 child: ListTile(
@@ -786,6 +786,9 @@ class _JoinCodeCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Capture the nullable widget property in a local final so it remains promoted
+    // inside the asynchronous button callback.
+    final currentUid = uid;
     final expiryAsync = ref.watch(codeExpiryProvider(circle.joinCode));
     final expiry = expiryAsync.valueOrNull;
     final expired = expiry != null && expiry.isBefore(DateTime.now());
@@ -851,7 +854,7 @@ class _JoinCodeCard extends ConsumerWidget {
                   icon: const Icon(Icons.ios_share_rounded),
                   label: const Text('Share invite'),
                 ),
-                if (isOwner && uid != null)
+                if (isOwner && currentUid != null)
                   OutlinedButton.icon(
                     onPressed: () async {
                       final choice = await showDialog<_ExpiryChoice>(
@@ -873,7 +876,7 @@ class _JoinCodeCard extends ConsumerWidget {
                         await ref.read(circlesRepositoryProvider).rotateJoinCode(
                               circleId: circle.id,
                               oldCode: circle.joinCode,
-                              uid: uid,
+                              uid: currentUid,
                               expiry: choice.duration,
                             );
                         ref.invalidate(codeExpiryProvider);

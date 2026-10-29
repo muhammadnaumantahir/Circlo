@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Fix Circles screen web compilation: use the available icon palette for circle-card tones and preserve a promoted non-null user ID in the join-code rotation callback.
 - Preserve completed Travel History days for retry when a Firestore write fails during midnight rollover, instead of silently dropping the prior day while moving to the new day.
 - Serialize Travel History fix processing, drain pending callbacks before final flush, and persist stationary last-seen times on the configured flush cadence.
 - Make Travel History deletion load all saved day keys across Firestore pages, so deleting all history cannot leave older records behind after the 200-day display limit.
