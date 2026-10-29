@@ -516,8 +516,8 @@ describe('scheduled arrival / No Show plans', () => {
     await assertFails(setDoc(ref('bob'), plan('bob', future))); // sharing is off
     await shareOn('bob');
     await assertSucceeds(setDoc(ref('bob'), plan('bob', future)));
-    await assertFails(setDoc(ref('bob', 'past'), plan('bob', Timestamp.fromMillis(Date.now() - 1000))));
-    await assertFails(setDoc(ref('bob', 'too-far'), plan('bob', Timestamp.fromMillis(Date.now() + 31 * 24 * 60 * 60 * 1000))));
+    await assertFails(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() - 1000))));
+    await assertFails(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() + 31 * 24 * 60 * 60 * 1000))));
     await assertFails(setDoc(ref('alice', 'spoof'), plan('bob', future)));
   });
 
