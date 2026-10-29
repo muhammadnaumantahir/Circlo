@@ -229,7 +229,7 @@ final placeSuggestionsProvider = FutureProvider.autoDispose.family<List<PlaceSug
   final places = ref.watch(placesProvider(circleId)).valueOrNull ?? const <Place>[];
   if (uid == null || profile == null || !profile.keepHistory) return const <PlaceSuggestion>[];
 
-  final lookbackDays = profile.retentionDays.clamp(1, 14);
+  final lookbackDays = profile.retentionDays.clamp(1, 14).toInt();
   final cutoffDay = dayKey(DateTime.now().subtract(Duration(days: lookbackDays)));
   final repo = ref.watch(historyRepositoryProvider);
   final keys = await repo.myDays(uid, limit: lookbackDays);
