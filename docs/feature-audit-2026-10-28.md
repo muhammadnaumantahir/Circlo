@@ -64,6 +64,8 @@ Use [feature-status.md](feature-status.md) as the canonical feature checklist an
 
 - Added per-circle Approximate Location/Bubble with 1/4/8-hour expiry, a visible coarse-pin radius and label, direction handoff disabled while approximate, and Firestore Rules that reject precise location writes during an unexpired Bubble. Expiry is client-driven: it resumes precise sharing while the app is running or on the next sync after reopen; there is no server scheduler. Place alerts, check-ins and separately shared history remain independent.
 
+- **Current feature branch only (`feature/sos-emergency-message`; not merged):** a manual SOS-message screen is being added to the map flow. It prepares a message for the user to review/share or copy, includes coordinates only when the signed-in user's shared location is active and fresh, labels Bubble pins as approximate, and leaves stale/unavailable coordinates out. It does not auto-send, verify delivery/read state, provide remote push, or claim emergency dispatch. Unit tests are authored but not run.
+
 ## Important gaps before release
 
 1. **Run the automated checks.** Run `cd app && flutter pub get && flutter analyze && flutter test`, then run `cd firebase && npm ci && npm test` with the Firestore Emulator available. These checks have not been executed for this branch.
