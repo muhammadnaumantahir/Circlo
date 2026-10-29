@@ -63,8 +63,8 @@ class PlacesRepository {
         'radiusM': radiusM,
       });
 
-  /// Deletes the place and the caller's own preferences (other members' preference documents
-  /// become harmless orphans: there is no server to clean them).
+  /// Deletes the place, the caller's alert preference, and any scheduled arrival plans that target
+  /// it. Rules permit the place creator or circle owner to clean up the attached plans.
   Future<void> deletePlace({
     required String circleId,
     required String placeId,
@@ -190,7 +190,14 @@ class PlacesRepository {
     required String circleId,
     required String uid,
     required String placeId,
-  }) => _circle(circleId).collection('arrivalPlans').doc(uid).delete();
+  }) async {
+    final ref = _circle(circleId).collection('arrivalPlans').doc(uid);
+    final snapshot = await ref.get();
+    if (!snapshot.exists || snapshot.data()?['memberUid'] != uid || snapshot.data()?['placeId'] != placeId) {
+      return;
+    }
+    await ref.delete();
+  }
 
   Stream<List<PlaceEvent>> watchRecentEvents(String circleId, {int limit = 50}) => _circle(circleId)
       .collection('placeEvents')
