@@ -40,6 +40,7 @@ Legend: **Written** = code exists in the repo but has **never been compiled or r
 | FR-102, 103 | Written/Partial | Age gate (13+); simple consent text and history off by default; no extra minor-specific wording |
 | FR-104 | **Not built** | The app does not know who is a minor (only the user's own birth year is stored privately) |
 | FR-105 | Written | Device-side detection with server-side de-duplication |
+| FR-110 | Implemented in code; tests not run | Battery sharing is off by default and separately opt-in per circle. Percentage is attached only to existing location-sync writes, displayed as last reported, and warns in-app at 20% or below. No phone push or guaranteed background alert. |
 | NFR-001–004, 007 | Unverified | Targets need real devices; throttling is implemented |
 | NFR-005, 006 | Written | Managed TLS/encryption; rules + emulator tests (not yet run) |
 | NFR-008 | Partial | Text+icon statuses, semantic labels, list alternative to the map; no audit done |
