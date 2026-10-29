@@ -222,7 +222,7 @@ void main() {
   group('ArrivalPlan.tryFromMap', () {
     test('parses pending and late-arrival plans', () {
       final expected = DateTime(2026, 10, 29, 15);
-      final pending = ArrivalPlan.tryFromMap('c1', 'u1_p1', {
+      final pending = ArrivalPlan.tryFromMap('c1', 'u1', {
         'memberUid': 'u1',
         'placeId': 'p1',
         'expectedAt': Timestamp.fromDate(expected),
@@ -233,7 +233,7 @@ void main() {
       expect(pending!.isPending, isTrue);
       expect(pending.arrivedLate, isFalse);
 
-      final late = ArrivalPlan.tryFromMap('c1', 'u1_p1', {
+      final late = ArrivalPlan.tryFromMap('c1', 'u1', {
         'memberUid': 'u1',
         'placeId': 'p1',
         'expectedAt': Timestamp.fromDate(expected),
@@ -252,16 +252,16 @@ void main() {
         'expectedAt': Timestamp.fromDate(DateTime(2026, 10, 29, 15)),
         'status': 'pending',
       };
-      expect(ArrivalPlan.tryFromMap('c1', 'u1_p1', {...base, 'status': 'missed'}), isNull);
-      expect(ArrivalPlan.tryFromMap('c1', 'u1_p1', {...base, 'memberUid': ''}), isNull);
-      expect(ArrivalPlan.tryFromMap('c1', 'u1_p1', {...base, 'expectedAt': 'tomorrow'}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'status': 'missed'}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'memberUid': ''}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'expectedAt': 'tomorrow'}), isNull);
     });
   });
 
   group('ArrivalPlan.tryFromMap', () {
     test('parses pending and late-arrival plans', () {
       final expected = DateTime(2026, 10, 29, 15);
-      final pending = ArrivalPlan.tryFromMap('c1', 'u1_p1', {
+      final pending = ArrivalPlan.tryFromMap('c1', 'u1', {
         'memberUid': 'u1',
         'placeId': 'p1',
         'expectedAt': Timestamp.fromDate(expected),
@@ -272,7 +272,7 @@ void main() {
       expect(pending!.isPending, isTrue);
       expect(pending.arrivedLate, isFalse);
 
-      final late = ArrivalPlan.tryFromMap('c1', 'u1_p1', {
+      final late = ArrivalPlan.tryFromMap('c1', 'u1', {
         'memberUid': 'u1',
         'placeId': 'p1',
         'expectedAt': Timestamp.fromDate(expected),
@@ -291,10 +291,10 @@ void main() {
         'expectedAt': Timestamp.fromDate(DateTime(2026, 10, 29, 15)),
         'status': 'pending',
       };
-      expect(ArrivalPlan.tryFromMap('c1', 'u1_p1', {...base, 'status': 'missed'}), isNull);
-      expect(ArrivalPlan.tryFromMap('c1', 'u1_p1', {...base, 'memberUid': ''}), isNull);
-      expect(ArrivalPlan.tryFromMap('c1', 'u1_p1', {...base, 'expectedAt': 'tomorrow'}), isNull);
-      expect(ArrivalPlan.tryFromMap('c1', 'u1_p1', {
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'status': 'missed'}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'memberUid': ''}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'expectedAt': 'tomorrow'}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'u1', {
         ...base, 'status': 'arrived',
       }), isNull);
     });
