@@ -172,7 +172,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
                 title: const Text('Expected arrival / No Show'),
                 subtitle: Text(
                   canScheduleArrival
-                      ? 'Set a deadline before travelling. One expected arrival is active per circle; scheduling another place replaces this plan. Missed-arrival warnings are in-app only, not phone push alerts.'
+                      ? 'Set a deadline before travelling. One plan per circle; scheduling another place replaces it. Warnings are computed in-app while a member is viewing Circlo and depend on the target device recording an arrival. No phone push or guaranteed background alert.'
                       : 'Turn on location sharing for this circle to schedule an expected arrival.',
                 ),
               ),
