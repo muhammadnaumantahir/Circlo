@@ -218,7 +218,9 @@ service cloud.firestore {
         allow get: if isMember(cid)
           && (request.auth.uid == uid
               || (exists(memberPath(cid, uid)) && resource.data.get('sharePhone', false) == true));
-        allow list: if isMember(cid) && resource.data.get('sharePhone', false) == true;
+        allow list: if isMember(cid)
+          && resource.data.get('sharePhone', false) == true
+          && exists(memberPath(cid, resource.data.uid));
 
         // Only the number's owner can opt in or update it. The shared copy must match the
         // owner's private profile, including when both documents change in the same batch.
