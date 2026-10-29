@@ -13,6 +13,13 @@ class _PendingEvent {
   final String visitId;
 }
 
+class _PendingArrivalPlanCompletion {
+  _PendingArrivalPlanCompletion(this.circleId, this.placeId);
+  final String circleId;
+  final String placeId;
+  String get key => '$circleId/$placeId';
+}
+
 /// Runs the on-device detector against the places of every circle this device is actively
 /// sharing with, and publishes de-duplicated arrival/departure events (ADR-0002).
 ///
@@ -28,6 +35,7 @@ class PlaceAlertEngine {
   final Map<String, List<Place>> _placesByCircle = {};
   final Map<String, StreamSubscription<List<Place>>> _subs = {};
   final List<_PendingEvent> _pending = [];
+  final Map<String, _PendingArrivalPlanCompletion> _pendingPlanCompletions = {};
   final Map<String, String> _names = {}; // circleId -> my display name in that circle
   Set<String> _desiredCircleIds = {};
   int _generation = 0;
@@ -59,6 +67,14 @@ class PlaceAlertEngine {
       _names.remove(id);
       // Pending events from a circle that stopped sharing must not be replayed after resume.
       _pending.removeWhere((event) => event.place.circleId == id);
+      _pendingPlanCompletions.removeWhere((_, plan) => plan.circleId == id);
+      // If tracking is turned off/paused, remove any pending commitment so it cannot become a
+      // stale No Show when sharing is later resumed.
+      try {
+        await repository.deleteMyArrivalPlans(circleId: id, uid: uid);
+      } on FirebaseException {
+        // Revoked membership/offline: data is no longer visible outside the circle. Retry is best-effort.
+      }
       await sub?.cancel();
     }
 
@@ -122,6 +138,10 @@ class PlaceAlertEngine {
         if (place == null) continue;
         _pending.add(_PendingEvent(
             place, t.type == TransitionType.arrive ? 'arrive' : 'leave', t.visitId));
+        if (t.type == TransitionType.arrive) {
+          final completion = _PendingArrivalPlanCompletion(place.circleId, place.id);
+          _pendingPlanCompletions[completion.key] = completion;
+        }
       }
     }
     await _flush();
@@ -159,6 +179,24 @@ class PlaceAlertEngine {
         }
       }
     }
+    // Retry plan completion independently from place-event publication. A transient write error
+    // must not leave an old plan generating a permanent warning after a confirmed arrival.
+    for (final completion in _pendingPlanCompletions.values.toList()) {
+      if (!_desiredCircleIds.contains(completion.circleId)) {
+        _pendingPlanCompletions.remove(completion.key);
+        continue;
+      }
+      try {
+        await repository.completeArrivalPlan(
+          circleId: completion.circleId,
+          uid: uid,
+          placeId: completion.placeId,
+        );
+        _pendingPlanCompletions.remove(completion.key);
+      } on FirebaseException {
+        // Retry with the next fix.
+      }
+    }
   }
 
   Future<void> dispose() async {
@@ -169,6 +207,7 @@ class PlaceAlertEngine {
     _placesByCircle.clear();
     _names.clear();
     _pending.clear();
+    _pendingPlanCompletions.clear();
     _detector.reset();
     for (final subscription in subscriptions) {
       await subscription.cancel();
