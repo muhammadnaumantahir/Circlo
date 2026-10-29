@@ -59,12 +59,46 @@ class ProfileRepository {
     required String uid,
     required String displayName,
     String? phone,
-  }) {
+  }) async {
     final cleanPhone = phone?.trim() ?? '';
-    return _doc(uid).update({
+    final memberships = await _db.collectionGroup('members').where('uid', isEqualTo: uid).get();
+    final sharedContactDocs = <DocumentSnapshot<Map<String, dynamic>>>[];
+
+    for (final membership in memberships.docs) {
+      final circleRef = membership.reference.parent.parent;
+      if (circleRef == null) continue;
+      try {
+        final contact = await circleRef.collection('sharedContacts').doc(uid).get();
+        if (contact.exists && contact.data()?['sharePhone'] == true) {
+          sharedContactDocs.add(contact);
+        }
+      } on FirebaseException catch (e) {
+        // If membership was revoked between queries, the removed circle no longer needs a copy.
+        if (e.code != 'permission-denied') rethrow;
+      }
+    }
+
+    // One private-profile write plus shared copies must fit a Firestore batch (max 500 writes).
+    if (sharedContactDocs.length > 499) {
+      throw StateError('Too many shared phone contacts to update safely. Turn off sharing in some circles first.');
+    }
+    final batch = _db.batch();
+    batch.update(_doc(uid), {
       'displayName': displayName.trim(),
       'phone': cleanPhone.isEmpty ? FieldValue.delete() : cleanPhone,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    for (final contact in sharedContactDocs) {
+      if (cleanPhone.isEmpty) {
+        batch.delete(contact.reference);
+      } else {
+        batch.update(contact.reference, {
+          'phone': cleanPhone,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+    await batch.commit();
   }
 }
