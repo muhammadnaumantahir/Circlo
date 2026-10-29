@@ -254,6 +254,7 @@ class SharingController extends Notifier<SharingState> {
   }
 
   Future<void> _clearExpiredApproximateBubbles(String uid, List<MyMembership> expired) async {
+    var retryNeeded = false;
     try {
       for (final m in expired) {
         try {
@@ -263,17 +264,22 @@ class SharingController extends Notifier<SharingState> {
                 expectedUntil: m.bubbleUntil!,
               );
         } catch (_) {
-          // The next membership/location update retries cleanup. An expired Bubble never changes
-          // the coordinate transformation decision, which is checked against the deadline on every publish.
+          // If offline, retry later. If the user renewed Bubble concurrently, the transaction
+          // safely leaves the newer expiry untouched and the membership stream will resync.
+          retryNeeded = true;
         }
-      }
-      if (_sub != null) {
-        await _refreshHeartbeat(_syncGeneration);
       }
     } finally {
       for (final m in expired) {
         _bubbleClearing.remove(m.circleId);
       }
+    }
+    if (retryNeeded && !_disposed) {
+      _bubbleTimer?.cancel();
+      _bubbleTimer = Timer(
+        const Duration(seconds: 30),
+        () => _handleApproximateExpiry(List<MyMembership>.of(_memberships)),
+      );
     }
   }
 
