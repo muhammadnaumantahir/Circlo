@@ -1,6 +1,8 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-29 (reconciled with current `main`; see [canonical feature status and cross-chat handover](feature-status.md)). Code being in `main` does not mean tests or device behavior are verified.
+Last reviewed: 2026-10-29 (reconciled with merged PRs #60–#67; see [canonical feature status and cross-chat handover](feature-status.md)). Code being in `main` does not mean tests or device behavior are verified.
+
+**Current next step:** release verification is P0 before adding more safety-sensitive behavior. Run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite, rebuild Cloudflare Pages, and test Android/iOS background behavior and two-account privacy flows. No automated workflow should be triggered automatically.
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 
