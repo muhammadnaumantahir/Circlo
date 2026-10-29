@@ -25,7 +25,7 @@ Legend: **Written** = code exists in the repo but has **never been compiled or r
 | FR-050 | Partial | Only members sharing with the circle trigger alerts; no per-member notice that an alert applies to them |
 | FR-060–068 | Written | History (opt-in), route + timeline, per-circle sharing, retention 7/30/90 days (client-side), delete range/all, "Unknown place" for unnamed stops |
 | FR-070, 071, 073, 074 | Written | Map, member details, places on map, circle switcher |
-| FR-072 | Written | Opens the maps app/browser with directions |
+| FR-072 | Written (external handoff) | Member details offer driving, walking, cycling and public-transport route modes; Google Maps calculates route/ETA externally, with no paid API or in-app estimate |
 | FR-080 | Partial | Joined, left/removed, sharing started/stopped, arrivals/departures, join requests, unavailable: **in-app only** |
 | FR-081, 082 | Written | Settings per kind and per circle; unread badge; 30-day window (documents are not auto-deleted) |
 | FR-083 | Written | Derived on the viewer's device (15+ min, once per outage) while the app is open |
