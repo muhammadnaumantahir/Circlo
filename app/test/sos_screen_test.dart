@@ -52,7 +52,7 @@ Widget _app({
       myCirclesProvider.overrideWith((ref) => Stream.value([_circle])),
       profileProvider.overrideWith((ref) => Stream.value(_profile)),
       myMembershipsProvider.overrideWith(
-        (ref) => Stream.value(const [
+        (ref) => Stream.value([
           MyMembership(
             circleId: 'family',
             sharesLocation: sharingActive || paused,
