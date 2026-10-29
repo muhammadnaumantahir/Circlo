@@ -92,11 +92,11 @@ class MyMembership {
   final bool shareBattery; // independent per-circle consent; off by default
   /// Expiry of temporary coarse map sharing for this circle. Null means precise sharing.
   final DateTime? bubbleUntil;
-  final DateTime? pausedUntil;
+  final DateTime? pausedUntil; // Timed pause: resume automatically after this moment.
 
   bool isApproximateAt(DateTime now) => bubbleUntil?.isAfter(now) ?? false;
 
-  bool get isApproximate => isApproximateAt(DateTime.now()); // timed pause: resume automatically after this moment
+  bool get isApproximate => isApproximateAt(DateTime.now());
 
   /// Builds membership state without trusting the Firestore field types.
   factory MyMembership.fromMap(String circleId, Map<String, dynamic> data) {
