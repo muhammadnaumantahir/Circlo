@@ -154,11 +154,19 @@ Future<void> _launchSosContact(
   }
 }
 
+/// Rebuilds the SOS screen while it stays open, so an old shared fix cannot remain
+/// labelled fresh after crossing the ten-minute location freshness threshold.
+final _sosFreshnessTickProvider = StreamProvider.autoDispose<int>(
+  (ref) => Stream.periodic(const Duration(minutes: 1), (i) => i),
+);
+
 class SosScreen extends ConsumerWidget {
   const SosScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Freshness must be re-evaluated even when Firestore emits no new snapshot.
+    ref.watch(_sosFreshnessTickProvider);
     final circlesAsync = ref.watch(myCirclesProvider);
 
     return Scaffold(
