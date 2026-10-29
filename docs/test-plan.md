@@ -1,6 +1,6 @@
 # Test Plan (Increment 1)
 
-Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are manual/automated checklists; rows marked Not run remain unverified. This authoring pass has not run Flutter or Firestore tests.
+Current feature progress and handover: [feature-status.md](feature-status.md). Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are manual/automated checklists; rows marked Not run remain unverified. This authoring pass has not run Flutter or Firestore tests.
 
 | Req | Check | Where | Command | Status |
 |---|---|---|---|---|
