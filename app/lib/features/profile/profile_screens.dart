@@ -10,6 +10,7 @@ import '../circles/circle_models.dart';
 import '../history/history_models.dart';
 import '../location/sign_out.dart';
 import 'data_export.dart';
+import 'profile_models.dart';
 
 /// Shown after sign-up (or whenever a signed-in user has no profile yet).
 class ProfileSetupScreen extends ConsumerStatefulWidget {
@@ -169,8 +170,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final uid = ref.read(currentUidProvider);
     if (uid == null) return;
     final phone = profile.phone?.trim() ?? '';
-    if (share && phone.isEmpty) {
-      showSnack(context, 'Save an international phone number above before sharing it.');
+    if (share && !RegExp(r'^[+][1-9][0-9]{6,14}$').hasMatch(phone)) {
+      showSnack(context, 'Save a valid international phone number (for example +923001234567) before sharing it.');
       return;
     }
 
@@ -384,7 +385,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             circle: circle,
                             uid: uid,
                             busy: _phoneShareBusyCircles.contains(circle.id),
-                            hasSavedPhone: (p.phone ?? '').trim().isNotEmpty,
+                            hasValidPhone: RegExp(r'^[+][1-9][0-9]{6,14}$').hasMatch((p.phone ?? '').trim()),
                             onChanged: (share) => _setPhoneSharing(circle, p, share),
                           ),
                       ],
@@ -434,14 +435,14 @@ class _PhoneSharingTile extends ConsumerWidget {
     required this.circle,
     required this.uid,
     required this.busy,
-    required this.hasSavedPhone,
+    required this.hasValidPhone,
     required this.onChanged,
   });
 
   final Circle circle;
   final String? uid;
   final bool busy;
-  final bool hasSavedPhone;
+  final bool hasValidPhone;
   final ValueChanged<bool> onChanged;
 
   @override
@@ -469,7 +470,7 @@ class _PhoneSharingTile extends ConsumerWidget {
           final shared = uid != null && list.any((contact) => contact.uid == uid);
           final subtitle = shared
               ? 'Your number is visible to this circle’s members.'
-              : hasSavedPhone
+              : hasValidPhone
                   ? 'Your number is private in this circle.'
                   : 'Save your phone number above before enabling sharing.';
           return SwitchListTile(
@@ -477,7 +478,7 @@ class _PhoneSharingTile extends ConsumerWidget {
             title: Text(circle.name),
             subtitle: Text(subtitle),
             value: shared,
-            onChanged: busy || (!hasSavedPhone && !shared) ? null : onChanged,
+            onChanged: busy || (!hasValidPhone && !shared) ? null : onChanged,
           );
         },
       ),
