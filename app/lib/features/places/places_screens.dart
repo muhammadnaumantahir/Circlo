@@ -389,6 +389,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
                         canScheduleArrival: canScheduleArrival,
                         onScheduleArrival: () => _scheduleArrival(place),
                         onCancelArrival: () => _cancelArrival(place),
+                        onRetryArrivalPlan: () => ref.invalidate(arrivalPlansProvider(circle.id)),
                         onOpen: () => context.push('/places/' + circle.id + '/' + place.id),
                       );
                     },
@@ -506,6 +507,7 @@ class _PlaceListTile extends ConsumerStatefulWidget {
     required this.canScheduleArrival,
     required this.onScheduleArrival,
     required this.onCancelArrival,
+    required this.onRetryArrivalPlan,
     required this.onOpen,
   });
 
@@ -521,6 +523,7 @@ class _PlaceListTile extends ConsumerStatefulWidget {
   final bool canScheduleArrival;
   final VoidCallback onScheduleArrival;
   final VoidCallback onCancelArrival;
+  final VoidCallback onRetryArrivalPlan;
   final VoidCallback onOpen;
 
   @override
@@ -644,6 +647,13 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
                         ),
                   ),
                 ),
+                if (widget.arrivalPlanUnavailable)
+                  IconButton(
+                    tooltip: 'Retry loading expected-arrival plan',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: widget.onRetryArrivalPlan,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
                 TextButton.icon(
                   onPressed: widget.canScheduleArrival && widget.arrivalPlanReady ? widget.onScheduleArrival : null,
                   icon: const Icon(Icons.edit_calendar_rounded, size: 17),
