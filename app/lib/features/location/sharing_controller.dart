@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:battery_plus/battery_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,6 +59,7 @@ class SharingController extends Notifier<SharingState> {
   PlaceAlertEngine? _engine;
   HistoryRecorder? _history;
   Timer? _resumeTimer;
+  final Battery _battery = Battery();
   List<MyMembership> _memberships = const [];
   int _syncGeneration = 0;
   int _streamGeneration = 0;
@@ -130,6 +132,15 @@ class SharingController extends Notifier<SharingState> {
 
   Future<void> _sync(List<MyMembership> memberships) async {
     final generation = ++_syncGeneration;
+    final previousBatteryCircles = {
+      for (final m in _memberships)
+        if (m.isActive && m.shareBattery) m.circleId,
+    };
+    final nextBatteryCircles = {
+      for (final m in memberships)
+        if (m.isActive && m.shareBattery) m.circleId,
+    };
+    final batteryScopeChanged = !setEquals(previousBatteryCircles, nextBatteryCircles);
     _memberships = List<MyMembership>.unmodifiable(memberships);
     _handleTimedPauses(memberships);
     final active = [for (final m in memberships) if (m.isActive) m.circleId];
@@ -166,7 +177,7 @@ class SharingController extends Notifier<SharingState> {
 
     // When sharing is enabled/disabled for a circle while the stream is already running,
     // immediately refresh the location scope rather than waiting for the next movement/heartbeat.
-    if (scopeChanged && wasRunning && _sub != null) {
+    if ((scopeChanged || batteryScopeChanged) && wasRunning && _sub != null) {
       try {
         final position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
@@ -381,6 +392,24 @@ class SharingController extends Notifier<SharingState> {
     final now = DateTime.now();
     if (!force && !_throttle.allow(now)) return;
     if (force) _throttle.allow(now);
+
+    final batteryCircleIds = {
+      for (final m in _memberships)
+        if (m.isActive && m.shareBattery && ids.contains(m.circleId)) m.circleId,
+    };
+    int? batteryLevel;
+    if (batteryCircleIds.isNotEmpty) {
+      try {
+        // Read battery only on an ordinary, throttled location sync. A plugin/API failure
+        // must not block GPS sharing; there is no separate battery polling or upload timer.
+        final level = await _battery.batteryLevel.timeout(const Duration(seconds: 2));
+        if (level >= 0 && level <= 100) batteryLevel = level;
+      } catch (_) {
+        // Battery reporting is optional on unsupported devices/browsers.
+      }
+    }
+    if (generation != _syncGeneration) return;
+
     try {
       await ref.read(locationRepositoryProvider).publish(
             uid: uid,
@@ -388,6 +417,8 @@ class SharingController extends Notifier<SharingState> {
             lat: p.latitude,
             lng: p.longitude,
             accuracy: p.accuracy,
+            batteryCircleIds: batteryCircleIds,
+            batteryLevel: batteryLevel,
           );
       if (generation != _syncGeneration) return;
       state = state.copyWith(lastPublished: now, clearError: true);
