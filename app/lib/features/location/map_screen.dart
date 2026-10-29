@@ -858,6 +858,24 @@ class _MapBodyState extends ConsumerState<_MapBody> {
     );
   }
 
+  Future<void> _openDirections(BuildContext context, MemberLocation location) async {
+    final mode = await showModalBottomSheet<TravelMode>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => const _DirectionsModeSheet(),
+    );
+    if (mode == null || !context.mounted) return;
+
+    final opened = await launchDirections(
+      location.lat,
+      location.lng,
+      travelMode: mode,
+    );
+    if (!opened && context.mounted) {
+      showSnack(context, 'Could not open Google Maps. Check your connection and try again.');
+    }
+  }
+
   void _showDetails(BuildContext context, _MemberView v, DateTime now, {ActivityEvent? latestCheckIn}) {
     final loc = v.location;
     final statusColor = _statusColor(context, v.status);
@@ -1033,13 +1051,15 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: () async {
-                          final ok = await launchDirections(loc.lat, loc.lng);
-                          if (!ok && ctx.mounted) showSnack(ctx, 'Could not open a maps app.');
-                        },
+                        onPressed: () => _openDirections(ctx, loc),
                         icon: const Icon(Icons.directions_rounded),
-                        label: const Text('Get directions'),
+                        label: const Text('Directions & ETA'),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Choose a travel mode. Google Maps calculates the route and ETA outside Circlo.',
+                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
                     ),
                   ],
                 ],
@@ -1048,6 +1068,58 @@ class _MapBodyState extends ConsumerState<_MapBody> {
           ),
         );
       },
+    );
+  }
+}
+
+class _DirectionsModeSheet extends StatelessWidget {
+  const _DirectionsModeSheet();
+
+  IconData _icon(TravelMode mode) => switch (mode) {
+        TravelMode.driving => Icons.directions_car_rounded,
+        TravelMode.walking => Icons.directions_walk_rounded,
+        TravelMode.cycling => Icons.directions_bike_rounded,
+        TravelMode.transit => Icons.directions_transit_rounded,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Choose travel mode', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 6),
+              Text(
+                'Google Maps will calculate the route and ETA. Circlo does not estimate travel time itself.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 12),
+              for (final mode in TravelMode.values)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: Icon(_icon(mode), color: scheme.primary, size: 26),
+                    title: Text(mode.label, style: Theme.of(context).textTheme.titleSmall),
+                    subtitle: Text(mode.description),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.of(context).pop(mode),
+                  ),
+                ),
+              const SizedBox(height: 4),
+              Text(
+                'Opening Google Maps shares the selected destination coordinates with Google Maps.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
