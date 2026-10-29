@@ -149,7 +149,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
       suggestionsEnabled: profile?.placeSuggestionsEnabled == true,
       historyLoading: recentPrivateHistoryAsync.isLoading,
       historyError: recentPrivateHistoryAsync.hasError,
-      historyHasData: recentPrivateHistoryAsync.valueOrNull?.isNotEmpty == true,
+      historyHasData: recentPrivateHistoryAsync.valueOrNull?.any((track) => track.visits.isNotEmpty) == true,
       foundSuggestions: allSuggestions.isNotEmpty,
       suggestions: visibleSuggestions,
     );
