@@ -477,7 +477,7 @@ class _PhoneSharingTile extends ConsumerWidget {
             title: Text(circle.name),
             subtitle: Text(subtitle),
             value: shared,
-            onChanged: busy ? null : onChanged,
+            onChanged: busy || (!hasSavedPhone && !shared) ? null : onChanged,
           );
         },
       ),
