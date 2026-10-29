@@ -69,11 +69,18 @@ class PlacesRepository {
     required String circleId,
     required String placeId,
     required String uid,
-  }) {
+  }) async {
+    final plans = await _circle(circleId)
+        .collection('arrivalPlans')
+        .where('placeId', isEqualTo: placeId)
+        .get();
     final batch = _db.batch();
     batch.delete(_circle(circleId).collection('places').doc(placeId));
     batch.delete(_subRef(circleId, uid, placeId));
-    return batch.commit();
+    for (final plan in plans.docs) {
+      batch.delete(plan.reference);
+    }
+    await batch.commit();
   }
 
   DocumentReference<Map<String, dynamic>> _subRef(String circleId, String uid, String placeId) =>
