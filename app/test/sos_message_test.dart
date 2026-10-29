@@ -7,13 +7,16 @@ void main() {
 
   MemberLocation location({
     DateTime? updatedAt,
+    double lat = 31.5204,
+    double lng = 74.3587,
+    double? accuracy,
     bool approximate = false,
   }) =>
       MemberLocation(
         uid: 'self',
-        lat: 31.5204,
-        lng: 74.3587,
-        accuracy: approximate ? 1800 : 25,
+        lat: lat,
+        lng: lng,
+        accuracy: accuracy ?? (approximate ? 1800 : 25),
         updatedAt: updatedAt ?? now.subtract(const Duration(minutes: 2)),
         approximate: approximate,
       );
@@ -127,6 +130,31 @@ void main() {
 
     expect(atLimit, contains('www.google.com/maps/search/'));
     expect(justTooFarAhead, isNot(contains('www.google.com/maps/search/')));
+  });
+
+  test('omits a map link when coordinates or accuracy are invalid', () {
+    final invalidLocations = [
+      location(lat: 91),
+      location(lat: -91),
+      location(lng: 181),
+      location(lng: -181),
+      location(lat: double.nan),
+      location(lng: double.infinity),
+      location(accuracy: -1),
+      location(accuracy: double.nan),
+    ];
+
+    for (final invalidLocation in invalidLocations) {
+      final message = buildSosMessage(
+        displayName: 'Nauman',
+        sharingActive: true,
+        location: invalidLocation,
+        now: now,
+      );
+
+      expect(message, contains('does not have a fresh shared location'));
+      expect(message, isNot(contains('www.google.com/maps/search/')));
+    }
   });
 
   test('omits a map link when the shared location has no timestamp', () {
