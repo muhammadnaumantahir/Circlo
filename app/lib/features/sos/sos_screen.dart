@@ -333,7 +333,7 @@ class SosScreen extends ConsumerWidget {
                                 ? 'The message will clearly label this as an approximate map pin, not your exact GPS position.'
                                 : 'The message will include the last shared fix and its age. It may not be your exact current position.')
                             : !sharingActive
-                                ? 'Location sharing is off or paused for this Circle. No coordinates will be included. You can resume sharing and wait for a fresh fix first.'
+                                ? 'Location sharing is off, paused, or not yet confirmed for this Circle. No coordinates will be included. If sharing is enabled, wait for a fresh fix first.'
                                 : 'The last shared fix is missing or too old. No coordinates will be included until a fresh location update arrives.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
