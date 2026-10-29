@@ -12,6 +12,7 @@ import 'features/location/location_models.dart';
 import 'features/location/location_repository.dart';
 import 'features/places/geocoder.dart';
 import 'features/places/place_models.dart';
+import 'features/places/place_suggestions.dart';
 import 'features/places/places_repository.dart';
 import 'features/profile/profile_models.dart';
 import 'features/profile/profile_repository.dart';
@@ -218,6 +219,26 @@ final dayTrackProvider = FutureProvider.autoDispose.family<DayTrack?, (String, S
   final repo = ref.watch(historyRepositoryProvider);
   if (uid == null) return null;
   return memberUid == uid ? repo.getMine(uid, day) : repo.getShared(circleId, memberUid, day);
+});
+
+/// Local suggestions use only the signed-in user's retained private history (capped to 14 days).
+/// No reverse-geocoding request or additional backend is needed.
+final placeSuggestionsProvider = FutureProvider.autoDispose.family<List<PlaceSuggestion>, String>((ref, circleId) async {
+  final uid = ref.watch(currentUidProvider);
+  final profile = ref.watch(profileProvider).valueOrNull;
+  final places = ref.watch(placesProvider(circleId)).valueOrNull ?? const <Place>[];
+  if (uid == null || profile == null || !profile.keepHistory) return const <PlaceSuggestion>[];
+
+  final lookbackDays = profile.retentionDays.clamp(1, 14);
+  final cutoffDay = dayKey(DateTime.now().subtract(Duration(days: lookbackDays)));
+  final repo = ref.watch(historyRepositoryProvider);
+  final keys = await repo.myDays(uid, limit: lookbackDays);
+  final recentKeys = keys.where((key) => key.compareTo(cutoffDay) >= 0).toList();
+  final tracks = await Future.wait(recentKeys.map((key) => repo.getMine(uid, key)));
+  return findPlaceSuggestions(
+    tracks: tracks.whereType<DayTrack>(),
+    savedPlaces: places,
+  );
 });
 
 /// Deletes history older than the user's retention period (best effort, client-side: there is no
