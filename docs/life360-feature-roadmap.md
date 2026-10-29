@@ -1,6 +1,6 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-29 (reconciled with merged PRs #60–#67 and current `main`; see [canonical feature status and cross-chat handover](feature-status.md)). Current branch `feature/sos-emergency-message` prototypes manual SOS-message handoff and Call/prefilled-SMS actions for explicitly shared Circle phone numbers; it is not merged and tests have not run. Code being in `main` does not mean tests or device behavior are verified.
+Last reviewed: 2026-10-29 (reconciled with merged PRs #60–#67 and current `main`; see [canonical feature status and cross-chat handover](feature-status.md)). Current branch `feature/sos-emergency-message` prototypes manual SOS-message handoff and Call/prefilled-SMS actions for explicitly shared Circle phone numbers; static review caught and corrected malformed duplicated contact-helper source, but it is not merged and tests/build have not run. Code being in `main` does not mean tests or device behavior are verified.
 
 **Current next step:** release verification is P0 before adding more safety-sensitive behavior. Run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite, rebuild Cloudflare Pages, and test Android/iOS background behavior and two-account privacy flows. No automated workflow should be triggered automatically.
 
