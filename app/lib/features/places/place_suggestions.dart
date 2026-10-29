@@ -99,7 +99,7 @@ List<PlaceSuggestion> buildPlaceSuggestions({
   final places = savedPlaces.toList(growable: false);
   final clusters = <_SuggestionCluster>[];
   final nowMs = (now ?? DateTime.now()).millisecondsSinceEpoch;
-  const minimumStopMs = Duration(minutes: 10).inMilliseconds;
+  const minimumStopMs = 10 * 60 * 1000;
 
   for (final track in tracks) {
     // Day keys are expected to be local-calendar yyyymmdd. Ignore malformed legacy records
