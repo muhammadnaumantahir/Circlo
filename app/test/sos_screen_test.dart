@@ -25,6 +25,7 @@ Widget _app({
   bool sharingActive = true,
   bool paused = false,
   bool membershipKnown = true,
+  bool locationStreamFails = false,
   double locationLat = 31.5204,
   double locationLng = 74.3587,
   double locationAccuracy = 25,
@@ -69,7 +70,9 @@ Widget _app({
         ),
       ),
       locationsProvider('family').overrideWith(
-        (ref) => Stream.value({'self': myLocation}),
+        (ref) => locationStreamFails
+            ? Stream<Map<String, MemberLocation>>.error(StateError('offline'))
+            : Stream.value({'self': myLocation}),
       ),
       membersProvider('family').overrideWith((ref) => Stream.value(members)),
       sharedContactsProvider('family').overrideWith((ref) => Stream.value(contacts)),
@@ -145,6 +148,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sharing status is not yet confirmed for this Circle. No coordinates will be included.'), findsOneWidget);
+    final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(preview, isNot(contains('www.google.com/maps/search/')));
+  });
+
+  testWidgets('location stream error is not described as an old fix', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        locationUpdatedAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        locationStreamFails: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not verify the shared location right now. No coordinates will be included; check your connection and try again.'), findsOneWidget);
+    expect(find.text('The last shared fix is missing or too old. No coordinates will be included until a fresh location update arrives.'), findsNothing);
     final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
     expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
