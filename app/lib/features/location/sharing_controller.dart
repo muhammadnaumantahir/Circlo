@@ -60,6 +60,7 @@ class SharingController extends Notifier<SharingState> {
   HistoryRecorder? _history;
   Timer? _resumeTimer;
   Timer? _bubbleTimer;
+  final Set<String> _bubbleClearing = <String>{};
   final Battery _battery = Battery();
   List<MyMembership> _memberships = const [];
   int _syncGeneration = 0;
@@ -188,10 +189,6 @@ class SharingController extends Notifier<SharingState> {
     await _start(generation: generation);
     if (generation != _syncGeneration) return;
     await _engine?.setCircles(active.toSet());
-    _engine?.setSuppressedCircles({
-      for (final m in memberships)
-        if (m.isActive && m.isApproximateAt(DateTime.now())) m.circleId,
-    });
     if (generation != _syncGeneration) return;
 
     // When sharing is enabled/disabled for a circle while the stream is already running,
@@ -232,7 +229,10 @@ class SharingController extends Notifier<SharingState> {
     final now = DateTime.now();
     final expired = [
       for (final m in memberships)
-        if (m.bubbleUntil != null && !m.bubbleUntil!.isAfter(now)) m,
+        if (m.bubbleUntil != null &&
+            !m.bubbleUntil!.isAfter(now) &&
+            _bubbleClearing.add(m.circleId))
+          m,
     ];
     if (expired.isNotEmpty) {
       unawaited(_clearExpiredApproximateBubbles(uid, expired));
@@ -254,20 +254,26 @@ class SharingController extends Notifier<SharingState> {
   }
 
   Future<void> _clearExpiredApproximateBubbles(String uid, List<MyMembership> expired) async {
-    for (final m in expired) {
-      try {
-        await ref.read(locationRepositoryProvider).setApproximateLocation(
-              uid: uid,
-              circleId: m.circleId,
-              until: null,
-            );
-      } catch (_) {
-        // The next membership/location update retries cleanup. An expired Bubble never changes
-        // the coordinate transformation decision, which is checked against the deadline on every publish.
+    try {
+      for (final m in expired) {
+        try {
+          await ref.read(locationRepositoryProvider).setApproximateLocation(
+                uid: uid,
+                circleId: m.circleId,
+                until: null,
+              );
+        } catch (_) {
+          // The next membership/location update retries cleanup. An expired Bubble never changes
+          // the coordinate transformation decision, which is checked against the deadline on every publish.
+        }
       }
-    }
-    if (_sub != null) {
-      await _refreshHeartbeat(_syncGeneration);
+      if (_sub != null) {
+        await _refreshHeartbeat(_syncGeneration);
+      }
+    } finally {
+      for (final m in expired) {
+        _bubbleClearing.remove(m.circleId);
+      }
     }
   }
 
@@ -395,10 +401,6 @@ class SharingController extends Notifier<SharingState> {
     final time = now ? DateTime.now() : p.timestamp;
     _configureHistory(); // places may have changed since the last fix
     _history?.onFix(lat: p.latitude, lng: p.longitude, accuracy: p.accuracy, time: time);
-    _engine?.setSuppressedCircles({
-      for (final m in _memberships)
-        if (m.isActive && m.isApproximateAt(DateTime.now())) m.circleId,
-    });
     _engine?.onFix(Fix(
       lat: p.latitude,
       lng: p.longitude,
