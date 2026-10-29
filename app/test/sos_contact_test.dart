@@ -1,3 +1,4 @@
+import 'package:circlo/features/circles/circle_models.dart';
 import 'package:circlo/features/sos/sos_contact.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -25,4 +26,26 @@ void main() {
 
     expect(Uri.parse(uri.toString()).queryParameters['body'], message);
   });
+  test('recipient list excludes self and contacts no longer in this Circle', () {
+    final sharedContacts = [
+      const SharedContact(uid: 'self', phone: '+923001111111'),
+      const SharedContact(uid: 'removed', phone: '+923002222222'),
+      const SharedContact(uid: 'zara', phone: '+923003333333'),
+      const SharedContact(uid: 'amina', phone: '+923004444444'),
+    ];
+    final members = [
+      const Member(uid: 'self', displayName: 'Me', role: 'member'),
+      const Member(uid: 'zara', displayName: 'Zara', role: 'member'),
+      const Member(uid: 'amina', displayName: 'Amina', role: 'owner'),
+    ];
+
+    final recipients = sosContactRecipients(
+      sharedContacts: sharedContacts,
+      circleMembers: members,
+      currentUid: 'self',
+    );
+
+    expect(recipients.map((contact) => contact.uid).toList(), ['amina', 'zara']);
+  });
+
 }
