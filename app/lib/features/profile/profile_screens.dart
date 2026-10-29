@@ -225,6 +225,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               'role': c.ownerUid == uid ? 'owner' : 'member',
               'sharingLocation': memberships[c.id]?.sharesLocation ?? false,
               'sharingHistory': memberships[c.id]?.historyShared ?? false,
+              'sharingBattery': memberships[c.id]?.shareBattery ?? false,
             },
         ],
         placeAlerts: [

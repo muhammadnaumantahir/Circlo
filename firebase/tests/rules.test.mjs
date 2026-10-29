@@ -191,86 +191,6 @@ describe('per-circle phone sharing', () => {
     await assertSucceeds(deleteDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob')));
     await assertFails(getDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob')));
   });
-
-  it('does not allow battery or contact sharing consent to cross circle membership scope', async () => {
-    await seed({ bob: true });
-    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
-    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
-    await assertFails(getDoc(doc(db('carol'), 'circles/c1/sharedContacts/bob')));
-  });
-});
-
-describe('per-circle phone sharing', () => {
-  const contact = (uid, phone = '+923001234567') => ({
-    uid, phone, sharePhone: true, updatedAt: serverTimestamp(),
-  });
-
-  it('lets a member inspect their own opt-in document before sharing', async () => {
-    await seed({ bob: true });
-    await assertSucceeds(getDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob')));
-    await assertFails(getDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob')));
-  });
-
-  it('shares a number only with current members of the circle where the owner opted in', async () => {
-    await seed({ bob: true });
-    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
-    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
-
-    await assertSucceeds(getDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob')));
-    await assertSucceeds(getDocs(query(
-      collection(db('alice'), 'circles/c1/sharedContacts'),
-      where('sharePhone', '==', true),
-    )));
-    await assertFails(getDocs(collection(db('alice'), 'circles/c1/sharedContacts')));
-    await assertFails(getDoc(doc(db('carol'), 'circles/c1/sharedContacts/bob')));
-    await assertFails(getDoc(doc(db('mallory'), 'circles/c1/sharedContacts/bob')));
-    await assertFails(getDoc(doc(db('alice'), 'users/bob')));
-  });
-
-  it('requires self opt-in and a phone matching the private profile', async () => {
-    await seed({ bob: true });
-    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
-    await assertFails(setDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob'), contact('bob')));
-    await assertFails(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob', '+923111111111')));
-    await assertFails(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob', '03001234567')));
-    await assertFails(setDoc(doc(db('carol'), 'circles/c1/sharedContacts/carol'), contact('carol')));
-  });
-
-  it('updates the private phone and shared copy atomically', async () => {
-    await seed({ bob: true });
-    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
-    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
-
-    const f = db('bob');
-    const batch = writeBatch(f);
-    batch.update(doc(f, 'users/bob'), { phone: '+923111111111', updatedAt: serverTimestamp() });
-    batch.update(doc(f, 'circles/c1/sharedContacts/bob'), {
-      phone: '+923111111111',
-      updatedAt: serverTimestamp(),
-    });
-    await assertSucceeds(batch.commit());
-  });
-
-  it('requires contact cleanup before a member can be removed', async () => {
-    await seed({ bob: true });
-    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
-    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
-
-    await assertFails(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
-    const f = db('alice');
-    const batch = writeBatch(f);
-    batch.delete(doc(f, 'circles/c1/sharedContacts/bob'));
-    batch.delete(doc(f, 'circles/c1/members/bob'));
-    await assertSucceeds(batch.commit());
-  });
-
-  it('lets a user revoke their own contact sharing', async () => {
-    await seed({ bob: true });
-    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
-    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
-    await assertSucceeds(deleteDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob')));
-    await assertFails(getDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob')));
-  });
 });
 
 describe('create circle', () => {
@@ -436,6 +356,61 @@ describe('live location sharing (circle-scoped)', () => {
     await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
     await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
   });
+  it('requires separate per-circle battery consent and clears battery data atomically on opt-out', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
+    const locationRef = locRef(db('bob'), 'c1', 'bob');
+
+    // Location sharing alone does not allow a battery percentage.
+    await assertSucceeds(setDoc(locationRef, loc('bob')));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: 18 })));
+
+    await assertSucceeds(updateDoc(memberRef, { shareBattery: true }));
+    await assertSucceeds(setDoc(locationRef, loc('bob', { batteryLevel: 18 })));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: -1 })));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: 101 })));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: '18' })));
+
+    // Consent cannot be revoked while leaving the old percentage visible.
+    await assertFails(updateDoc(memberRef, { shareBattery: false }));
+    const stopBattery = writeBatch(db('bob'));
+    stopBattery.update(memberRef, { shareBattery: false });
+    stopBattery.delete(locationRef);
+    await assertSucceeds(stopBattery.commit());
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+  });
+
+  it('keeps battery consent scoped to each circle', async () => {
+    await seed({ bob: true });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles/c2/members/bob'), {
+        uid: 'bob', role: 'member', displayName: 'Bob', joinedAt: Timestamp.now(), joinCode: CODE_B,
+      });
+    });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await setSharing('bob', 'c2', { sharesLocation: true, paused: false });
+    await assertSucceeds(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { shareBattery: true }));
+
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob', { batteryLevel: 18 })));
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c2', 'bob'), loc('bob')));
+    await assertFails(setDoc(locRef(db('bob'), 'c2', 'bob'), loc('bob', { batteryLevel: 18 })));
+  });
+
+  it('cannot stop location sharing while battery consent stays enabled', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
+    await assertSucceeds(updateDoc(memberRef, { shareBattery: true }));
+    await assertFails(updateDoc(memberRef, { sharesLocation: false }));
+
+    const stop = writeBatch(db('bob'));
+    stop.update(memberRef, { sharesLocation: false, shareBattery: false });
+    stop.delete(locRef(db('bob'), 'c1', 'bob'));
+    stop.delete(doc(db('bob'), 'circles/c1/arrivalPlans/bob'));
+    await assertSucceeds(stop.commit());
+  });
+
   it('cannot publish while paused', async () => {
     await seed({ bob: true });
     await setSharing('bob', 'c1', { sharesLocation: true, paused: true });
