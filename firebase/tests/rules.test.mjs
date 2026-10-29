@@ -940,6 +940,25 @@ describe('activity feed, notification prefs and timed pause (Increment 6)', () =
       type: 'checked_in', checkInStatus: 'arrived_safely', checkInPlaceId: 'p1',
     })));
   });
+  it('quick notes are limited to curated emoji/message pairs and contain no location data', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(aref(db('bob'), 'quick-note'), act({
+      type: 'quick_note', quickNoteEmoji: '❤️', quickNoteText: 'Love you',
+    })));
+    await assertFails(setDoc(aref(db('bob'), 'bad-pair'), act({
+      type: 'quick_note', quickNoteEmoji: '❤️', quickNoteText: 'On the road',
+    })));
+    await assertFails(setDoc(aref(db('bob'), 'spoofed-note-name'), act({
+      type: 'quick_note', actorName: 'Alice', quickNoteEmoji: '👍', quickNoteText: 'Got it',
+    })));
+    await assertFails(setDoc(aref(db('bob'), 'gps-note'), act({
+      type: 'quick_note', quickNoteEmoji: '❤️', quickNoteText: 'Love you', lat: 31.5, lng: 74.3,
+    })));
+    await assertFails(setDoc(aref(db('carol'), 'non-member-note'), act({
+      type: 'quick_note', actorUid: 'carol', actorName: 'Carol', quickNoteEmoji: '❤️', quickNoteText: 'Love you',
+    })));
+  });
+
   it("'joined' is only valid together with the actor's own membership creation", async () => {
     await seed();
     const f = db('bob'); const b = writeBatch(f);
