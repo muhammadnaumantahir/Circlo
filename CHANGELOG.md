@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Make the SOS message builder fail closed on invalid latitude/longitude, non-finite values and invalid accuracy even if a malformed `MemberLocation` reaches the helper. Regression cases were added; tests have not run.
 - Correct the malformed duplicate in the SOS contact helper discovered during static review of draft PR #68. Recipient filtering and dialer/SMS URI helpers are restored; regression coverage includes malformed phone-number forms, but no tests or build checks have run.
 
 ### Added
