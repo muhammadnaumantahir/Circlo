@@ -284,6 +284,15 @@ describe('live location sharing (circle-scoped)', () => {
     await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { shareBattery: true }));
   });
 
+  it('cannot turn off location sharing while keeping battery consent enabled', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
+    await assertSucceeds(updateDoc(memberRef, { shareBattery: true }));
+    await assertFails(updateDoc(memberRef, { sharesLocation: false }));
+    await assertSucceeds(updateDoc(memberRef, { sharesLocation: false, shareBattery: false }));
+  });
+
   it('cannot publish while paused', async () => {
     await seed({ bob: true });
     await setSharing('bob', 'c1', { sharesLocation: true, paused: true });
