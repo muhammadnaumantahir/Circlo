@@ -20,6 +20,10 @@ Consent-based, transparent, revocable, least data, default deny. Extra care beca
 - No hidden or forced tracking; no ads/analytics; minors' history sharing is off by default and only visible to circle members the minor shares with.
 - Store policies (Google Play Families/Data safety, Apple privacy labels) must be reviewed before store release.
 
+## Automatic Place Suggestions
+
+Place Suggestions are a separate opt-in from Travel History. They remain off unless both `keepHistory` and `placeSuggestionsEnabled` are true. The app reads only the signed-in user's private history documents inside the configured retention window; it never reads another member's circle-shared history to build suggestions. Candidate clustering runs in memory on the device and is not written to Firestore. A suggestion is not a circle place until the user opens the normal place editor, reviews the name/pin and explicitly saves it. Dismissing a suggestion hides it for the current Places view only; it does not delete travel history. Turning off Travel History automatically revokes Place Suggestions consent.
+
 ## Travel history (Increment 4)
 Off by default at two levels: the user must switch on "Keep my travel history", then separately share it per circle (consent dialog). Circle copies are readable from Firestore only while the owner keeps the master “Keep my travel history” switch, per-circle history sharing, and location sharing on; rules block subsequent server reads and writes when any required switch is off. Turning the master switch off therefore protects existing server-side copies, but it cannot remotely erase data already cached on a recipient's device. The app removes copies best-effort. Only daily summaries (stops ≥10 min, thinned route) are stored — never raw GPS tracks or battery/device data. Retention (7/30/90 days) and deletion (range/all) are user-controlled; enforcement is client-side (see docs/risks.md).
 
