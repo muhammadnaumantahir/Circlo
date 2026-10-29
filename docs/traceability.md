@@ -13,6 +13,7 @@ Implementation tasks and test IDs are placeholders to be created in Phase 6/7 (s
 | FR-060–068 | S6 | history module, visit builder, retention cleanup (trusted mechanism unresolved) | T-HIST | TC-HIS-* |
 | FR-060–068 | S6 | `HistoryRecorder` finished-day retry queue | T-HIST-ROLLOVER | `app/test/history_recorder_test.dart` — rollover write failure/retry (added; not run here) |
 | FR-070–074 | S3 | map module | T-MAP | TC-MAP-* |
+| FR-112 | S5, S6, S8 | `PlaceSuggestions` local analyzer, `HistoryRepository.getRecentMine`, explicit private profile consent, review-only place editor handoff | T-PLACE-SUGGEST | `app/test/place_suggestions_test.dart`; `app/test/models_test.dart`; `firebase/tests/rules.test.mjs` |
 | FR-080–084 | S7, S8 | notifications module, FCM (trusted sender unresolved) | T-NOTIF | TC-NOT-* |
 | FR-100–105 | S1, S2, web specifics | Flutter web build, age gate, on-device evaluator (ADR-0002) | T-PLATFORM/T-PLACE | TC-PLAT-*, TC-MIN-*, TC-PLC-* |
 | FR-090–094 | S4, S8 | Firestore Rules, account deletion workflow | T-SEC | TC-SEC-* (Firestore Emulator Rules tests) |

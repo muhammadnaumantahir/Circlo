@@ -13,6 +13,7 @@ import 'features/places/notifications_screen.dart';
 import 'features/circles/circle_models.dart';
 import 'features/places/place_models.dart';
 import 'features/places/places_screens.dart';
+import 'features/places/place_suggestions.dart';
 import 'features/profile/account_deletion_screen.dart';
 import 'features/profile/profile_screens.dart';
 import 'providers.dart';
@@ -148,7 +149,29 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/notifications/settings', builder: (_, __) => const NotificationSettingsScreen()),
       GoRoute(
         path: '/places/new',
-        builder: (_, state) => PlaceFormScreen(circleId: state.uri.queryParameters['circle'] ?? ''),
+        builder: (_, state) {
+          final query = state.uri.queryParameters;
+          final draft = state.extra;
+          final suggestion = draft is PlaceSuggestion ? draft : null;
+          final queryLat = double.tryParse(query['lat'] ?? '');
+          final queryLng = double.tryParse(query['lng'] ?? '');
+          final validQueryPin = queryLat != null &&
+              queryLng != null &&
+              queryLat.isFinite &&
+              queryLng.isFinite &&
+              queryLat >= -90 &&
+              queryLat <= 90 &&
+              queryLng >= -180 &&
+              queryLng <= 180;
+          final lat = suggestion?.lat ?? (validQueryPin ? queryLat : null);
+          final lng = suggestion?.lng ?? (validQueryPin ? queryLng : null);
+          return PlaceFormScreen(
+            circleId: query['circle'] ?? '',
+            initialLat: lat,
+            initialLng: lng,
+            initialName: suggestion?.suggestedName ?? (validQueryPin ? query['name'] : null),
+          );
+        },
       ),
       GoRoute(
         path: '/places/:circleId/:placeId',

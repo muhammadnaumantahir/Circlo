@@ -24,6 +24,7 @@ String buildExportJson({
     'settings': {
       'keepTravelHistory': profile.keepHistory,
       'historyRetentionDays': profile.retentionDays,
+      'placeSuggestionsEnabled': profile.placeSuggestionsEnabled,
       'notificationsOff': profile.notifOff,
       'mutedCircles': profile.notifMuted,
     },

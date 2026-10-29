@@ -1,6 +1,6 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-29 (reconciled with current main after PR #60 and #61)
+Last reviewed: 2026-10-29 (working branch: automatic place suggestions; tests not run)
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 
@@ -22,7 +22,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 | 3 | Better ETA and map handoff | Implemented in code; tests not run | Member details offer driving, walking, cycling and transit modes and hand route/ETA calculation to Google Maps; Circlo does not display an in-app estimate. |
 | 4 | Low-battery status/alerts | Planned, feasibility check first | Decide whether device battery APIs work across supported platforms; minimize write frequency and clearly label the last reported battery time. |
 | 5 | Scheduled No Show alerts | Implemented in main; client-side limits | One expected-arrival plan per member and circle, with in-app overdue/late-arrival feed entries while Circlo is open; no remote push or guaranteed background scheduler. |
-| 6 | Automatic Place Suggestions | Planned | Suggestions must be optional, dismissible, and processed with clear consent and bounded background/location use. |
+| 6 | Automatic Place Suggestions | Implemented in code; tests not run | Optional private-history analysis, off by default; requires both Keep Travel History and separate opt-in; only local candidate computation, at least 3 visits across 3 days; dismissed per view; explicit review before saving to the selected circle. No background scanning or push alert. |
 | 7 | Remote push notifications | Deferred | Requires a trusted sending path. Keep deferred under the current no-billing setup; never ship sender credentials in client code. |
 | 8 | SOS and emergency contacts | Safety review required | Separate opt-in contacts and a tested alert path; clearly show delivery state and fallback. No false assurance of emergency response. |
 | 9 | Driving reports and crash detection | Native research required | Platform-specific background motion/crash detection, false-positive handling, permissions and real-device validation before user-facing claims. |
@@ -37,6 +37,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 - Saved Places with per-user arrival/departure preferences and device-side in-app activity.
 - Opt-in Travel History, route/timeline and deletion controls.
 - In-app activity feed, member manual check-ins, curated quick emoji notes, filters and unread state.
+- Optional on-device place suggestions from the user's own retained private history, behind a separate opt-in and a review-before-save step; not saved or shared until confirmed.
 - Circle-first onboarding that hides map-dependent navigation until a user belongs to a circle.
 - One expected-arrival plan per member/circle with in-app No Show and late-arrival entries; no server-scheduled or phone-push guarantee.
 

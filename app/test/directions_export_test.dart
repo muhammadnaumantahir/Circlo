@@ -36,7 +36,15 @@ void main() {
     final json = buildExportJson(
       exportedAt: DateTime.utc(2026, 10, 14),
       email: 'a@b.co',
-      profile: const UserProfile(uid: 'u', displayName: 'Ali', birthYear: 1990, phone: '+923001234567', keepHistory: true, retentionDays: 30),
+      profile: const UserProfile(
+        uid: 'u',
+        displayName: 'Ali',
+        birthYear: 1990,
+        phone: '+923001234567',
+        keepHistory: true,
+        retentionDays: 30,
+        placeSuggestionsEnabled: true,
+      ),
       circles: [
         {'name': 'Family', 'role': 'owner', 'sharingLocation': true, 'sharingHistory': false},
       ],
@@ -55,6 +63,7 @@ void main() {
     final d = jsonDecode(json) as Map<String, dynamic>;
     expect(d['account']['email'], 'a@b.co');
     expect(d['account']['phone'], '+923001234567');
+    expect(d['settings']['placeSuggestionsEnabled'], isTrue);
     expect(d['circles'], hasLength(1));
     expect(d['travelHistory'][0]['visits'][0]['name'], 'Home');
     expect(json.contains('uid'), isFalse); // no internal ids of the account

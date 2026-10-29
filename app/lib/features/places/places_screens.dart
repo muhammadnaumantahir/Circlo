@@ -15,6 +15,7 @@ import '../location/location_access.dart';
 import 'geocoder.dart';
 import 'notifications_screen.dart';
 import 'place_models.dart';
+import 'place_suggestions.dart';
 
 String _alertSummary(PlaceSubscription? s, {bool loading = false, bool unavailable = false}) {
   if (loading) return unavailable ? 'Alert settings unavailable' : 'Loading alert settings';
@@ -76,6 +77,7 @@ enum _PlaceFilter { all, alertsOn, alertsOff }
 class _PlacesBodyState extends ConsumerState<_PlacesBody> {
   _PlaceFilter _filter = _PlaceFilter.all;
   final TextEditingController _searchController = TextEditingController();
+  final Set<String> _dismissedSuggestionIds = <String>{};
   String _query = '';
 
   @override
@@ -84,6 +86,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
     if (oldWidget.circle.id != widget.circle.id) {
       _filter = _PlaceFilter.all;
       _query = '';
+      _dismissedSuggestionIds.clear();
       _searchController.clear();
     }
   }
@@ -97,6 +100,9 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
   @override
   Widget build(BuildContext context) {
     final circle = widget.circle;
+    final profileAsync = ref.watch(profileProvider);
+    final profile = profileAsync.valueOrNull;
+    final recentPrivateHistoryAsync = ref.watch(recentPrivateHistoryForSuggestionsProvider);
     final placesAsync = ref.watch(placesProvider(circle.id));
     final subscriptionsAsync = ref.watch(mySubscriptionsProvider);
     final arrivalPlansAsync = ref.watch(arrivalPlansProvider(widget.circle.id));
@@ -125,6 +131,28 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
             (query.isEmpty || p.name.toLowerCase().contains(query)))
           p,
     ];
+    final allSuggestions = profile?.keepHistory == true &&
+            profile?.placeSuggestionsEnabled == true &&
+            placesAsync.hasValue &&
+            recentPrivateHistoryAsync.hasValue
+        ? buildPlaceSuggestions(
+            tracks: recentPrivateHistoryAsync.valueOrNull ?? const [],
+            savedPlaces: places,
+          )
+        : const <PlaceSuggestion>[];
+    final visibleSuggestions = allSuggestions
+        .where((suggestion) => !_dismissedSuggestionIds.contains(suggestion.id))
+        .toList(growable: false);
+    final suggestionsPanel = _buildSuggestionsPanel(
+      profileReady: profileAsync.hasValue,
+      historyEnabled: profile?.keepHistory == true,
+      suggestionsEnabled: profile?.placeSuggestionsEnabled == true,
+      historyLoading: recentPrivateHistoryAsync.isLoading,
+      historyError: recentPrivateHistoryAsync.hasError,
+      historyHasData: recentPrivateHistoryAsync.valueOrNull?.any((track) => track.visits.isNotEmpty) == true,
+      foundSuggestions: allSuggestions.isNotEmpty,
+      suggestions: visibleSuggestions,
+    );
 
     return Column(
       children: [
@@ -328,61 +356,82 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
                 ),
                 data: (loadedPlaces) {
                   if (loadedPlaces.isEmpty) {
-                    return MessageView(
-                      icon: Icons.add_location_alt_outlined,
-                      title: 'No saved places yet',
-                      message: 'Save places like home, school or work to get arrival and departure alerts for this circle.',
-                      actions: [
-                        FilledButton(onPressed: () => _add(context, count), child: const Text('Add a place')),
+                    return ListView(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
+                      children: [
+                        if (suggestionsPanel != null) suggestionsPanel,
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 240),
+                          child: MessageView(
+                            icon: Icons.add_location_alt_outlined,
+                            title: 'No saved places yet',
+                            message: 'Save places like home, school or work to get arrival and departure alerts for this circle.',
+                            actions: [
+                              FilledButton(onPressed: () => _add(context, count), child: const Text('Add a place')),
+                            ],
+                          ),
+                        ),
                       ],
                     );
                   }
                   if (visiblePlaces.isEmpty) {
                     final showingOn = _filter == _PlaceFilter.alertsOn;
                     final searching = query.isNotEmpty;
-                    return MessageView(
-                      icon: searching
-                          ? Icons.search_off_rounded
-                          : showingOn
-                              ? Icons.notifications_off_outlined
-                              : Icons.filter_alt_off_outlined,
-                      title: searching
-                          ? 'No matching places'
-                          : showingOn
-                              ? 'No alerts enabled'
-                              : 'All places have alerts on',
-                      message: searching
-                          ? 'Try another place name, or clear search and filters to see every saved place.'
-                          : showingOn
-                              ? 'Turn alerts on for a place, or switch back to see every saved place.'
-                              : 'Every saved place currently has alerts enabled.',
-                      actions: [
-                        OutlinedButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _query = '';
-                              _filter = _PlaceFilter.all;
-                            });
-                          },
-                          child: Text(searching ? 'Clear search and filters' : 'Show all places'),
+                    return ListView(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
+                      children: [
+                        if (suggestionsPanel != null) suggestionsPanel,
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 220),
+                          child: MessageView(
+                            icon: searching
+                                ? Icons.search_off_rounded
+                                : showingOn
+                                    ? Icons.notifications_off_outlined
+                                    : Icons.filter_alt_off_outlined,
+                            title: searching
+                                ? 'No matching places'
+                                : showingOn
+                                    ? 'No alerts enabled'
+                                    : 'All places have alerts on',
+                            message: searching
+                                ? 'Try another place name, or clear search and filters to see every saved place.'
+                                : showingOn
+                                    ? 'Turn alerts on for a place, or switch back to see every saved place.'
+                                    : 'Every saved place currently has alerts enabled.',
+                            actions: [
+                              OutlinedButton(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _query = '';
+                                    _filter = _PlaceFilter.all;
+                                  });
+                                },
+                                child: Text(searching ? 'Clear search and filters' : 'Show all places'),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     );
                   }
+                  final suggestionItemCount = suggestionsPanel == null ? 0 : 1;
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 96),
-                    itemCount: visiblePlaces.length,
+                    itemCount: visiblePlaces.length + suggestionItemCount,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, i) {
-                      final place = visiblePlaces[i];
+                      if (suggestionsPanel != null && i == 0) return suggestionsPanel;
+                      final placeIndex = i - suggestionItemCount;
+                      final place = visiblePlaces[placeIndex];
                       return _PlaceListTile(
                         place: place,
                         circleId: circle.id,
                         subscription: subByPlace[place.id],
                         alertsReady: alertsReady,
                         alertsUnavailable: subscriptionsAsync.hasError,
-                        colorIndex: i,
+                        colorIndex: placeIndex,
                         arrivalPlan: myArrivalPlans[place.id],
                         arrivalPlanReady: arrivalPlansAsync.hasValue,
                         arrivalPlanUnavailable: arrivalPlansAsync.hasError,
@@ -411,6 +460,257 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
         ),
       ],
     );
+  }
+
+  Widget? _buildSuggestionsPanel({
+    required bool profileReady,
+    required bool historyEnabled,
+    required bool suggestionsEnabled,
+    required bool historyLoading,
+    required bool historyError,
+    required bool historyHasData,
+    required bool foundSuggestions,
+    required List<PlaceSuggestion> suggestions,
+  }) {
+    if (!profileReady) return null;
+
+    if (!historyEnabled) {
+      return Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: ListTile(
+          leading: const Icon(Icons.auto_awesome_outlined),
+          title: const Text('Automatic Place Suggestions'),
+          subtitle: const Text(
+            'Optional. Turn on Travel History first. Suggestions use your private history and nothing is shared until you save a place.',
+          ),
+          trailing: TextButton(
+            onPressed: () => context.push('/history/settings'),
+            child: const Text('History settings'),
+          ),
+        ),
+      );
+    }
+
+    if (!suggestionsEnabled) {
+      return Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: SwitchListTile(
+          secondary: const Icon(Icons.auto_awesome_outlined),
+          title: const Text('Suggest places from my history'),
+          subtitle: const Text(
+            'Uses your private Travel History to find repeated stops. Suggestions are not saved or shared unless you choose to save one.',
+          ),
+          value: false,
+          onChanged: _setPlaceSuggestionsEnabled,
+        ),
+      );
+    }
+
+    final controls = Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: SwitchListTile(
+        secondary: const Icon(Icons.auto_awesome_rounded),
+        title: const Text('Automatic Place Suggestions'),
+        subtitle: const Text(
+          'Based on your private Travel History. Nothing is shared until you save a suggestion to this circle.',
+        ),
+        value: true,
+        onChanged: _setPlaceSuggestionsEnabled,
+      ),
+    );
+
+    if (historyLoading) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          controls,
+          const Card(
+            margin: EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)),
+              title: Text('Checking your private history'),
+            ),
+          ),
+        ],
+      );
+    }
+    if (historyError) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          controls,
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: const Icon(Icons.cloud_off),
+              title: const Text('Suggestions are temporarily unavailable'),
+              subtitle: const Text('Your saved places and history have not been changed.'),
+              trailing: IconButton(
+                tooltip: 'Retry place suggestions',
+                onPressed: () => ref.invalidate(recentPrivateHistoryForSuggestionsProvider),
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    if (suggestions.isEmpty && foundSuggestions) return controls;
+    if (suggestions.isEmpty && !historyHasData) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          controls,
+          const Card(
+            margin: EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: Icon(Icons.history_rounded),
+              title: Text('No repeated stops yet'),
+              subtitle: Text('Circlo looks for unlabeled stops visited on at least three different days in your retention window.'),
+            ),
+          ),
+        ],
+      );
+    }
+    if (suggestions.isEmpty) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          controls,
+          const Card(
+            margin: EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: Icon(Icons.auto_awesome_outlined),
+              title: Text('No suggestions yet'),
+              subtitle: Text('Repeated stops already saved or dismissed for now will not be shown again in this view.'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          controls,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+            child: Text(
+              'Places you may want to save',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ),
+          SizedBox(
+            height: 176,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: suggestions.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final suggestion = suggestions[index];
+                final lastVisited = MaterialLocalizations.of(context).formatMediumDate(suggestion.lastVisitedAt.toLocal());
+                return SizedBox(
+                  width: 270,
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.location_on_outlined, color: Theme.of(context).colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  suggestion.suggestedName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Stopped here on ${suggestion.distinctDayCount} different days · ${suggestion.visitCount} visits',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          Text('Last visit: $lastVisited', style: Theme.of(context).textTheme.bodySmall),
+                          const Spacer(),
+                          Row(
+                            children: [
+                              TextButton(
+                                onPressed: () => setState(() => _dismissedSuggestionIds.add(suggestion.id)),
+                                child: const Text('Not now'),
+                              ),
+                              const Spacer(),
+                              FilledButton.icon(
+                                onPressed: () => _savePlaceSuggestion(suggestion),
+                                icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+                                label: const Text('Review'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _setPlaceSuggestionsEnabled(bool enabled) async {
+    final uid = ref.read(currentUidProvider);
+    final profile = ref.read(profileProvider).valueOrNull;
+    if (uid == null || profile == null) return;
+    if (enabled && !profile.keepHistory) {
+      showSnack(context, 'Turn on Travel History before enabling place suggestions.');
+      return;
+    }
+    if (enabled) {
+      final confirmed = await confirmAction(
+        context,
+        title: 'Enable Place Suggestions?',
+        message: 'Circlo will read your private Travel History within your retention window and look for unlabeled stops repeated on at least three different days. Candidate suggestions stay private and are not stored in Firestore. If you choose to save one, its place name and coordinates become visible to current members of this circle. Your detailed history is not shared by this action.',
+        confirmLabel: 'Enable suggestions',
+      );
+      if (!confirmed || !mounted) return;
+    }
+    try {
+      await ref.read(profileRepositoryProvider).setPlaceSuggestionsEnabled(uid: uid, enabled: enabled);
+      ref.invalidate(recentPrivateHistoryForSuggestionsProvider);
+      if (!mounted) return;
+      setState(() => _dismissedSuggestionIds.clear());
+      showSnack(context, enabled ? 'Private Place Suggestions enabled.' : 'Place Suggestions turned off.');
+    } catch (_) {
+      if (mounted) showSnack(context, 'Could not update Place Suggestions. Check your connection and try again.');
+    }
+  }
+
+  Future<void> _savePlaceSuggestion(PlaceSuggestion suggestion) async {
+    final confirmed = await confirmAction(
+      context,
+      title: 'Review this suggested place?',
+      message: 'This was detected from your private history. Opening the editor does not share it. If you later save it, the place and its pin will be visible to current members of ${widget.circle.name}; your detailed travel history remains private.',
+      confirmLabel: 'Review place',
+    );
+    if (!confirmed || !mounted) return;
+    // Keep the precise candidate coordinates out of browser URLs and history.
+    // Route extra is in-memory navigation state; nothing is written or shared by reviewing.
+    final uri = Uri(path: '/places/new', queryParameters: {'circle': widget.circle.id});
+    await context.push<void>(uri.toString(), extra: suggestion);
   }
 
   Future<void> _scheduleArrival(Place place) async {
@@ -677,9 +977,19 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
 
 /// Create (placeId == null) or edit a place and the signed-in user's own alert preferences.
 class PlaceFormScreen extends ConsumerStatefulWidget {
-  const PlaceFormScreen({super.key, required this.circleId, this.placeId});
+  const PlaceFormScreen({
+    super.key,
+    required this.circleId,
+    this.placeId,
+    this.initialLat,
+    this.initialLng,
+    this.initialName,
+  });
   final String circleId;
   final String? placeId;
+  final double? initialLat;
+  final double? initialLng;
+  final String? initialName;
 
   @override
   ConsumerState<PlaceFormScreen> createState() => _PlaceFormScreenState();
@@ -713,11 +1023,29 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
 
   bool get _isEdit => widget.placeId != null;
 
+  bool get _hasValidInitialPin {
+    final lat = widget.initialLat;
+    final lng = widget.initialLng;
+    return lat != null &&
+        lng != null &&
+        lat.isFinite &&
+        lng.isFinite &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180;
+  }
+
   @override
   void initState() {
     super.initState();
     if (_isEdit) {
       _loadSubscription();
+    } else if (_hasValidInitialPin) {
+      _pin = LatLng(widget.initialLat!, widget.initialLng!);
+      _pendingMove = _pin;
+      final name = (widget.initialName ?? '').trim();
+      if (name.isNotEmpty) _name.text = name.length > 50 ? name.substring(0, 50) : name;
     } else {
       _locateOnce();
     }

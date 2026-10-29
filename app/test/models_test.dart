@@ -1,6 +1,7 @@
 import 'package:circlo/features/circles/circle_models.dart';
 import 'package:circlo/features/location/location_models.dart';
 import 'package:circlo/features/places/place_models.dart';
+import 'package:circlo/features/profile/profile_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -21,6 +22,35 @@ void main() {
       expect(MemberLocation.tryFromMap('u1', {'lat': 0, 'lng': 0, 'accuracy': -1}), isNull);
       expect(MemberLocation.tryFromMap('u1', {'lat': 0, 'lng': 0, 'accuracy': 'unknown'}), isNull);
       expect(MemberLocation.tryFromMap('u1', {'lat': 0, 'lng': 0, 'accuracy': double.nan}), isNull);
+    });
+  });
+
+  group('UserProfile.fromMap place suggestions consent', () {
+    test('defaults suggestions off and reads an explicit opt-in', () {
+      final defaults = UserProfile.fromMap('u1', {
+        'displayName': 'Sam',
+        'birthYear': 1990,
+      });
+      expect(defaults.placeSuggestionsEnabled, isFalse);
+
+      final optedIn = UserProfile.fromMap('u1', {
+        'displayName': 'Sam',
+        'birthYear': 1990,
+        'keepHistory': true,
+        'placeSuggestionsEnabled': true,
+      });
+      expect(optedIn.placeSuggestionsEnabled, isTrue);
+    });
+
+    test('does not allow suggestions preference to imply private history consent', () {
+      final invalidState = UserProfile.fromMap('u1', {
+        'displayName': 'Sam',
+        'birthYear': 1990,
+        'placeSuggestionsEnabled': true,
+      });
+      expect(invalidState.keepHistory, isFalse);
+      expect(invalidState.placeSuggestionsEnabled, isFalse);
+      // The parser fails closed for legacy or malformed inconsistent preferences.
     });
   });
 

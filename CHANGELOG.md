@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 ### Added
+- Add optional Automatic Place Suggestions from the user's own private Travel History: local on-device clustering of unlabeled stops seen on at least three different days, with explicit opt-in, retention-window bounds, dismissible cards, and a review step before saving into a circle. No coordinates are uploaded by the suggestion engine itself.
+
+### Added
 - Add one reschedulable expected-arrival plan per member and circle, with saved-place deadlines and in-app No Show warnings for circle members when no arrival has been recorded by the deadline. Confirmed arrivals resolve plans; late arrivals remain visible in the notification feed. This is evaluated while Circlo is open and actively tracking; no phone push or guaranteed background scheduling is claimed.
 - Add curated one-tap emoji Quick Notes to the map check-in sheet. Messages are restricted by Firestore Rules to approved emoji/text pairs, shared to the selected circle's in-app feed, and carry no GPS fields.
 

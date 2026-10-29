@@ -10,7 +10,7 @@ This audit reflects a static review of the current Flutter source and project re
 | Circles | First-use Create/Join onboarding; map/places/history tabs gated until membership exists; create/join by code, QR and share-sheet invites, web invite links with prefilled code, code rotation/expiry, pending join approval, member removal/leave, ownership transfer, circle deletion, manual check-ins with optional saved-place context (place ID/name only, no GPS) | Source exists; emulator suite and end-to-end invite flow not run |
 | Location sharing | Per-circle opt-in with consent, pause/resume (manual, 1 hour, or until 6:00), permission help, live-location documents and status derivation | Background behavior not verified on devices |
 | Map | Circle switcher, status-aware name markers that open member details, mobile people-preview dock, active-sharing summary, quick access to saved places/sharing settings, saved-place overlays and external directions | UX needs manual phone/tablet/desktop and light/dark testing; public tile provider must be chosen/validated before release |
-| Places | Free-geocoder search, tap-to-pin fallback, 100–1000 m radius, per-user arrival/departure preferences and selected members, searchable alert dashboard, persistent per-place pause/resume | Detection is device-side; requires the sharing app to receive location fixes |
+| Places | Free-geocoder search, tap-to-pin fallback, 100–1000 m radius, per-user arrival/departure preferences and selected members, searchable alert dashboard, persistent per-place pause/resume, opt-in private-history Place Suggestions with a review-before-save flow | Suggestions are local and private before an explicit save; automated tests are not run |
 | Notifications | Searchable, time-grouped in-app activity feed; category filters (All / Places / People / Location), per-section counts, unread badge/read timestamp, muted circles and join/sharing/place activity | **In-app only**. No phone push to closed apps |
 | History | Opt-in daily history, circle-specific sharing, route thinning, visits/stay duration, date/member picker, quick date shortcuts, daily summary, rich stop timeline cards, map fit-route control, 7/30/90-day client-side cleanup and deletion controls | Device-side recording and cleanup are best-effort, not server-guaranteed |
 | Privacy controls | Per-circle location/history switches, pause, leave/remove, export view/copy, account deletion workflow | Account/circle cleanup is client-side best-effort; deleted data cannot always be fully enumerated |
@@ -57,6 +57,10 @@ This audit reflects a static review of the current Flutter source and project re
 - Added one active expected-arrival plan per member and circle, reschedulable to another saved place. Other circle members see an in-app "no arrival recorded" warning after the deadline; device-recorded late arrivals are shown in the feed. Warnings are computed in-app; there is no server scheduler, push delivery, or background guarantee.
 
 - Added curated one-tap Quick Notes in the map check-in sheet and in-app feed; Firestore Rules restrict values to approved emoji/text pairs, and notes contain no location coordinates. Test status remains not run.
+
+## Improvement added in this branch
+
+- Automatic Place Suggestions are now implemented in code behind two separate opt-ins: private Travel History and Place Suggestions. A bounded query reads only the signed-in user's history within the 7/30/90-day retention window. Suggestions are calculated locally from unlabeled stops recurring on at least three days, remain dismissible in the current view, and open the normal place editor for review. Candidate coordinates are not uploaded or saved until the user saves a place to the selected circle. Tests are authored but not run.
 
 ## Important gaps before release
 
