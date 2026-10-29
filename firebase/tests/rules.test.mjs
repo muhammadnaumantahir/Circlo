@@ -106,6 +106,7 @@ describe('per-circle phone sharing', () => {
       collection(db('alice'), 'circles/c1/sharedContacts'),
       where('sharePhone', '==', true),
     )));
+    await assertFails(getDocs(collection(db('alice'), 'circles/c1/sharedContacts')));
     await assertFails(getDoc(doc(db('carol'), 'circles/c1/sharedContacts/bob')));
     await assertFails(getDoc(doc(db('mallory'), 'circles/c1/sharedContacts/bob')));
     await assertFails(getDoc(doc(db('alice'), 'users/bob'))); // Private profile is still private.
