@@ -8,6 +8,7 @@ class UserProfile {
     this.phone,
     this.keepHistory = false,
     this.retentionDays = 30,
+    this.placeSuggestionsEnabled = false,
     this.notifOff = const <String>[],
     this.notifMuted = const <String>[],
     this.notifSeenAt,
@@ -19,6 +20,8 @@ class UserProfile {
   final String? phone;
   final bool keepHistory; // record a private travel history while sharing is on
   final int retentionDays; // 7, 30 or 90
+  /// Separate opt-in for analyzing private history to suggest saved places.
+  final bool placeSuggestionsEnabled;
   final List<String> notifOff; // notification kinds the user switched off
   final List<String> notifMuted; // circle ids the user muted
   final DateTime? notifSeenAt; // when the notifications list was last opened
@@ -31,6 +34,7 @@ class UserProfile {
         phone: data['phone'] as String?,
         keepHistory: data['keepHistory'] == true,
         retentionDays: (data['retentionDays'] as num?)?.toInt() ?? 30,
+        placeSuggestionsEnabled: data['placeSuggestionsEnabled'] == true,
         notifOff: [for (final x in (data['notifOff'] as List? ?? const [])) x.toString()],
         notifMuted: [for (final x in (data['notifMuted'] as List? ?? const [])) x.toString()],
         notifSeenAt: (data['notifSeenAt'] as Timestamp?)?.toDate(),
