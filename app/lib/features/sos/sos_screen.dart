@@ -218,8 +218,11 @@ class SosScreen extends ConsumerWidget {
             }
           }
 
-          final locations = ref.watch(locationsProvider(circle.id)).valueOrNull;
+          final locationsAsync = ref.watch(locationsProvider(circle.id));
+          final locations = locationsAsync.valueOrNull;
           final ownLocation = uid == null ? null : locations?[uid];
+          final locationLoadFailed = locationsAsync.hasError && !locationsAsync.hasValue;
+          final locationPending = locationsAsync.isLoading && !locationsAsync.hasValue;
           final hasInvalidLocationSample = ownLocation != null &&
               !isValidLocationSample(
                 lat: ownLocation.lat,
@@ -344,9 +347,13 @@ class SosScreen extends ConsumerWidget {
                                     ? 'Location sharing is off for this Circle. No coordinates will be included. Turn it on and wait for a fresh fix to include your location.'
                                     : membership.paused
                                         ? 'Location sharing is paused for this Circle. No coordinates will be included. Resume sharing and wait for a fresh fix to include your location.'
-                                        : hasInvalidLocationSample
-                                            ? 'The last shared location has invalid coordinates or accuracy. No coordinates will be included until a valid location update arrives.'
-                                            : 'The last shared fix is missing or too old. No coordinates will be included until a fresh location update arrives.',
+                                        : locationLoadFailed
+                                            ? 'Could not verify the shared location right now. No coordinates will be included; check your connection and try again.'
+                                            : locationPending
+                                                ? 'Checking for a fresh shared location. No coordinates will be included until the check finishes.'
+                                                : hasInvalidLocationSample
+                                                    ? 'The last shared location has invalid coordinates or accuracy. No coordinates will be included until a valid location update arrives.'
+                                                    : 'The last shared fix is missing or too old. No coordinates will be included until a fresh location update arrives.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
