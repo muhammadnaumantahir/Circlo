@@ -147,7 +147,7 @@ final notificationFeedProvider = Provider<AsyncValue<List<FeedItem>>>((ref) {
         final at = a.occurredAt;
         if (at == null || at.isBefore(cutoff) || a.actorUid == uid) continue;
         final isSharing = a.type == ActivityType.sharingStarted || a.type == ActivityType.sharingStopped;
-        final isCheckIn = a.type == ActivityType.checkedIn;
+        final isCheckIn = a.type == ActivityType.checkedIn || a.type == ActivityType.quickNote;
         if (isSharing ? !wantSharing : isCheckIn ? !wantCheckIns : !wantMembership) continue;
         items.add(FeedItem(
           id: '${c.id}/act/${a.id}',
