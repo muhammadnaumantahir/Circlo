@@ -9,7 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  List<Override> overridesFor(List<Circle> circles) => [
+  overridesFor(List<Circle> circles) => [
         currentUidProvider.overrideWith((ref) => circles.isEmpty ? null : 'u1'),
         profileProvider.overrideWith((ref) => Stream<UserProfile?>.value(null)),
         myCirclesProvider.overrideWith((ref) => Stream<List<Circle>>.value(circles)),
@@ -29,7 +29,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Your people, in sync.'), findsOneWidget);
-    expect(find.text('Create a circle'), findsOneWidget);
+    expect(find.text('Create a circle'), findsNWidgets(2));
     expect(find.text('Join with an invite code'), findsOneWidget);
     expect(find.text('Retry'), findsNothing);
   });
