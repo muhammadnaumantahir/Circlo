@@ -27,6 +27,22 @@ void main() {
     expect(Uri.parse(uri.toString()).queryParameters['body'], message);
   });
 
+  test('recipient filtering fails closed until the signed-in user is known', () {
+    final recipients = sosContactRecipients(
+      sharedContacts: const [
+        SharedContact(uid: 'self', phone: '+923001111111'),
+        SharedContact(uid: 'amina', phone: '+923004444444'),
+      ],
+      circleMembers: const [
+        Member(uid: 'self', displayName: 'Me', role: 'member'),
+        Member(uid: 'amina', displayName: 'Amina', role: 'member'),
+      ],
+      currentUid: null,
+    );
+
+    expect(recipients, isEmpty);
+  });
+
   test('recipient filtering excludes self, former members and malformed phone numbers', () {
     final sharedContacts = [
       const SharedContact(uid: 'self', phone: '+923001111111'),
