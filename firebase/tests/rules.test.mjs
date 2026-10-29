@@ -96,6 +96,12 @@ describe('per-circle phone sharing', () => {
     uid, phone, sharePhone: true, updatedAt: serverTimestamp(),
   });
 
+  it('lets a member check their own opt-in document before sharing', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(getDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob')));
+    await assertFails(getDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob')));
+  });
+
   it('shares a number only to members of the circle where the owner opted in', async () => {
     await seed({ bob: true });
     await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
