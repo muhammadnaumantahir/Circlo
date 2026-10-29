@@ -77,6 +77,35 @@ describe('users profile', () => {
     await assertFails(setDoc(doc(db('alice'), 'users/alice'), profile({ phone: '12345' })));
     await assertFails(setDoc(doc(db('alice'), 'users/alice'), profile({ extra: true })));
   });
+  it('requires private history consent before enabling automatic place suggestions', async () => {
+    const userRef = doc(db('alice'), 'users/alice');
+    await assertFails(setDoc(userRef, profile({ placeSuggestionsEnabled: true })));
+    await assertFails(setDoc(userRef, profile({ keepHistory: true, placeSuggestionsEnabled: 'yes' })));
+    await assertSucceeds(setDoc(userRef, profile({
+      keepHistory: true,
+      retentionDays: 30,
+      placeSuggestionsEnabled: true,
+    })));
+  });
+
+  it('turning private history off also turns off place suggestions', async () => {
+    const userRef = doc(db('alice'), 'users/alice');
+    await assertSucceeds(setDoc(userRef, profile({
+      keepHistory: true,
+      retentionDays: 30,
+      placeSuggestionsEnabled: true,
+    })));
+    await assertFails(updateDoc(userRef, {
+      keepHistory: false,
+      updatedAt: serverTimestamp(),
+    }));
+    await assertSucceeds(updateDoc(userRef, {
+      keepHistory: false,
+      placeSuggestionsEnabled: false,
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
   it('allows a 13-year-old', async () => {
     await assertSucceeds(setDoc(doc(db('teen'), 'users/teen'), profile({ birthYear: year - 14 })));
   });
