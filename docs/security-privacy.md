@@ -9,7 +9,7 @@ Consent-based, transparent, revocable, least data, default deny. Extra care beca
 - **Join codes:** ≥8 chars from an unambiguous alphabet, unguessable and revocable. Because trusted server-side rate limiting and privileged join flows are not available under Spark/no billing, these flows must be proven safe with Firestore Rules or deferred; never expose a public listing of valid codes.
 - **Transparency:** consent screen, persistent sharing indicator (Android foreground notification / iOS indicator), "Who sees me", notification when added to a circle or when sharing is switched on/off. No stealth mode, no hidden icon.
 - **Revocation:** leaving/removal deletes membership; Firestore Rules denies immediately.
-- **Minimization:** no contacts, battery, analytics or ad SDKs. Birth year/age band only (for minor safeguards), not full date of birth.
+- **Minimization:** no address-book/contact harvesting, analytics or ad SDKs. Phone numbers are only exposed per circle through explicit phone-sharing consent; battery percentage is optional and off by default. Birth year/age band only (for minor safeguards), not full date of birth.
 - **Secrets:** Never ship FCM service-account credentials or other server secrets in the Flutter app. FCM delivery is free, but a trusted sender is required; Cloud Functions need Blaze, so cross-user remote push remains blocked until a secure no-cost server path is approved.
 - **Deletion/retention:** FR-006/066/067, NFR-012; account deletion must remove Firestore documents/subcollections, tokens, and Firebase Auth identity. Without a trusted backend, complete recursive deletion and scheduled retention cleanup are not yet guaranteed; do not claim full deletion until tested.
 - **Abuse:** per-user rate limits, member/circle caps, report/block mechanism (open).
@@ -26,6 +26,11 @@ Place Suggestions are a separate opt-in from Travel History. They remain off unl
 
 ## Travel history (Increment 4)
 Off by default at two levels: the user must switch on "Keep my travel history", then separately share it per circle (consent dialog). Circle copies are readable from Firestore only while the owner keeps the master “Keep my travel history” switch, per-circle history sharing, and location sharing on; rules block subsequent server reads and writes when any required switch is off. Turning the master switch off therefore protects existing server-side copies, but it cannot remotely erase data already cached on a recipient's device. The app removes copies best-effort. Only daily summaries (stops ≥10 min, thinned route) are stored — never raw GPS tracks or battery/device data. Retention (7/30/90 days) and deletion (range/all) are user-controlled; enforcement is client-side (see docs/risks.md).
+
+## Temporary approximate map sharing (Bubble)
+- Bubble is a per-circle, time-limited map projection (1/4/8 hours), not a global location stop. While the deadline is active, the shared coordinates are snapped to a 0.02° grid and Firestore Rules reject precise location writes. The exact live projection is deleted atomically at every precision change.
+- Expiry is client-driven: while Circlo is active the app clears Bubble and republishes the latest location; if the app was closed, the next location sync after reopen restores precise sharing. There is no server timer or remote push under the current no-billing architecture.
+- Bubble changes only the map pin. Saved Place enter/leave events, expected-arrival/No Show alerts, manual check-ins and separately enabled Travel History may still reveal visits. The UI must disclose this and recommend Pause/Stop for full location hiding. Existing event/history records are not deleted when Bubble turns on.
 
 ## Threats considered
 Stalking/coercive control (transparency + notifications + easy exit); join-code brute force; Firestore Rules gaps/IDOR (tests); forged place events from modified clients (remote alerts must remain disabled until trusted validation exists); leaked keys; stale data after removal; quota exhaustion (availability).

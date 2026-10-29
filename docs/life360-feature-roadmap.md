@@ -1,6 +1,6 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-29 (No Show alert edge-case coverage added; tests not run)
+Last reviewed: 2026-10-29 (Approximate Location/Bubble added in code; tests not run)
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 
@@ -26,7 +26,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 | 7 | Remote push notifications | Deferred | Requires a trusted sending path. Keep deferred under the current no-billing setup; never ship sender credentials in client code. |
 | 8 | SOS and emergency contacts | Safety review required | Separate opt-in contacts and a tested alert path; clearly show delivery state and fallback. No false assurance of emergency response. |
 | 9 | Driving reports and crash detection | Native research required | Platform-specific background motion/crash detection, false-positive handling, permissions and real-device validation before user-facing claims. |
-| 10 | Temporary approximate-location Bubble | Planned, privacy review required | Let a user intentionally share a coarse location for a limited time; never silently change precise-sharing consent. |
+| 10 | Temporary approximate-location Bubble | Implemented in code; tests not run | Per-circle opt-in with 1/4/8-hour expiry; the live map pin is snapped to a 0.02° grid (roughly 1–1.6 km), exact location document is deleted on transition, Firestore Rules require coarse coordinates during the unexpired window, and directions are disabled for coarse pins. Expiry is client-driven: precise sharing resumes while the app is active or on the next sync after reopen; no server scheduler/push. Other features such as place alerts, manual check-ins and separately enabled Travel History may still disclose visits. |
 | 11 | Flight detection and landing alerts | Lower priority / integration needed | Only through a suitable source with clear limitations and no implied real-time guarantee. |
 | 12 | Item trackers and pet tracking | Lower priority / integration needed | Requires external device/provider integration; keep separate from core member location sharing. |
 
@@ -40,6 +40,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 - Optional on-device place suggestions from the user's own retained private history, behind a separate opt-in and a review-before-save step; not saved or shared until confirmed.
 - Circle-first onboarding that hides map-dependent navigation until a user belongs to a circle.
 - One expected-arrival plan per member/circle with in-app No Show and late-arrival entries; no server-scheduled or phone-push guarantee.
+- Optional per-circle Approximate Location/Bubble: a temporary grid-snapped map location, with previous location projection deleted during transition and explicit disclosure of independent alert/history features.
 
 ## Delivery rule
 
