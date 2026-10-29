@@ -5,7 +5,7 @@
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest main HEAD at audit:** `73bfa1134113d94e4472da44d69a241c517e10e4` — prioritize release verification  
-**Active feature branch:** `feature/sos-emergency-message` — manual SOS-message sharing is in progress; not merged and not tested.  
+**Active feature branch:** [`feature/sos-emergency-message`](https://github.com/muhammadnaumantahir/Circlo/pull/68) — manual SOS-message sharing is in draft PR #68; not merged and not tested.  
 **Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
@@ -50,7 +50,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 |---:|---|---|---|
 | P0 | Release verification | Required before release | Run manual Flutter analyze/tests and Firestore Emulator Rules tests; re-run Cloudflare web build; test Android/iOS background tracking and two-account privacy flows. |
 | P1 | Remote push notifications | Deferred | Requires a trusted delivery path. Do not put server credentials in the Flutter app. Reassess only after confirming a truly no-cost deployable architecture. |
-| P2 | SOS message handoff / emergency contacts | In progress — `feature/sos-emergency-message`; not merged | Manual share sheet and copy fallback; only include a fresh shared fix; clearly label approximate Bubble pins. No automatic delivery, acknowledgement, remote push, or emergency-dispatch claim. Helper tests are authored but not run. Full emergency-contact delivery remains future work after safety review. |
+| P2 | SOS message handoff / emergency contacts | In progress — [draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68) | Manual share sheet and copy fallback; only include a fresh shared fix; clearly label approximate Bubble pins. No automatic delivery, acknowledgement, remote push, or emergency-dispatch claim. Helper tests are authored but not run. Full emergency-contact delivery remains future work after safety review. |
 | P3 | Driving reports / crash detection | Not started — native research | Native motion/location collection, false-positive controls, platform limits and real-device validation are needed. |
 | P4 | Flight / landing alerts | Not started — external integration | Find a suitable data source; clearly disclose coverage and latency before implementing. |
 | P4 | Tile/item tracker integration | Not started — external integration | Requires supported hardware/provider APIs and account linking. |
@@ -80,8 +80,8 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 ## Instructions for the next chat / future changes
 
 1. Read this file first, then check the current `main` SHA and latest PRs. Do not assume the previous chat's branch or PR is still current.
-2. Current known work at this handover: `feature/sos-emergency-message` has a manually shared SOS-message draft and unit tests. Inspect its branch/PR and test results before extending or merging it.
-2. Pick the next unfinished item only after confirming it is not already present in `main`.
-3. Implement one feature per branch and PR; keep GitHub Actions manual-only.
-4. Before reporting completion, review the diff and update this file, `docs/life360-feature-roadmap.md`, `CHANGELOG.md`, and `docs/test-plan.md` as applicable.
-5. State clearly whether code is merely in `main`, tests were actually run, web deployment passed, and native behavior was verified.
+2. Current known work at this handover: [draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68) on `feature/sos-emergency-message` has a manually shared SOS-message draft and unit tests. Inspect its branch and test results before extending or merging it.
+3. Pick the next unfinished item only after confirming it is not already present in `main`.
+4. Implement one feature per branch and PR; keep GitHub Actions manual-only.
+5. Before reporting completion, review the diff and update this file, `docs/life360-feature-roadmap.md`, `CHANGELOG.md`, and `docs/test-plan.md` as applicable.
+6. State clearly whether code is merely in `main`, tests were actually run, web deployment passed, and native behavior was verified.
