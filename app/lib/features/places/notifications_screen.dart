@@ -12,6 +12,8 @@ IconData _iconFor(FeedItem i) {
   switch (i.kind) {
     case FeedKind.place:
       return i.isArrival ? Icons.login : Icons.logout;
+    case FeedKind.noShow:
+      return Icons.alarm_off_rounded;
     case FeedKind.membership:
       return Icons.group;
     case FeedKind.sharing:
@@ -103,7 +105,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               case _ActivityFilter.all:
                 return true;
               case _ActivityFilter.places:
-                return item.kind == FeedKind.place;
+                return item.kind == FeedKind.place || item.kind == FeedKind.noShow;
               case _ActivityFilter.people:
                 return item.kind == FeedKind.membership || item.kind == FeedKind.requests;
               case _ActivityFilter.location:
@@ -113,7 +115,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             }
           }
 
-          final placeCount = items.where((i) => i.kind == FeedKind.place).length;
+          final placeCount = items.where((i) => i.kind == FeedKind.place || i.kind == FeedKind.noShow).length;
           final peopleCount = items.where((i) => i.kind == FeedKind.membership || i.kind == FeedKind.requests).length;
           final locationCount = items.where((i) => i.kind == FeedKind.sharing || i.kind == FeedKind.unavailable).length;
           final checkInCount = items.where((i) => i.kind == FeedKind.checkIns).length;
@@ -149,7 +151,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   padding: EdgeInsets.all(24),
                   child: Center(
                     child: Text(
-                      'Nothing new yet.\nArrivals, member check-ins, membership changes and sharing updates will show up here.',
+                      'Nothing new yet.\nArrivals, expected-arrival warnings, member check-ins, membership changes and sharing updates will show up here.',
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -195,7 +197,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         ),
                         const SizedBox(width: 8),
                         ChoiceChip(
-                          label: Text('Places $placeCount'),
+                          label: Text('Places & No Show $placeCount'),
                           selected: _filter == _ActivityFilter.places,
                           onSelected: (_) => setState(() => _filter = _ActivityFilter.places),
                         ),
