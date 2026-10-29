@@ -540,7 +540,7 @@ describe('scheduled arrival / No Show plans', () => {
     await assertSucceeds(setDoc(ref('bob'), plan('bob', expectedAt)));
     await assertSucceeds(getDoc(ref('alice')));
     await assertFails(getDoc(ref('mallory')));
-    await assertFails(updateDoc(ref('alice'), { status: 'arrived', arrivedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db('alice'), 'circles/c1/arrivalPlans/bob'), { status: 'arrived', arrivedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
     await assertSucceeds(updateDoc(ref('bob'), { status: 'arrived', arrivedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
     await assertSucceeds(deleteDoc(ref('bob')));
   });
@@ -567,7 +567,7 @@ describe('scheduled arrival / No Show plans', () => {
     await seedExpectedPlace();
     await assertSucceeds(shareOn('bob'));
     await assertSucceeds(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
-    await assertSucceeds(deleteDoc(ref('alice'))); // Alice created p1; Bob owns the plan.
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'circles/c1/arrivalPlans/bob'))); // Alice created p1; Bob owns the plan.
   });
 
   it('requires a plan to be cleared atomically when sharing stops or pauses', async () => {
