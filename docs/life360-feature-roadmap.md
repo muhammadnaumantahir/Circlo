@@ -17,7 +17,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 
 | Order | Feature | Status | Scope and acceptance criteria |
 |---:|---|---|---|
-| 1 | **Quick Notes with emoji** | Implementing in this change | One tap shares a curated emoji/message to the selected circle's in-app activity feed. Circle members only; fixed approved choices; no GPS fields; not a push notification. |
+| 1 | **Quick Notes with emoji** | Implemented in code; tests not run | One tap shares a curated emoji/message to the selected circle's in-app activity feed. Circle members only; fixed approved choices; no GPS fields; not a push notification. |
 | 2 | Member call/text shortcuts | Planned | Add call/message actions only for phone numbers a member explicitly chooses to share. No broad access to private profile documents. |
 | 3 | Better ETA and map handoff | Partial | Circlo can already hand directions to an external maps app/browser. Improve the flow without promising a live ETA unless a provider reliably supplies one. |
 | 4 | Low-battery status/alerts | Planned, feasibility check first | Decide whether device battery APIs work across supported platforms; minimize write frequency and clearly label the last reported battery time. |
@@ -36,7 +36,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 - Consent-based per-circle live location sharing, pause/resume, map and member status.
 - Saved Places with per-user arrival/departure preferences and device-side in-app activity.
 - Opt-in Travel History, route/timeline and deletion controls.
-- In-app activity feed, member manual check-ins, filters and unread state.
+- In-app activity feed, member manual check-ins, curated quick emoji notes, filters and unread state.
 - Circle-first onboarding that hides map-dependent navigation until a user belongs to a circle.
 
 ## Delivery rule
