@@ -497,6 +497,56 @@ describe('saved places, subscriptions and events (Increment 3)', () => {
   });
 });
 
+describe('scheduled arrival / No Show plans', () => {
+  const ref = (uid, pid = 'p1') => doc(db(uid), `circles/c1/arrivalPlans/${uid}_${pid}`);
+  const plan = (uid, expectedAt, over = {}) => ({
+    memberUid: uid,
+    placeId: 'p1',
+    expectedAt,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    ...over,
+  });
+
+  it('requires active location sharing and a valid future deadline for the target member', async () => {
+    await seed({ bob: true });
+    await seedPlace('c1', 'p1', 'alice');
+    const future = Timestamp.fromMillis(Date.now() + 60 * 60 * 1000);
+    await assertFails(setDoc(ref('bob'), plan('bob', future))); // sharing is off
+    await shareOn('bob');
+    await assertSucceeds(setDoc(ref('bob'), plan('bob', future)));
+    await assertFails(setDoc(ref('bob', 'past'), plan('bob', Timestamp.fromMillis(Date.now() - 1000))));
+    await assertFails(setDoc(ref('bob', 'too-far'), plan('bob', Timestamp.fromMillis(Date.now() + 31 * 24 * 60 * 60 * 1000))));
+    await assertFails(setDoc(ref('alice', 'spoof'), plan('bob', future)));
+  });
+
+  it('is readable to current circle members only and supports self-completion and cancellation', async () => {
+    await seed({ bob: true });
+    await seedPlace('c1', 'p1', 'alice');
+    await shareOn('bob');
+    const expectedAt = Timestamp.fromMillis(Date.now() + 60 * 60 * 1000);
+    await assertSucceeds(setDoc(ref('bob'), plan('bob', expectedAt)));
+    await assertSucceeds(getDoc(ref('alice')));
+    await assertFails(getDoc(ref('mallory')));
+    await assertFails(updateDoc(ref('alice'), { status: 'arrived', arrivedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref('bob'), { status: 'arrived', arrivedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(ref('bob')));
+  });
+
+  it('cannot update a plan after leaving its circle', async () => {
+    await seed({ bob: true });
+    await seedPlace('c1', 'p1', 'alice');
+    await shareOn('bob');
+    await assertSucceeds(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
+    await assertSucceeds(deleteDoc(doc(db('bob'), 'circles/c1/arrivalPlans/bob_p1'))); // remove the plan before leaving
+    const batch = writeBatch(db('bob'));
+    batch.delete(doc(db('bob'), 'circles/c1/members/bob'));
+    await assertSucceeds(batch.commit());
+    await assertFails(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
+  });
+});
+
 describe('travel history (Increment 4)', () => {
   const dayDoc = (uid, day = '20261013', over = {}) => ({
     uid, day, tzOffsetMin: 300, visits: [{ name: 'Home', lat: 31.5, lng: 74.3, arrivedAt: 1, leftAt: null }],
