@@ -436,6 +436,61 @@ describe('live location sharing (circle-scoped)', () => {
     await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
     await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
   });
+  it('requires separate per-circle battery consent and clears battery data atomically on opt-out', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
+    const locationRef = locRef(db('bob'), 'c1', 'bob');
+
+    // Location sharing alone does not allow a battery percentage.
+    await assertSucceeds(setDoc(locationRef, loc('bob')));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: 18 })));
+
+    await assertSucceeds(updateDoc(memberRef, { shareBattery: true }));
+    await assertSucceeds(setDoc(locationRef, loc('bob', { batteryLevel: 18 })));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: -1 })));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: 101 })));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: '18' })));
+
+    // Consent cannot be revoked while leaving the old percentage visible.
+    await assertFails(updateDoc(memberRef, { shareBattery: false }));
+    const stopBattery = writeBatch(db('bob'));
+    stopBattery.update(memberRef, { shareBattery: false });
+    stopBattery.delete(locationRef);
+    await assertSucceeds(stopBattery.commit());
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+  });
+
+  it('keeps battery consent scoped to each circle', async () => {
+    await seed({ bob: true });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles/c2/members/bob'), {
+        uid: 'bob', role: 'member', displayName: 'Bob', joinedAt: Timestamp.now(), joinCode: CODE_B,
+      });
+    });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    await setSharing('bob', 'c2', { sharesLocation: true, paused: false });
+    await assertSucceeds(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { shareBattery: true }));
+
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob', { batteryLevel: 18 })));
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c2', 'bob'), loc('bob')));
+    await assertFails(setDoc(locRef(db('bob'), 'c2', 'bob'), loc('bob', { batteryLevel: 18 })));
+  });
+
+  it('cannot stop location sharing while battery consent stays enabled', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
+    await assertSucceeds(updateDoc(memberRef, { shareBattery: true }));
+    await assertFails(updateDoc(memberRef, { sharesLocation: false }));
+
+    const stop = writeBatch(db('bob'));
+    stop.update(memberRef, { sharesLocation: false, shareBattery: false });
+    stop.delete(locRef(db('bob'), 'c1', 'bob'));
+    stop.delete(doc(db('bob'), 'circles/c1/arrivalPlans/bob'));
+    await assertSucceeds(stop.commit());
+  });
+
   it('cannot publish while paused', async () => {
     await seed({ bob: true });
     await setSharing('bob', 'c1', { sharesLocation: true, paused: true });
