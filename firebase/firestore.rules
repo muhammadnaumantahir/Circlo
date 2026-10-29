@@ -282,7 +282,6 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt', 'arrivedAt'])
           && request.resource.data.keys().hasAll(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt'])
           && request.resource.data.memberUid == resource.data.memberUid
-          && request.resource.data.placeId == resource.data.placeId
           && planId == request.auth.uid
           && (
             (request.resource.data.status == 'pending'
@@ -292,12 +291,14 @@ service cloud.firestore {
               && request.resource.data.expectedAt <= request.time + duration.value(30, 'd')
               && request.resource.data.createdAt == request.time
               && request.resource.data.updatedAt == request.time
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['expectedAt', 'status', 'createdAt', 'updatedAt', 'arrivedAt'])
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt', 'arrivedAt'])
+              && exists(placePath(cid, request.resource.data.placeId))
               && get(memberPath(cid, request.auth.uid)).data.get('sharesLocation', false) == true
               && get(memberPath(cid, request.auth.uid)).data.get('paused', false) == false)
             ||
             (resource.data.status == 'pending'
               && request.resource.data.status == 'arrived'
+              && request.resource.data.placeId == resource.data.placeId
               && request.resource.data.expectedAt == resource.data.expectedAt
               && request.resource.data.createdAt == resource.data.createdAt
               && request.resource.data.arrivedAt == request.time
