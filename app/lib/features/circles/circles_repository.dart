@@ -238,6 +238,8 @@ class CirclesRepository {
       'historyShared': false,
     });
     batch.delete(circle.collection('joinRequests').doc(uid));
+    // Approval never restores a previous phone-sharing choice; rejoin requires fresh opt-in.
+    batch.delete(circle.collection('sharedContacts').doc(uid));
     batch.set(circle.collection('activity').doc(),
         activityDoc(type: ActivityType.joined, actorUid: uid, actorName: displayName));
     return batch.commit();
