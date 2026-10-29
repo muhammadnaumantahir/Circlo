@@ -281,7 +281,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasAll(['memberUid', 'placeId', 'expectedAt', 'status', 'createdAt', 'updatedAt'])
           && request.resource.data.memberUid == resource.data.memberUid
           && request.resource.data.placeId == resource.data.placeId
-          && request.resource.data.placeId == planId.split('_')[1]
+          && planId == request.auth.uid + '_' + request.resource.data.placeId
           && (
             (request.resource.data.status == 'pending'
               && !('arrivedAt' in request.resource.data)
