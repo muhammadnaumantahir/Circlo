@@ -208,6 +208,34 @@ service cloud.firestore {
         allow delete: if signedIn() && (request.auth.uid == uid || isOwner(cid));
       }
 
+      // ---- Per-circle phone sharing (opt-in, separate from private profile) ----
+      // A contact can be read only by current circle members, and only while its owner is still
+      // a member. The query is constrained to sharePhone=true; unshared numbers remain private.
+      match /sharedContacts/{uid} {
+        allow get, list: if isMember(cid)
+          && exists(memberPath(cid, uid))
+          && resource.data.get('sharePhone', false) == true;
+
+        // Only the number's owner can opt in or update it. The shared copy must match the
+        // owner's private profile, including when both documents change in the same batch.
+        allow create, update: if signedIn()
+          && request.auth.uid == uid
+          && isMember(cid)
+          && request.resource.data.keys().hasOnly(['uid', 'phone', 'sharePhone', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['uid', 'phone', 'sharePhone', 'updatedAt'])
+          && request.resource.data.uid == uid
+          && request.resource.data.phone is string
+          && request.resource.data.phone.matches('[+][1-9][0-9]{6,14}')
+          && request.resource.data.sharePhone == true
+          && existsAfter(userPath(uid))
+          && getAfter(userPath(uid)).data.get('phone', '') == request.resource.data.phone
+          && request.resource.data.updatedAt == request.time;
+
+        // The owner may clean up contact data during member removal/circle deletion. A user may
+        // always delete their own contact document to revoke sharing, including after leaving.
+        allow delete: if signedIn() && (request.auth.uid == uid || isOwner(cid));
+      }
+
       // ---- Saved places (Increment 3) ----
       function validPlace(d) {
         return nameOk(d.name, 50)
