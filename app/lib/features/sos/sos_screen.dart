@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/widgets.dart';
 import '../../providers.dart';
 import '../circles/circle_models.dart';
 import '../location/location_models.dart';
+import '../location/sharing_status.dart';
 import 'sos_message.dart';
 
 class SosScreen extends ConsumerWidget {
@@ -76,10 +76,8 @@ class SosScreen extends ConsumerWidget {
           );
           final updatedAt = ownLocation?.updatedAt;
           final hasFreshLocation = sharingActive &&
-              ownLocation != null &&
               updatedAt != null &&
-              !updatedAt.isAfter(now.add(const Duration(minutes: 2))) &&
-              now.difference(updatedAt) <= const Duration(minutes: 10);
+              isLocationFixFresh(capturedAt: updatedAt, now: now);
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
