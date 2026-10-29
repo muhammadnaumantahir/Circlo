@@ -346,7 +346,6 @@ class _CircleSharingTile extends ConsumerWidget {
     final visible = others == null ? '' : ' · Visible to $others other ${others == 1 ? 'member' : 'members'}';
 
     final bubbleConfigured = membership?.isApproximateAt(DateTime.now()) ?? false;
-    final bubbleActive = on && !paused && bubbleConfigured;
     final bubbleUntil = membership?.bubbleUntil;
     final bubbleSubtitle = paused && bubbleConfigured && bubbleUntil != null
         ? 'Location is paused. Bubble expiry is ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(bubbleUntil))}; it applies if sharing resumes before then.'
