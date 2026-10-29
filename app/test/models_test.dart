@@ -24,6 +24,35 @@ void main() {
     });
   });
 
+  group('UserProfile.fromMap place suggestions consent', () {
+    test('defaults suggestions off and reads an explicit opt-in', () {
+      final defaults = UserProfile.fromMap('u1', {
+        'displayName': 'Sam',
+        'birthYear': 1990,
+      });
+      expect(defaults.placeSuggestionsEnabled, isFalse);
+
+      final optedIn = UserProfile.fromMap('u1', {
+        'displayName': 'Sam',
+        'birthYear': 1990,
+        'keepHistory': true,
+        'placeSuggestionsEnabled': true,
+      });
+      expect(optedIn.placeSuggestionsEnabled, isTrue);
+    });
+
+    test('does not allow suggestions preference to imply private history consent', () {
+      final invalidState = UserProfile.fromMap('u1', {
+        'displayName': 'Sam',
+        'birthYear': 1990,
+        'placeSuggestionsEnabled': true,
+      });
+      expect(invalidState.keepHistory, isFalse);
+      expect(invalidState.placeSuggestionsEnabled, isTrue);
+      // Provider gates reads on both preferences; Firestore Rules reject this combination.
+    });
+  });
+
   group('MyMembership.fromMap', () {
     test('reads sharing switches and a valid pause timestamp', () {
       final until = DateTime(2026, 10, 30, 12);
