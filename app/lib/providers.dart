@@ -299,6 +299,18 @@ final unreadCountProvider = Provider<int>((ref) {
 final historyRepositoryProvider = Provider<HistoryRepository>(
     (ref) => HistoryRepository(FirebaseFirestore.instance));
 
+/// Recent private history for optional Place Suggestions. If history is disabled, this provider
+/// returns without reading Firestore. It never reads another member's shared history.
+final recentPrivateHistoryForSuggestionsProvider = FutureProvider.autoDispose<List<DayTrack>>((ref) async {
+  final uid = ref.watch(currentUidProvider);
+  final profile = ref.watch(profileProvider).valueOrNull;
+  if (uid == null || profile == null || !profile.keepHistory) return const <DayTrack>[];
+  return ref.watch(historyRepositoryProvider).getRecentMine(
+        uid,
+        retentionDays: profile.retentionDays,
+      );
+});
+
 /// (circleId, memberUid, dayKey) -> that member's day, or null when there is nothing to show.
 final dayTrackProvider = FutureProvider.autoDispose.family<DayTrack?, (String, String, String)>((ref, key) async {
   final uid = ref.watch(currentUidProvider);
