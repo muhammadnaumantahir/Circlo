@@ -120,6 +120,63 @@ class PlacesRepository {
         return subscriptions;
       });
 
+  /// All expected-arrival plans for members of the circle. Readers only see plans
+  /// scoped to circles they still belong to (enforced by Firestore Rules).
+  Stream<List<ArrivalPlan>> watchArrivalPlans(String circleId) => _circle(circleId)
+      .collection('arrivalPlans')
+      .snapshots()
+      .map((snapshot) => [
+            for (final d in snapshot.docs)
+              if (ArrivalPlan.tryFromMap(circleId, d.id, d.data()) != null)
+                ArrivalPlan.tryFromMap(circleId, d.id, d.data())!,
+          ]);
+
+  /// Set or reschedule the caller's own plan for a single place.
+  /// Expected times must be in the future and within 30 days.
+  Future<void> saveArrivalPlan({
+    required String circleId,
+    required String uid,
+    required String placeId,
+    required DateTime expectedAt,
+  }) {
+    final now = DateTime.now();
+    if (!expectedAt.isAfter(now) || expectedAt.isAfter(now.add(const Duration(days: 30)))) {
+      throw ArgumentError('Choose an arrival time within the next 30 days.');
+    }
+    return _circle(circleId).collection('arrivalPlans').doc('${uid}_$placeId').set({
+      'memberUid': uid,
+      'placeId': placeId,
+      'expectedAt': Timestamp.fromDate(expectedAt),
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Marks a plan complete when the target member's own place detector confirms arrival.
+  Future<void> completeArrivalPlan({
+    required String circleId,
+    required String uid,
+    required String placeId,
+  }) async {
+    final ref = _circle(circleId).collection('arrivalPlans').doc('${uid}_$placeId');
+    final snapshot = await ref.get();
+    final data = snapshot.data();
+    if (!snapshot.exists || data == null || data['memberUid'] != uid || data['status'] != 'pending') return;
+    await ref.update({
+      'status': 'arrived',
+      'arrivedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Cancels the caller's own plan (the rules also allow the circle owner to clean up).
+  Future<void> cancelArrivalPlan({
+    required String circleId,
+    required String uid,
+    required String placeId,
+  }) => _circle(circleId).collection('arrivalPlans').doc('${uid}_$placeId').delete();
+
   Stream<List<PlaceEvent>> watchRecentEvents(String circleId, {int limit = 50}) => _circle(circleId)
       .collection('placeEvents')
       .orderBy('occurredAt', descending: true)
