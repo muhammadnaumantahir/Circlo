@@ -401,6 +401,9 @@ service cloud.firestore {
           && request.resource.data.get('paused', false) is bool
           && request.resource.data.get('historyShared', false) is bool
           && request.resource.data.get('shareBattery', false) is bool
+          // Battery consent cannot outlive the location-sharing consent it depends on.
+          && (request.resource.data.get('sharesLocation', false) == true
+              || request.resource.data.get('shareBattery', false) == false)
           && (!('pausedUntil' in request.resource.data) || request.resource.data.pausedUntil is timestamp)
           // Enabling battery sharing is a separate opt-in and requires active location sharing.
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shareBattery'])
