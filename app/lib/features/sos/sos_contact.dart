@@ -11,7 +11,9 @@ List<SharedContact> sosContactRecipients({
   required String? currentUid,
 }) {
   // If authentication has not resolved, we cannot safely identify and exclude self.
-  if (currentUid == null || currentUid.trim().isEmpty) return const <SharedContact>[];
+  if (currentUid == null || currentUid.trim().isEmpty) {
+    return const <SharedContact>[];
+  }
 
   final membersByUid = {for (final member in circleMembers) member.uid: member};
   final validPhone = RegExp(r'^\+[1-9][0-9]{6,14}
