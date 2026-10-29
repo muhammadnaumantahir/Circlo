@@ -7,12 +7,29 @@ import 'package:circlo/features/profile/profile_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('directionsUri targets the destination without any API key', () {
+  test('directionsUri defaults to driving and targets the exact destination without an API key', () {
     final u = directionsUri(31.5204, 74.3587);
     expect(u.host, 'www.google.com');
     expect(u.queryParameters['destination'], '31.520400,74.358700');
     expect(u.queryParameters['api'], '1');
+    expect(u.queryParameters['travelmode'], 'driving');
+    expect(u.queryParameters.containsKey('origin'), isFalse);
     expect(u.toString().toLowerCase().contains('key'), isFalse);
+  });
+
+  test('directionsUri supports every external travel mode', () {
+    const expected = {
+      TravelMode.driving: 'driving',
+      TravelMode.walking: 'walking',
+      TravelMode.cycling: 'bicycling',
+      TravelMode.transit: 'transit',
+    };
+    for (final entry in expected.entries) {
+      final uri = directionsUri(31.5204, 74.3587, travelMode: entry.key);
+      expect(uri.queryParameters['travelmode'], entry.value);
+      expect(uri.queryParameters['destination'], '31.520400,74.358700');
+      expect(uri.queryParameters.containsKey('key'), isFalse);
+    }
   });
 
   test('export contains own data only and is valid JSON', () {
