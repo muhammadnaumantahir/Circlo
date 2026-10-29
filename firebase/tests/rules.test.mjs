@@ -143,6 +143,19 @@ describe('per-circle phone sharing', () => {
     await assertSucceeds(getDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob')));
   });
 
+  it('requires shared phone cleanup before a member can be removed', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
+
+    await assertFails(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
+    const f = db('alice');
+    const batch = writeBatch(f);
+    batch.delete(doc(f, 'circles/c1/sharedContacts/bob'));
+    batch.delete(doc(f, 'circles/c1/members/bob'));
+    await assertSucceeds(batch.commit());
+  });
+
   it('allows the owner to revoke sharing and the member to delete their own contact', async () => {
     await seed({ bob: true });
     await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
