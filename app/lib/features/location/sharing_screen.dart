@@ -345,11 +345,65 @@ class _CircleSharingTile extends ConsumerWidget {
     final state = !on ? 'Off' : (paused ? 'Paused' : 'Sharing');
     final visible = others == null ? '' : ' · Visible to $others other ${others == 1 ? 'member' : 'members'}';
 
-    return SwitchListTile(
-      title: Text(circle.name),
-      subtitle: Text('$state$visible'),
-      value: on,
-      onChanged: (v) => _toggle(context, ref, v, others ?? 0),
+    final batteryShared = membership?.shareBattery ?? false;
+    final batterySubtitle = !on
+        ? 'Turn on location sharing to configure this option.'
+        : paused
+            ? (batteryShared
+                ? 'Battery is hidden while location sharing is paused.'
+                : 'Resume location sharing before enabling battery sharing.')
+            : batteryShared
+                ? 'Last reported percentage is visible to members of this circle.'
+                : 'Optional and off by default. Shares percentage with normal location updates.';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SwitchListTile(
+            title: Text(circle.name),
+            subtitle: Text('$state$visible'),
+            value: on,
+            onChanged: (v) => _toggle(context, ref, v, others ?? 0),
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          SwitchListTile(
+            secondary: const Icon(Icons.battery_charging_full_rounded),
+            title: const Text('Share battery level'),
+            subtitle: Text(batterySubtitle),
+            value: batteryShared,
+            onChanged: ((!on || paused) && !batteryShared)
+                ? null
+                : (v) => _toggleBattery(context, ref, v),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleBattery(BuildContext context, WidgetRef ref, bool enable) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    if (enable) {
+      final ok = await confirmAction(
+        context,
+        title: 'Share battery level with ${circle.name}?',
+        message: 'Members of this circle can see the last reported battery percentage. '
+            'It is included only in your existing location updates, creates no separate battery upload stream, '
+            'and is hidden when location sharing is paused or stopped. Low-battery warnings are shown in the app only; '
+            'phone push alerts are not available.',
+        confirmLabel: 'Share battery level',
+      );
+      if (!ok || !context.mounted) return;
+    }
+    await _run(
+      context,
+      () => ref.read(locationRepositoryProvider).setBatterySharing(
+            uid: uid,
+            circleId: circle.id,
+            enabled: enable,
+          ),
     );
   }
 
