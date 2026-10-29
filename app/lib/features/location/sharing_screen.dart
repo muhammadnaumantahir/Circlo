@@ -345,15 +345,18 @@ class _CircleSharingTile extends ConsumerWidget {
     final state = !on ? 'Off' : (paused ? 'Paused' : 'Sharing');
     final visible = others == null ? '' : ' · Visible to $others other ${others == 1 ? 'member' : 'members'}';
 
-    final bubbleActive = membership?.isApproximateAt(DateTime.now()) ?? false;
+    final bubbleConfigured = membership?.isApproximateAt(DateTime.now()) ?? false;
+    final bubbleActive = on && !paused && bubbleConfigured;
     final bubbleUntil = membership?.bubbleUntil;
-    final bubbleSubtitle = bubbleActive && bubbleUntil != null
-        ? 'Coarse map pin until ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(bubbleUntil))}. Other features may still reveal visits.'
-        : !on
-            ? 'Turn on location sharing before enabling this temporary mode.'
-            : paused
-                ? 'Resume location sharing before enabling approximate location.'
-                : 'Temporarily share a coarse map pin (roughly 1–1.6 km), then return to precise sharing automatically.';
+    final bubbleSubtitle = paused && bubbleConfigured && bubbleUntil != null
+        ? 'Location is paused. Bubble expiry is ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(bubbleUntil))}; it applies if sharing resumes before then.'
+        : bubbleConfigured && bubbleUntil != null
+            ? 'Coarse map pin until ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(bubbleUntil))}. Other features may still reveal visits.'
+            : !on
+                ? 'Turn on location sharing before enabling this temporary mode.'
+                : paused
+                    ? 'Resume location sharing before enabling approximate location.'
+                    : 'Temporarily share a coarse map pin (roughly 1–1.6 km), then return to precise sharing automatically.';
     final batteryShared = membership?.shareBattery ?? false;
     final batterySubtitle = !on
         ? 'Turn on location sharing before enabling battery sharing.'
@@ -391,8 +394,8 @@ class _CircleSharingTile extends ConsumerWidget {
             secondary: const Icon(Icons.blur_on_rounded),
             title: const Text('Approximate location (Bubble)'),
             subtitle: Text(bubbleSubtitle),
-            value: bubbleActive,
-            onChanged: ((!on || paused) && !bubbleActive)
+            value: bubbleConfigured,
+            onChanged: ((!on || paused) && !bubbleConfigured)
                 ? null
                 : (v) => _toggleApproximate(context, ref, v),
           ),
