@@ -1,13 +1,14 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-29 (reconciled with merged PRs #60–#67 and current `main`; see [canonical feature status and cross-chat handover](feature-status.md)). Current branch `feature/sos-emergency-message` prototypes manual SOS-message handoff and Call/prefilled-SMS actions for explicitly shared Circle phone numbers; static review caught and corrected malformed duplicated contact-helper source, but it is not merged and tests/build have not run. Code being in `main` does not mean tests or device behavior are verified.
+Last reviewed: 2026-10-29 (reconciled with merged PRs #60–#67 and current `main`; see [canonical feature status and cross-chat handover](feature-status.md)). Current branch `feature/sos-emergency-message` prototypes manual SOS-message handoff and Call/prefilled-SMS actions for explicitly shared Circle phone numbers; static review caught and corrected malformed duplicated contact-helper source, but it is not merged and tests/build have not run. Code being in `main` does not mean tests or device behavior are verified. The latest Cloudflare Pages check for main SHA `73bfa1134113d94e4472da44d69a241c517e10e4` failed on 2026-10-29; the GitHub summary has no root-cause details, so inspect the linked provider logs before attempting a fix.
 
-**Current next step:** release verification is P0 before adding more safety-sensitive behavior. Run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite, rebuild Cloudflare Pages, and test Android/iOS background behavior and two-account privacy flows. No automated workflow should be triggered automatically.
+**Current next step:** release verification is P0 before adding more safety-sensitive behavior. First inspect the [failed Cloudflare Pages check](https://github.com/muhammadnaumantahir/Circlo/runs/123427066200) for main SHA `73bfa1134113d94e4472da44d69a241c517e10e4`; determine the root cause from provider logs and rebuild after fixing it. Then run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite and test Android/iOS background behavior and two-account privacy flows. No automated workflow should be triggered automatically.
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 
 ## Release gates (must stay visible throughout feature work)
 
+- [ ] Inspect/fix the failed Cloudflare Pages check for main SHA `73bfa1134113d94e4472da44d69a241c517e10e4`, then confirm a successful production build.
 - [ ] Run the manual GitHub Actions workflow for Flutter analyze/tests and Firestore Emulator rules tests when ready.
 - [ ] Test authorization with multiple accounts and circles; don't treat in-app activity as trusted evidence.
 - [ ] Verify Android/iOS tracking with the screen locked, app backgrounded, battery saver and offline recovery.
