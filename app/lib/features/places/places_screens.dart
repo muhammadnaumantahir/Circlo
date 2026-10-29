@@ -983,9 +983,19 @@ class _PlaceListTileState extends ConsumerState<_PlaceListTile> {
 
 /// Create (placeId == null) or edit a place and the signed-in user's own alert preferences.
 class PlaceFormScreen extends ConsumerStatefulWidget {
-  const PlaceFormScreen({super.key, required this.circleId, this.placeId});
+  const PlaceFormScreen({
+    super.key,
+    required this.circleId,
+    this.placeId,
+    this.initialLat,
+    this.initialLng,
+    this.initialName,
+  });
   final String circleId;
   final String? placeId;
+  final double? initialLat;
+  final double? initialLng;
+  final String? initialName;
 
   @override
   ConsumerState<PlaceFormScreen> createState() => _PlaceFormScreenState();
@@ -1019,11 +1029,29 @@ class _PlaceFormScreenState extends ConsumerState<PlaceFormScreen> {
 
   bool get _isEdit => widget.placeId != null;
 
+  bool get _hasValidInitialPin {
+    final lat = widget.initialLat;
+    final lng = widget.initialLng;
+    return lat != null &&
+        lng != null &&
+        lat.isFinite &&
+        lng.isFinite &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180;
+  }
+
   @override
   void initState() {
     super.initState();
     if (_isEdit) {
       _loadSubscription();
+    } else if (_hasValidInitialPin) {
+      _pin = LatLng(widget.initialLat!, widget.initialLng!);
+      _pendingMove = _pin;
+      final name = (widget.initialName ?? '').trim();
+      if (name.isNotEmpty) _name.text = name.length > 50 ? name.substring(0, 50) : name;
     } else {
       _locateOnce();
     }
