@@ -36,7 +36,7 @@ service cloud.firestore {
 
     // ---------- users (private profile) ----------
     function validProfile(d) {
-      return d.keys().hasOnly(['displayName', 'phone', 'birthYear', 'createdAt', 'updatedAt', 'keepHistory', 'retentionDays', 'notifOff', 'notifMuted', 'notifSeenAt'])
+      return d.keys().hasOnly(['displayName', 'phone', 'birthYear', 'createdAt', 'updatedAt', 'keepHistory', 'retentionDays', 'placeSuggestionsEnabled', 'notifOff', 'notifMuted', 'notifSeenAt'])
         && d.keys().hasAll(['displayName', 'birthYear', 'createdAt', 'updatedAt'])
         && nameOk(d.displayName, 50)
         && d.birthYear is int && d.birthYear >= 1900
@@ -44,6 +44,8 @@ service cloud.firestore {
         && (!('phone' in d) || (d.phone is string && d.phone.matches('[+][1-9][0-9]{6,14}')))
         && (!('keepHistory' in d) || d.keepHistory is bool)
         && (!('retentionDays' in d) || d.retentionDays in [7, 30, 90])
+        && (!('placeSuggestionsEnabled' in d) || d.placeSuggestionsEnabled is bool)
+        && (d.get('placeSuggestionsEnabled', false) == false || d.get('keepHistory', false) == true)
         && (!('notifOff' in d) || (d.notifOff is list && d.notifOff.size() <= 10))
         && (!('notifMuted' in d) || (d.notifMuted is list && d.notifMuted.size() <= 50))
         && (!('notifSeenAt' in d) || d.notifSeenAt is timestamp)
