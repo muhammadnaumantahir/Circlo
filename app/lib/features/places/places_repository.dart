@@ -167,13 +167,23 @@ class PlacesRepository {
     required String placeId,
   }) async {
     final ref = _circle(circleId).collection('arrivalPlans').doc(uid);
-    final snapshot = await ref.get();
-    final data = snapshot.data();
-    if (!snapshot.exists || data == null || data['memberUid'] != uid || data['placeId'] != placeId || data['status'] != 'pending') return;
-    await ref.update({
-      'status': 'arrived',
-      'arrivedAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(ref);
+      final data = snapshot.data();
+      if (!snapshot.exists ||
+          data == null ||
+          data['memberUid'] != uid ||
+          data['placeId'] != placeId ||
+          data['status'] != 'pending') {
+        return;
+      }
+      // Check and update atomically: a simultaneous reschedule to another place must not be
+      // marked as arrived by the old place's detector callback.
+      transaction.update(ref, {
+        'status': 'arrived',
+        'arrivedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 
@@ -192,11 +202,15 @@ class PlacesRepository {
     required String placeId,
   }) async {
     final ref = _circle(circleId).collection('arrivalPlans').doc(uid);
-    final snapshot = await ref.get();
-    if (!snapshot.exists || snapshot.data()?['memberUid'] != uid || snapshot.data()?['placeId'] != placeId) {
-      return;
-    }
-    await ref.delete();
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(ref);
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null || data['memberUid'] != uid || data['placeId'] != placeId) {
+        return;
+      }
+      // Don't let a stale cancel tap delete a plan that was just rescheduled to another place.
+      transaction.delete(ref);
+    });
   }
 
   Stream<List<PlaceEvent>> watchRecentEvents(String circleId, {int limit = 50}) => _circle(circleId)
