@@ -142,6 +142,7 @@ void main() {
       location(lng: double.infinity),
       location(accuracy: -1),
       location(accuracy: double.nan),
+      location(accuracy: double.infinity),
     ];
 
     for (final invalidLocation in invalidLocations) {
