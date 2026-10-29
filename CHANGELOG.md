@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- Add saved-place expected-arrival plans and in-app No Show warnings for circle members when no arrival has been recorded by the deadline. Confirmed arrivals resolve plans; late arrivals remain visible in the notification feed. This is evaluated while Circlo is open and actively tracking; no phone push or guaranteed background scheduling is claimed.
+- Add one reschedulable expected-arrival plan per member and circle, with saved-place deadlines and in-app No Show warnings for circle members when no arrival has been recorded by the deadline. Confirmed arrivals resolve plans; late arrivals remain visible in the notification feed. This is evaluated while Circlo is open and actively tracking; no phone push or guaranteed background scheduling is claimed.
 
 ### Fixed
 - Gate map, saved places, travel history and related routes until the signed-in user belongs to a circle; route initial/no-membership states and membership-query errors with no cached result to one Circles screen instead of showing repeated Retry states across tabs.
