@@ -529,7 +529,7 @@ describe('scheduled arrival / No Show plans', () => {
     await assertSucceeds(setDoc(ref('bob'), plan('bob', future)));
     await assertFails(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() - 1000))));
     await assertFails(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() + 31 * 24 * 60 * 60 * 1000))));
-    await assertFails(setDoc(ref('alice', 'spoof'), plan('bob', future)));
+    await assertFails(setDoc(ref('alice'), plan('bob', future)));
   });
 
   it('is readable to current circle members only and supports self-completion and cancellation', async () => {
@@ -543,6 +543,31 @@ describe('scheduled arrival / No Show plans', () => {
     await assertFails(updateDoc(ref('alice'), { status: 'arrived', arrivedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
     await assertSucceeds(updateDoc(ref('bob'), { status: 'arrived', arrivedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
     await assertSucceeds(deleteDoc(ref('bob')));
+  });
+
+  it('allows one plan per member to be rescheduled to another saved place', async () => {
+    await seed({ bob: true });
+    await seedExpectedPlace();
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles/c1/places/p2'), {
+        name: 'Work', lat: 31.51, lng: 74.32, radiusM: 150,
+        createdBy: 'alice', createdAt: Timestamp.now(),
+      });
+    });
+    await assertSucceeds(shareOn('bob'));
+    const refBob = ref('bob');
+    await assertSucceeds(setDoc(refBob, plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
+    await assertSucceeds(setDoc(refBob, plan('bob', Timestamp.fromMillis(Date.now() + 2 * 60 * 60 * 1000), { placeId: 'p2' })));
+    const saved = await getDoc(refBob);
+    if (saved.data()?.placeId !== 'p2') throw new Error('rescheduled plan should target the new place');
+  });
+
+  it('lets the creator remove expected-arrival plans when deleting their place', async () => {
+    await seed({ bob: true });
+    await seedExpectedPlace();
+    await assertSucceeds(shareOn('bob'));
+    await assertSucceeds(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
+    await assertSucceeds(deleteDoc(ref('alice'))); // Alice created p1; Bob owns the plan.
   });
 
   it('requires a plan to be cleared atomically when sharing stops or pauses', async () => {
