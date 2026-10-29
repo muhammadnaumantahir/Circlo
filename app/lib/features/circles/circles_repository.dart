@@ -397,7 +397,7 @@ class CirclesRepository {
       await batch.commit();
     }
 
-    // Location documents are gone before membership deletion. Delete membership docs in small
+    // Location and expected-arrival documents are gone before membership deletion. Delete membership docs in small
     // batches because the security rules check each member's location with existsAfter(), and
     // Firestore has a per-request document-access-call limit.
     final departingMembers = members.docs.where((m) => m.id != ownerUid).toList();
