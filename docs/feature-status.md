@@ -3,7 +3,8 @@
 **Last updated:** 2026-10-29  
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
-**Baseline commit at last audit:** `9e460f613a5a5f0dbc5438d80dd16b85ddc11f91` — PR #67, Approximate Location (Bubble)
+**Latest application/code commit at audit:** `9e460f613a5a5f0dbc5438d80dd16b85ddc11f91` — PR #67, Approximate Location (Bubble)  
+**Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
 
@@ -50,8 +51,8 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 
 | PR | Status | Notes |
 |---|---|---|
-| #55 Quick Notes + roadmap | Open, superseded | Quick Notes is already in `main` via PR #62. Close this duplicate after updating the tracker. |
-| #57 ETA map handoff | Open, superseded | ETA/map handoff is already in `main` via PR #61. Close this duplicate after updating the tracker. |
+| #55 Quick Notes + roadmap | Closed, superseded | Closed 2026-10-29; Quick Notes is in `main` via PR #62. |
+| #57 ETA map handoff | Closed, superseded | Closed 2026-10-29; ETA/map handoff is in `main` via PR #61. |
 | #56 Call/Text | Closed, not merged | Superseded by the conflict-resolved implementation in PR #64. |
 | #58 Battery sharing | Closed, not merged | Superseded by the conflict-resolved implementation in PR #65. |
 
