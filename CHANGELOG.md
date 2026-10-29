@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 ### Added
+- Add per-circle Approximate Location (Bubble): choose 1, 4 or 8 hours to share a grid-snapped map pin (~1–1.6 km) instead of exact coordinates. The old live location is deleted during precision changes, the map shows the coarse-pin uncertainty region and label, and directions are disabled for coarse pins. Expiry is client-side; if the app is closed, precise sharing resumes on the next sync after reopen. Place alerts, manual check-ins and separately opted-in Travel History remain independent and can still disclose visits.
+
+### Added
 - Add optional per-circle battery sharing, piggybacked on normal location sync. The map and People list show the last reported percentage and an in-app warning at 20% or below; opting out clears the shared location projection. No phone push or guaranteed background alert is claimed.
 - Add per-circle phone-sharing consent and Call/Text shortcuts in circle member cards and map details. Private profiles remain owner-only; shared copies are synchronized and removed when consent or membership ends.
 - Add optional Automatic Place Suggestions from the user's own private Travel History: local on-device clustering of unlabeled stops seen on at least three different days, with explicit opt-in, retention-window bounds, dismissible cards, and a review step before saving into a circle. No coordinates are uploaded by the suggestion engine itself.
