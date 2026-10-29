@@ -293,6 +293,21 @@ describe('live location sharing (circle-scoped)', () => {
     await assertSucceeds(updateDoc(memberRef, { sharesLocation: false, shareBattery: false }));
   });
 
+  it('battery consent in one circle does not allow battery publication in another circle', async () => {
+    await seed({ bob: true });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles/c2/members/bob'), {
+        uid: 'bob', role: 'member', displayName: 'Bob', joinedAt: Timestamp.now(), joinCode: CODE_B,
+      });
+      await updateDoc(doc(ctx.firestore(), 'circles/c1/members/bob'), { sharesLocation: true, paused: false, shareBattery: true });
+      await updateDoc(doc(ctx.firestore(), 'circles/c2/members/bob'), { sharesLocation: true, paused: false });
+    });
+
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob', { batteryLevel: 18 })));
+    await assertSucceeds(setDoc(locRef(db('bob'), 'c2', 'bob'), loc('bob')));
+    await assertFails(setDoc(locRef(db('bob'), 'c2', 'bob'), loc('bob', { batteryLevel: 18 })));
+  });
+
   it('cannot publish while paused', async () => {
     await seed({ bob: true });
     await setSharing('bob', 'c1', { sharesLocation: true, paused: true });
