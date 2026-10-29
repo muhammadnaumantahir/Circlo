@@ -192,13 +192,36 @@ final notificationFeedProvider = Provider<AsyncValue<List<FeedItem>>>((ref) {
 
         if (plan.isPending) {
           if (plan.expectedAt.isAfter(now) || plan.expectedAt.isBefore(cutoff)) continue;
-          final arrivalWasRecorded = recentPlaceEvents.any((event) =>
-              event.memberUid == plan.memberUid &&
-              event.placeId == plan.placeId &&
-              event.type == 'arrive' &&
-              event.occurredAt != null &&
-              (plan.createdAt == null || !event.occurredAt!.isBefore(plan.createdAt!)));
-          if (arrivalWasRecorded) continue;
+          PlaceEvent? recordedArrival;
+          for (final event in recentPlaceEvents) {
+            if (event.memberUid == plan.memberUid &&
+                event.placeId == plan.placeId &&
+                event.type == 'arrive' &&
+                event.occurredAt != null &&
+                plan.createdAt != null &&
+                !event.occurredAt!.isBefore(plan.createdAt!)) {
+              recordedArrival = event;
+              break;
+            }
+          }
+          if (recordedArrival?.occurredAt != null) {
+            final arrivedAt = recordedArrival!.occurredAt!;
+            if (!arrivedAt.isAfter(plan.expectedAt)) {
+              // A recorded on-time arrival resolves an otherwise still-pending plan.
+              continue;
+            }
+            // A location event might have succeeded even when the separate plan-completion
+            // write failed. Preserve the late-arrival notification instead of showing "no arrival".
+            items.add(FeedItem(
+              id: '${c.id}/no-show-late-event/${plan.id}',
+              circleId: c.id,
+              circleName: c.name,
+              kind: FeedKind.noShow,
+              text: 'Circlo recorded ${member.displayName} arriving at ${place.name} after the expected time.',
+              at: arrivedAt,
+            ));
+            continue;
+          }
 
           final latestLocation = locations[plan.memberUid]?.updatedAt;
           final stale = latestLocation == null || now.difference(latestLocation) > const Duration(minutes: 15);
