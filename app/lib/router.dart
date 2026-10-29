@@ -101,8 +101,9 @@ class _RouterNotifier extends ChangeNotifier {
     // instead of repeating the same Retry card across every tab.
     if (_requiresCircle(loc)) {
       final circles = _ref.read(myCirclesProvider);
-      if (circles.hasError ||
-          (circles.hasValue && (circles.valueOrNull?.isEmpty ?? true))) {
+      if (!circles.isLoading &&
+          (circles.hasError ||
+              (circles.hasValue && (circles.valueOrNull?.isEmpty ?? true)))) {
         return '/circles';
       }
     }
@@ -189,7 +190,7 @@ class SplashScreen extends ConsumerWidget {
   }
 }
 
-/// Bottom navigation (Map, Places, History, Circles, Profile).
+/// Main navigation adapts to circle membership: setup/Profile first, then Map, Places, History, Circles and Profile.
 /// Also announces new matching arrival/departure alerts with a snackbar while the app is open.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key, required this.location, required this.child});
@@ -240,7 +241,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Circles'),
       NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
     ];
-    final hasCircles = ref.watch(myCirclesProvider).valueOrNull?.isNotEmpty ?? false;
+    final circleState = ref.watch(myCirclesProvider);
+    final hasCircles = !circleState.isLoading &&
+        !circleState.hasError &&
+        (circleState.valueOrNull?.isNotEmpty ?? false);
     // Before the first circle exists (or while membership could not be read), keep navigation
     // focused on setup and the profile. Map/Places/History are available after joining a circle.
     final paths = hasCircles ? allPaths : const ['/circles', '/profile'];
