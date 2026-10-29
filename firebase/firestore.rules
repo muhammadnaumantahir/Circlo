@@ -17,6 +17,7 @@ service cloud.firestore {
     function memberPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/members/$(uid); }
     function placePath(cid, pid) { return /databases/$(database)/documents/circles/$(cid)/places/$(pid); }
     function locationPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/locations/$(uid); }
+    function sharedContactPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/sharedContacts/$(uid); }
     function arrivalPlanPath(cid, uid) { return /databases/$(database)/documents/circles/$(cid)/arrivalPlans/$(uid); }
     function codePath(code) { return /databases/$(database)/documents/joinCodes/$(code); }
 
@@ -127,7 +128,8 @@ service cloud.firestore {
       allow delete: if isOwner(cid)
         // Circle deletion must remove the owner's membership and location in the same final batch.
         && !existsAfter(memberPath(cid, request.auth.uid))
-        && !existsAfter(locationPath(cid, request.auth.uid));
+        && !existsAfter(locationPath(cid, request.auth.uid))
+        && !existsAfter(sharedContactPath(cid, request.auth.uid));
       // No list: members find circles via the members collection group.
 
       function validJoinCode(code, circleId) {
@@ -208,6 +210,34 @@ service cloud.firestore {
           && get(memberPath(cid, uid)).data.get('paused', false) == false
           && validLocation(request.resource.data, uid);
         // The sharer can always stop; the owner can clean up after removing a member.
+        allow delete: if signedIn() && (request.auth.uid == uid || isOwner(cid));
+      }
+
+      // ---- Per-circle phone sharing (opt-in, separate from private profile) ----
+      match /sharedContacts/{uid} {
+        // Owners can inspect their own opt-in document even if it is absent; other members see
+        // only opted-in contacts belonging to a current member of this circle.
+        allow get: if isMember(cid)
+          && (request.auth.uid == uid
+              || (exists(memberPath(cid, uid)) && resource.data.get('sharePhone', false) == true));
+        allow list: if isMember(cid)
+          && resource.data.get('sharePhone', false) == true
+          && exists(memberPath(cid, resource.data.uid));
+
+        // Only the number's owner can opt in/update. Shared copies must match the private profile.
+        allow create, update: if signedIn()
+          && request.auth.uid == uid
+          && isMember(cid)
+          && request.resource.data.keys().hasOnly(['uid', 'phone', 'sharePhone', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['uid', 'phone', 'sharePhone', 'updatedAt'])
+          && request.resource.data.uid == uid
+          && request.resource.data.phone is string
+          && request.resource.data.phone.matches('[+][1-9][0-9]{6,14}')
+          && request.resource.data.sharePhone == true
+          && existsAfter(userPath(uid))
+          && getAfter(userPath(uid)).data.get('phone', '') == request.resource.data.phone
+          && request.resource.data.updatedAt == request.time;
+
         allow delete: if signedIn() && (request.auth.uid == uid || isOwner(cid));
       }
 
@@ -499,8 +529,9 @@ service cloud.firestore {
           && ((request.auth.uid == uid && resource.data.role != 'owner')
               || (request.auth.uid == uid && !existsAfter(circlePath(cid)))
               || (request.auth.uid != uid && isOwner(cid)))
-          // Leaving, removal, and circle deletion must not leave a query-visible location behind.
+          // Leaving/removal/deletion must revoke all circle-scoped data that can disclose the member.
           && !existsAfter(locationPath(cid, uid))
+          && !existsAfter(sharedContactPath(cid, uid))
           && !existsAfter(arrivalPlanPath(cid, uid));
       }
     }
