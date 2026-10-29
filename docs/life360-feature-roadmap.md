@@ -18,7 +18,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 | Order | Feature | Status | Scope and acceptance criteria |
 |---:|---|---|---|
 | 1 | **Quick Notes with emoji** | Ported to current main branch; tests not run | One tap shares a curated emoji/message to the selected circle's in-app activity feed. Circle members only; fixed approved choices; no GPS fields; not a push notification. |
-| 2 | Member call/text shortcuts | Planned | Add call/message actions only for phone numbers a member explicitly chooses to share. No broad access to private profile documents. |
+| 2 | Member call/text shortcuts | Implemented in code; tests not run | Per-circle phone opt-in, Call/Text actions on circle member cards and map details, owner-only private profiles, atomic phone updates and cleanup on opt-out/membership changes. |
 | 3 | Better ETA and map handoff | Implemented in code; tests not run | Member details offer driving, walking, cycling and transit modes and hand route/ETA calculation to Google Maps; Circlo does not display an in-app estimate. |
 | 4 | Low-battery status/alerts | Planned, feasibility check first | Decide whether device battery APIs work across supported platforms; minimize write frequency and clearly label the last reported battery time. |
 | 5 | Scheduled No Show alerts | Implemented in main; client-side limits | One expected-arrival plan per member and circle, with in-app overdue/late-arrival feed entries while Circlo is open; no remote push or guaranteed background scheduler. |
