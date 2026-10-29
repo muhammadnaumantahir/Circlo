@@ -498,7 +498,18 @@ describe('saved places, subscriptions and events (Increment 3)', () => {
 });
 
 describe('scheduled arrival / No Show plans', () => {
-  const ref = (uid, pid = 'p1') => doc(db(uid), `circles/c1/arrivalPlans/${uid}_${pid}`);
+  const ref = (uid) => doc(db(uid), `circles/c1/arrivalPlans/${uid}`);
+  async function seedExpectedPlace() {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles/c1/places/p1'), {
+        name: 'School', lat: 31.5, lng: 74.3, radiusM: 150,
+        createdBy: 'alice', createdAt: Timestamp.now(),
+      });
+    });
+  }
+  const shareOn = (uid) => updateDoc(doc(db(uid), `circles/c1/members/${uid}`), {
+    sharesLocation: true, paused: false,
+  });
   const plan = (uid, expectedAt, over = {}) => ({
     memberUid: uid,
     placeId: 'p1',
@@ -511,10 +522,10 @@ describe('scheduled arrival / No Show plans', () => {
 
   it('requires active location sharing and a valid future deadline for the target member', async () => {
     await seed({ bob: true });
-    await seedPlace('c1', 'p1', 'alice');
+    await seedExpectedPlace();
     const future = Timestamp.fromMillis(Date.now() + 60 * 60 * 1000);
     await assertFails(setDoc(ref('bob'), plan('bob', future))); // sharing is off
-    await shareOn('bob');
+    await assertSucceeds(shareOn('bob'));
     await assertSucceeds(setDoc(ref('bob'), plan('bob', future)));
     await assertFails(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() - 1000))));
     await assertFails(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() + 31 * 24 * 60 * 60 * 1000))));
@@ -523,8 +534,8 @@ describe('scheduled arrival / No Show plans', () => {
 
   it('is readable to current circle members only and supports self-completion and cancellation', async () => {
     await seed({ bob: true });
-    await seedPlace('c1', 'p1', 'alice');
-    await shareOn('bob');
+    await seedExpectedPlace();
+    await assertSucceeds(shareOn('bob'));
     const expectedAt = Timestamp.fromMillis(Date.now() + 60 * 60 * 1000);
     await assertSucceeds(setDoc(ref('bob'), plan('bob', expectedAt)));
     await assertSucceeds(getDoc(ref('alice')));
@@ -534,12 +545,35 @@ describe('scheduled arrival / No Show plans', () => {
     await assertSucceeds(deleteDoc(ref('bob')));
   });
 
+  it('requires a plan to be cleared atomically when sharing stops or pauses', async () => {
+    await seed({ bob: true });
+    await seedExpectedPlace();
+    await assertSucceeds(shareOn('bob'));
+    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
+    const planRef = ref('bob');
+    await assertSucceeds(setDoc(planRef, plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
+
+    await assertFails(updateDoc(memberRef, { sharesLocation: false, paused: false }));
+    const stop = writeBatch(db('bob'));
+    stop.update(memberRef, { sharesLocation: false, paused: false });
+    stop.delete(planRef);
+    await assertSucceeds(stop.commit());
+
+    await assertSucceeds(updateDoc(memberRef, { sharesLocation: true, paused: false }));
+    await assertSucceeds(setDoc(planRef, plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
+    await assertFails(updateDoc(memberRef, { paused: true }));
+    const pause = writeBatch(db('bob'));
+    pause.update(memberRef, { paused: true });
+    pause.delete(planRef);
+    await assertSucceeds(pause.commit());
+  });
+
   it('cannot update a plan after leaving its circle', async () => {
     await seed({ bob: true });
-    await seedPlace('c1', 'p1', 'alice');
-    await shareOn('bob');
+    await seedExpectedPlace();
+    await assertSucceeds(shareOn('bob'));
     await assertSucceeds(setDoc(ref('bob'), plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
-    await assertSucceeds(deleteDoc(doc(db('bob'), 'circles/c1/arrivalPlans/bob_p1'))); // remove the plan before leaving
+    await assertSucceeds(deleteDoc(doc(db('bob'), 'circles/c1/arrivalPlans/bob'))); // remove the plan before leaving
     const batch = writeBatch(db('bob'));
     batch.delete(doc(db('bob'), 'circles/c1/members/bob'));
     await assertSucceeds(batch.commit());
