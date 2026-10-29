@@ -143,7 +143,7 @@ class PlacesRepository {
     if (!expectedAt.isAfter(now) || expectedAt.isAfter(now.add(const Duration(days: 30)))) {
       throw ArgumentError('Choose an arrival time within the next 30 days.');
     }
-    return _circle(circleId).collection('arrivalPlans').doc('${uid}_$placeId').set({
+    return _circle(circleId).collection('arrivalPlans').doc(uid).set({
       'memberUid': uid,
       'placeId': placeId,
       'expectedAt': Timestamp.fromDate(expectedAt),
@@ -159,10 +159,10 @@ class PlacesRepository {
     required String uid,
     required String placeId,
   }) async {
-    final ref = _circle(circleId).collection('arrivalPlans').doc('${uid}_$placeId');
+    final ref = _circle(circleId).collection('arrivalPlans').doc(uid);
     final snapshot = await ref.get();
     final data = snapshot.data();
-    if (!snapshot.exists || data == null || data['memberUid'] != uid || data['status'] != 'pending') return;
+    if (!snapshot.exists || data == null || data['memberUid'] != uid || data['placeId'] != placeId || data['status'] != 'pending') return;
     await ref.update({
       'status': 'arrived',
       'arrivedAt': FieldValue.serverTimestamp(),
@@ -175,16 +175,7 @@ class PlacesRepository {
     required String circleId,
     required String uid,
   }) async {
-    final snapshot = await _circle(circleId)
-        .collection('arrivalPlans')
-        .where('memberUid', isEqualTo: uid)
-        .get();
-    if (snapshot.docs.isEmpty) return;
-    final batch = _db.batch();
-    for (final document in snapshot.docs) {
-      batch.delete(document.reference);
-    }
-    await batch.commit();
+    await _circle(circleId).collection('arrivalPlans').doc(uid).delete();
   }
 
   /// Cancels the caller's own plan (the rules also allow the circle owner to clean up).
@@ -192,7 +183,7 @@ class PlacesRepository {
     required String circleId,
     required String uid,
     required String placeId,
-  }) => _circle(circleId).collection('arrivalPlans').doc('${uid}_$placeId').delete();
+  }) => _circle(circleId).collection('arrivalPlans').doc(uid).delete();
 
   Stream<List<PlaceEvent>> watchRecentEvents(String circleId, {int limit = 50}) => _circle(circleId)
       .collection('placeEvents')
