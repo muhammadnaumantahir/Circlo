@@ -572,7 +572,10 @@ describe('scheduled arrival / No Show plans', () => {
     });
     await assertSucceeds(shareOn('alice'));
     await assertSucceeds(setDoc(ref('alice'), plan('alice', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
-    await assertSucceeds(deleteDoc(doc(db('bob'), 'circles/c1/arrivalPlans/alice')));
+    const cleanup = writeBatch(db('bob'));
+    cleanup.delete(doc(db('bob'), 'circles/c1/places/p1'));
+    cleanup.delete(doc(db('bob'), 'circles/c1/arrivalPlans/alice'));
+    await assertSucceeds(cleanup.commit());
   });
 
   it('requires a plan to be cleared atomically when sharing stops or pauses', async () => {
@@ -596,6 +599,24 @@ describe('scheduled arrival / No Show plans', () => {
     pause.update(memberRef, { paused: true });
     pause.delete(planRef);
     await assertSucceeds(pause.commit());
+  });
+
+  it('requires a member plan to be deleted in the same batch as membership removal', async () => {
+    await seed({ bob: true });
+    await seedExpectedPlace();
+    await assertSucceeds(shareOn('bob'));
+    const planRef = ref('bob');
+    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
+    await assertSucceeds(setDoc(planRef, plan('bob', Timestamp.fromMillis(Date.now() + 60 * 60 * 1000))));
+
+    const badLeave = writeBatch(db('bob'));
+    badLeave.delete(memberRef);
+    await assertFails(badLeave.commit());
+
+    const leave = writeBatch(db('bob'));
+    leave.delete(planRef);
+    leave.delete(memberRef);
+    await assertSucceeds(leave.commit());
   });
 
   it('cannot update a plan after leaving its circle', async () => {
