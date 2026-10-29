@@ -1,7 +1,7 @@
 # Circlo Feature Status & Cross-Chat Handover
 
 **Last updated:** 2026-10-29  
-**Latest status audit:** 2026-10-29 — reconciled against merged PRs #60–#67 and current `main` HEAD. All listed implementations are code-present but remain unverified unless explicitly noted.
+**Latest status audit:** 2026-10-29 — reconciled against merged PRs #60–#67 and current `main` HEAD. All listed implementations are code-present but remain unverified unless explicitly noted. The latest Cloudflare Pages check for `main` SHA `73bfa1134113d94e4472da44d69a241c517e10e4` is marked failed (2026-10-29); the GitHub summary does not disclose the root cause, and the provider logs still need inspection.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest main HEAD at audit:** `73bfa1134113d94e4472da44d69a241c517e10e4` — prioritize release verification  
@@ -34,12 +34,12 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | 10 | Per-Circle phone sharing / Call / Text | In main — unverified | Phone number is shared only by explicit per-Circle consent; Call/Text opens the device handler; private profile stays owner-only. [PR #64](https://github.com/muhammadnaumantahir/Circlo/pull/64) | Run Rules/model tests; test opt-out, phone change, member removal, account deletion and Android/iOS/web handlers. |
 | 11 | Low-battery status | In main — partial | Optional per-Circle battery consent, battery percentage piggybacked on normal location sync, last-reported label and in-app warning at 20% or below. [PR #65](https://github.com/muhammadnaumantahir/Circlo/pull/65) | Test consent isolation and stale values. It is **not** a phone push notification or guaranteed background warning. |
 | 12 | Temporary approximate location / Bubble | In main — partial | Per-Circle 1/4/8-hour coarse map pin, grid snapping/uncertainty label, deletion of old live projection during precision changes, Directions disabled for coarse pins. [PR #67](https://github.com/muhammadnaumantahir/Circlo/pull/67) | Test expiry, app-closed behavior and other independent disclosure paths. Expiry is client-driven; place alerts, check-ins and opted-in History can still reveal visits. |
-| 13 | Web build error fix | In main — code fix | Fixed the reported undefined `backgrounds`, integer-index, and nullable `uid` compile errors. [PR #53](https://github.com/muhammadnaumantahir/Circlo/pull/53) | Re-run the Cloudflare Pages web build; the fix has not been confirmed by a later build log in this audit. |
+| 13 | Web build error fix | In main — code fix | Fixed the reported undefined `backgrounds`, integer-index, and nullable `uid` compile errors. [PR #53](https://github.com/muhammadnaumantahir/Circlo/pull/53) | The latest Cloudflare Pages check for `main` SHA `73bfa1134113d94e4472da44d69a241c517e10e4` failed on 2026-10-29 ([check run](https://github.com/muhammadnaumantahir/Circlo/runs/123427066200)). Inspect the linked Cloudflare build logs to determine the root cause, fix it, then rebuild; no build result is available for draft PR #68. |
 | 14 | In-app activity / manual check-ins | In main — unverified | Searchable activity feed, filters, unread state, membership/location/place events, self-reported check-ins and Quick Notes. | Cross-account authorization, feed parsing, stale/offline states and UI tests. These are in-app items, not remote phone pushes. |
 
 ## Recommended next steps (keep this section current)
 
-1. **Release verification first (P0):** run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite; rebuild Cloudflare Pages; verify Android/iOS background tracking and two-account privacy behavior. Until these pass, all recent feature work is code-present but unverified.
+1. **Release verification first (P0):** inspect the failed Cloudflare Pages check/logs for main SHA `73bfa1134113d94e4472da44d69a241c517e10e4`, fix the diagnosed cause and rebuild; run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite; verify Android/iOS background tracking and two-account privacy behavior. Until these pass, all recent feature work is code-present but unverified.
 2. **Active branch: limited SOS message handoff + opted-in Circle contact actions.** The current draft lets users preview/share/copy a message and call or open a prefilled SMS draft for Circle members who explicitly shared their number; the recipient list excludes self, former/non-members and malformed phone numbers. It does not auto-send, confirm delivery, provide remote alerts, or constitute a verified emergency-contact system. The screen re-evaluates location freshness every minute without additional Firebase reads, and tests cover freshness boundaries; tests remain unrun. Keep release verification P0 and do not claim emergency response.
 3. **Keep deferred under $0/Firebase-only:** remote push notifications until a trusted no-cost delivery architecture is confirmed; never embed sender credentials in the client.
 4. Then evaluate driving/crash detection, flight/landing alerts, tracker integrations and pet tracking as listed below.
@@ -48,7 +48,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 
 | Priority | Feature | Status | Next step / limitation |
 |---:|---|---|---|
-| P0 | Release verification | Required before release | Run manual Flutter analyze/tests and Firestore Emulator Rules tests; re-run Cloudflare web build; test Android/iOS background tracking and two-account privacy flows. |
+| P0 | Release verification | Required before release | Inspect the failed [Cloudflare Pages check](https://github.com/muhammadnaumantahir/Circlo/runs/123427066200), fix the root cause from its provider logs, then rebuild; run manual Flutter analyze/tests and Firestore Emulator Rules tests; test Android/iOS background tracking and two-account privacy flows. |
 | P1 | Remote push notifications | Deferred | Requires a trusted delivery path. Do not put server credentials in the Flutter app. Reassess only after confirming a truly no-cost deployable architecture. |
 | P2 | SOS message handoff / emergency contacts | In progress — [draft PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68) | Manual share sheet/copy plus Call and prefilled SMS actions for opted-in members. The contact filter excludes self, former/non-members and malformed phone numbers; stale locations are omitted, approximate pins labelled, and freshness is re-evaluated every minute. No automatic delivery, acknowledgement, remote push, contact discovery or emergency-dispatch claim. Helper tests are authored but not run. Trusted emergency-contact delivery remains future work after safety review. |
 | P3 | Driving reports / crash detection | Not started — native research | Native motion/location collection, false-positive controls, platform limits and real-device validation are needed. |
@@ -72,7 +72,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 
 - [ ] Flutter analyzer and full app tests pass on the manual CI workflow.
 - [ ] Firebase Emulator Rules tests pass.
-- [ ] Latest `main` builds successfully on Cloudflare Pages.
+- [ ] Latest `main` builds successfully on Cloudflare Pages. The latest known check for SHA `73bfa1134113d94e4472da44d69a241c517e10e4` failed; inspect logs and resolve before treating this gate as complete.
 - [ ] Android and iOS tested with screen locked, app backgrounded, battery saver, denied permissions and offline recovery.
 - [ ] Two-account tests confirm per-Circle isolation, opt-out deletion, member removal and account deletion.
 - [ ] Firestore Rules deployed to the intended Firebase project and verified there.
