@@ -503,7 +503,13 @@ class _MapBodyState extends ConsumerState<_MapBody> {
         if (v.status == ShareStatus.sharing && isLowBattery(v.location?.batteryLevel)) v,
     ];
     final myMemberships = ref.watch(myMembershipsProvider).valueOrNull ?? const <MyMembership>[];
-    final selectedMembership = myMemberships.where((m) => m.circleId == circle.id).firstOrNull;
+    MyMembership? selectedMembership;
+    for (final membership in myMemberships) {
+      if (membership.circleId == circle.id) {
+        selectedMembership = membership;
+        break;
+      }
+    }
     final bubbleUntil = selectedMembership?.bubbleUntil;
     final bubbleActive = selectedMembership?.isApproximateAt(now) ?? false;
 
