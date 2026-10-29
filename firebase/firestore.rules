@@ -324,12 +324,13 @@ service cloud.firestore {
       // Written by the person who acts (or by the owner for removals); names must match member documents.
       // Client-written and untrusted beyond this feed. Immutable; deletable by the actor or the owner.
       function validActivity(d, circleId) {
-        return d.keys().hasOnly(['type', 'actorUid', 'actorName', 'subjectUid', 'subjectName', 'checkInStatus', 'checkInPlaceId', 'checkInPlaceName', 'occurredAt'])
+        return d.keys().hasOnly(['type', 'actorUid', 'actorName', 'subjectUid', 'subjectName', 'checkInStatus', 'checkInPlaceId', 'checkInPlaceName', 'quickNoteEmoji', 'quickNoteText', 'occurredAt'])
           && d.keys().hasAll(['type', 'actorUid', 'actorName', 'occurredAt'])
           && d.actorUid == request.auth.uid
           && d.occurredAt == request.time
-          && d.type in ['joined', 'left', 'removed', 'sharing_started', 'sharing_stopped', 'checked_in']
+          && d.type in ['joined', 'left', 'removed', 'sharing_started', 'sharing_stopped', 'checked_in', 'quick_note']
           && (d.type == 'checked_in' || (!('checkInStatus' in d) && !('checkInPlaceId' in d) && !('checkInPlaceName' in d)))
+          && (d.type == 'quick_note' || (!('quickNoteEmoji' in d) && !('quickNoteText' in d)))
           && (
             (d.type == 'checked_in'
               && isMember(circleId)
@@ -347,6 +348,22 @@ service cloud.firestore {
               )
               && !('subjectUid' in d)
               && !('subjectName' in d))
+            ||
+            (d.type == 'quick_note'
+              && isMember(circleId)
+              && get(memberPath(circleId, request.auth.uid)).data.displayName == d.actorName
+              && d.keys().hasAll(['quickNoteEmoji', 'quickNoteText'])
+              && (
+                (d.quickNoteEmoji == '❤️' && d.quickNoteText == 'Love you')
+                || (d.quickNoteEmoji == '👍' && d.quickNoteText == 'Got it')
+                || (d.quickNoteEmoji == '🚗' && d.quickNoteText == 'On the road')
+                || (d.quickNoteEmoji == '🏠' && d.quickNoteText == 'At home')
+                || (d.quickNoteEmoji == '🙂' && d.quickNoteText == 'All good')
+                || (d.quickNoteEmoji == '⏰' && d.quickNoteText == 'Be there soon')
+                || (d.quickNoteEmoji == '👋' && d.quickNoteText == 'Hi there')
+                || (d.quickNoteEmoji == '🙏' && d.quickNoteText == 'Thank you')
+              )
+              && !('subjectUid' in d) && !('subjectName' in d))
             ||
             (d.type == 'joined'
               && !exists(memberPath(circleId, request.auth.uid))
