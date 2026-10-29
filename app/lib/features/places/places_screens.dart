@@ -707,16 +707,10 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
       confirmLabel: 'Review place',
     );
     if (!confirmed || !mounted) return;
-    final uri = Uri(
-      path: '/places/new',
-      queryParameters: {
-        'circle': widget.circle.id,
-        'lat': suggestion.lat.toStringAsFixed(6),
-        'lng': suggestion.lng.toStringAsFixed(6),
-        'name': suggestion.suggestedName,
-      },
-    );
-    await context.push<void>(uri.toString());
+    // Keep the precise candidate coordinates out of browser URLs and history.
+    // Route extra is in-memory navigation state; nothing is written or shared by reviewing.
+    final uri = Uri(path: '/places/new', queryParameters: {'circle': widget.circle.id});
+    await context.push<void>(uri.toString(), extra: suggestion);
   }
 
   Future<void> _scheduleArrival(Place place) async {
