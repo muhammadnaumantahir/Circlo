@@ -56,6 +56,8 @@ This audit reflects a static review of the current Flutter source and project re
 
 - Added one active expected-arrival plan per member and circle, reschedulable to another saved place. Other circle members see an in-app "no arrival recorded" warning after the deadline; device-recorded late arrivals are shown in the feed. Warnings are computed in-app; there is no server scheduler, push delivery, or background guarantee.
 
+- Added curated one-tap Quick Notes in the map check-in sheet and in-app feed; Firestore Rules restrict values to approved emoji/text pairs, and notes contain no location coordinates. Test status remains not run.
+
 ## Important gaps before release
 
 1. **Run the automated checks.** Run `cd app && flutter pub get && flutter analyze && flutter test`, then run `cd firebase && npm ci && npm test` with the Firestore Emulator available. These checks have not been executed for this branch.

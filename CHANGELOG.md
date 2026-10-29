@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Add one reschedulable expected-arrival plan per member and circle, with saved-place deadlines and in-app No Show warnings for circle members when no arrival has been recorded by the deadline. Confirmed arrivals resolve plans; late arrivals remain visible in the notification feed. This is evaluated while Circlo is open and actively tracking; no phone push or guaranteed background scheduling is claimed.
+- Add curated one-tap emoji Quick Notes to the map check-in sheet. Messages are restricted by Firestore Rules to approved emoji/text pairs, shared to the selected circle's in-app feed, and carry no GPS fields.
 
 ### Changed
 - Add a route-mode chooser to member map details (driving, walking, cycling and public transport) and hand off the selected mode to Google Maps for route/ETA calculation. Circlo does not display an in-app estimate or require a paid directions API.

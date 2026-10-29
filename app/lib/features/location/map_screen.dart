@@ -129,7 +129,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ),
         actions: [
           IconButton.filledTonal(
-            tooltip: 'Share a manual check-in — no GPS attached',
+            tooltip: 'Check in or send a quick note',
             onPressed: _savingCheckIn ? null : _showCheckInSheet,
             icon: _savingCheckIn
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
@@ -210,20 +210,39 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     setState(() => _savingCheckIn = true);
     try {
-      await ref.read(circlesRepositoryProvider).createCheckIn(
-            circleId: circle.id,
-            uid: uid,
-            displayName: displayName,
-            status: choice.status,
-            placeId: choice.place?.id,
-            placeName: choice.place?.name,
-          );
-      if (mounted) {
-        final placeSuffix = choice.place == null ? '' : ' at ${choice.place!.name}';
-        showSnack(context, 'Check-in shared with ${circle.name}$placeSuffix. No GPS coordinates were sent.');
+      final quickNoteEmoji = choice.quickNoteEmoji;
+      if (quickNoteEmoji != null) {
+        final quickNoteText = kQuickNotes[quickNoteEmoji];
+        if (quickNoteText == null) {
+          if (mounted) showSnack(context, 'That quick note is not available. Please choose another.');
+          return;
+        }
+        await ref.read(circlesRepositoryProvider).createQuickNote(
+              circleId: circle.id,
+              uid: uid,
+              displayName: displayName,
+              emoji: quickNoteEmoji,
+              text: quickNoteText,
+            );
+        if (mounted) showSnack(context, 'Quick note shared with ${circle.name}. No location was attached.');
+      } else {
+        final status = choice.status;
+        if (status == null) return;
+        await ref.read(circlesRepositoryProvider).createCheckIn(
+              circleId: circle.id,
+              uid: uid,
+              displayName: displayName,
+              status: status,
+              placeId: choice.place?.id,
+              placeName: choice.place?.name,
+            );
+        if (mounted) {
+          final placeSuffix = choice.place == null ? '' : ' at ${choice.place!.name}';
+          showSnack(context, 'Check-in shared with ${circle.name}$placeSuffix. No GPS coordinates were sent.');
+        }
       }
     } catch (_) {
-      if (mounted) showSnack(context, 'Could not share your check-in. Check your connection and try again.');
+      if (mounted) showSnack(context, 'Could not share your update. Check your connection and try again.');
     } finally {
       if (mounted) setState(() => _savingCheckIn = false);
     }
@@ -231,9 +250,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 }
 
 class _CheckInChoice {
-  const _CheckInChoice({required this.status, this.place});
-  final String status;
+  const _CheckInChoice({this.status, this.place, this.quickNoteEmoji});
+  final String? status;
   final Place? place;
+  final String? quickNoteEmoji;
 }
 
 class _CheckInSheet extends StatefulWidget {
@@ -278,7 +298,31 @@ class _CheckInSheetState extends State<_CheckInSheet> {
                   style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
+              Text('Quick notes', style: Theme.of(sheetContext).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                'Send a one-tap message to everyone in this circle. It does not include your location.',
+                style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final entry in kQuickNotes.entries)
+                    ActionChip(
+                      avatar: Text(entry.key, style: const TextStyle(fontSize: 18)),
+                      label: Text(entry.value),
+                      onPressed: () => Navigator.of(sheetContext).pop(
+                        _CheckInChoice(quickNoteEmoji: entry.key),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text('Manual check-in', style: Theme.of(sheetContext).textTheme.titleMedium),
+              const SizedBox(height: 8),
               if (widget.places.isNotEmpty) ...[
                 DropdownButtonFormField<String>(
                   value: _placeId ?? '',

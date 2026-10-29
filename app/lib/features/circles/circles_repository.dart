@@ -333,6 +333,28 @@ class CirclesRepository {
         );
   }
 
+  /// Shares one of the curated emoji notes to the selected circle without location data.
+  Future<void> createQuickNote({
+    required String circleId,
+    required String uid,
+    required String displayName,
+    required String emoji,
+    required String text,
+  }) {
+    if (kQuickNotes[emoji] != text) {
+      throw ArgumentError('Unsupported quick note.');
+    }
+    return _circles.doc(circleId).collection('activity').doc().set(
+          activityDoc(
+            type: ActivityType.quickNote,
+            actorUid: uid,
+            actorName: displayName,
+            quickNoteEmoji: emoji,
+            quickNoteText: text,
+          ),
+        );
+  }
+
   Stream<List<ActivityEvent>> watchActivity(String circleId, {int limit = 50}) => _circles
       .doc(circleId)
       .collection('activity')
