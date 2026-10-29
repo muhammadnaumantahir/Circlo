@@ -1,6 +1,6 @@
 # Circlo Feature Audit — updated 2026-10-29
 
-Use [feature-status.md](feature-status.md) as the canonical feature checklist and cross-chat handover. This audit reflects a static review of the current Flutter source and project requirements. **“Implemented in code” does not mean tested, production-ready, or reliable in the background.** Flutter/Dart and the Firebase Emulator were not available in the authoring environment, and no real-device runs were performed. Follow-up review of draft PR #68 found and corrected malformed duplicated code in `sos_contact.dart`; its expanded regression tests still need to be run.
+Use [feature-status.md](feature-status.md) as the canonical feature checklist and cross-chat handover. This audit reflects a static review of the current Flutter source and project requirements. **“Implemented in code” does not mean tested, production-ready, or reliable in the background.** Flutter/Dart and the Firebase Emulator were not available in the authoring environment, and no real-device runs were performed. In addition, the latest Cloudflare Pages check on `main` SHA `73bfa1134113d94e4472da44d69a241c517e10e4` failed on 2026-10-29; the GitHub summary says only “Build failed,” and the actual provider logs/root cause have not been inspected. Follow-up review of draft PR #68 found and corrected malformed duplicated code in `sos_contact.dart`; its expanded regression tests still need to be run.
 
 ## What exists in the code
 
