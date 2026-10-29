@@ -254,6 +254,7 @@ void main() {
       };
       expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'status': 'missed'}), isNull);
       expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'memberUid': ''}), isNull);
+      expect(ArrivalPlan.tryFromMap('c1', 'not-u1', base), isNull);
       expect(ArrivalPlan.tryFromMap('c1', 'u1', {...base, 'expectedAt': 'tomorrow'}), isNull);
     });
   });
