@@ -30,7 +30,7 @@ Legend: **Written** = code exists in the repo but has **never been compiled or r
 | FR-081, 082 | Written | Settings per kind and per circle; unread badge; 30-day window (documents are not auto-deleted) |
 | FR-083 | Written | Derived on the viewer's device (15+ min, once per outage) while the app is open |
 | FR-084 | **Not built** | Push permission/flow needs a paid server |
-| FR-111 | Implemented in app; limited | Each member has one active expected-arrival plan per circle and can reschedule it to another saved place; other circle members see an in-app warning if no arrival is recorded by the deadline and a late-arrival entry when tracking confirms arrival. Evaluation requires Circlo to be open and location tracking active; remote push/background guarantees remain deferred. |
+| FR-111 | Implemented in app; limited | Each member has one active expected-arrival plan per circle and can reschedule it to another saved place; other circle members see an in-app warning if no arrival is recorded by the deadline and a late-arrival entry when tracking confirms arrival. Warnings are computed while viewers have Circlo open; arrival confirmation still depends on the target device recording a place arrival. Remote push/background guarantees remain deferred. |
 | FR-090–092 | Written | Rules enforce circle-scoped access; "visible to N members"; revocation |
 | FR-093 | Written | JSON shown/copy-to-clipboard (not a file download) |
 | FR-094 | Partial | Others are notified in-app when someone joins or starts sharing; no notice to the user themselves |
