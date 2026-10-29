@@ -48,6 +48,8 @@ class MemberLocation {
 
     final rawUpdatedAt = data['updatedAt'];
     final rawBatteryLevel = data['batteryLevel'];
+    final rawApproximate = data['approximate'];
+    if (rawApproximate != null && rawApproximate is! bool) return null;
     final batteryLevel = rawBatteryLevel is int && rawBatteryLevel >= 0 && rawBatteryLevel <= 100
         ? rawBatteryLevel
         : null;
@@ -58,7 +60,7 @@ class MemberLocation {
       accuracy: accuracy,
       updatedAt: rawUpdatedAt is Timestamp ? rawUpdatedAt.toDate() : null,
       batteryLevel: batteryLevel,
-      approximate: data['approximate'] == true,
+      approximate: rawApproximate == true,
     );
   }
 
