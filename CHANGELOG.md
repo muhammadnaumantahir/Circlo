@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 ### Added
+- Added optional per-circle battery sharing, included only in existing location-sync writes after explicit consent. The map and People list show last-reported battery status, a low-battery warning at 20% or below, and timestamp context; opting out clears the shared location projection immediately. No push or guaranteed background alert is claimed.
+
+### Added
 - Added optional per-circle battery sharing, included only in existing location-sync writes after explicit consent. The map and People list show last-reported battery status, a low-battery warning at 20% or below, and a timestamp context; opting out clears the shared location projection immediately. No push or guaranteed background alert is claimed.
 
 ### Fixed
