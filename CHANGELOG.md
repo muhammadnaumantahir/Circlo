@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Correct the malformed duplicate in the SOS contact helper discovered during static review of draft PR #68. Recipient filtering and dialer/SMS URI helpers are restored; regression coverage includes malformed phone-number forms, but no tests or build checks have run.
+
 ### Added
 - Add an in-progress SOS-message handoff on `feature/sos-emergency-message`: user-reviewed message preview with manual share-sheet/copy actions, plus Call and prefilled Text actions for Circle members who explicitly shared their phone number with that Circle. Call opens the dialer; Text opens an unsent draft requiring user review. The message includes a last-shared map link only when sharing is active and the fix is fresh; approximate Bubble pins are labelled, while stale/unavailable coordinates are omitted. Freshness is re-evaluated locally every minute while the screen is open, without extra Firebase reads; if sharing is off, paused, or not yet confirmed, the screen omits coordinates and avoids falsely claiming the sharing switch is on. The contact list excludes self, former/non-members and malformed phone values. No automatic alert, delivery confirmation, remote push, address-book access, or emergency-dispatch service is provided. Boundary tests are authored; all tests remain unrun and the change is not merged.
 - On map screens narrower than 440 px, move Check-in and SOS into the Quick actions menu to reduce app-bar overflow risk while keeping Notifications and Profile accessible.
