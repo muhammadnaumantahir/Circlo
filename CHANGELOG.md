@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Added local Auto Place Suggestions that identifies repeated completed unknown stops in the user's own retained Travel History (up to 14 recent days), filters locations already covered by the selected circle's saved places, and opens the existing map form for review. Suggestions do not silently enable alerts and use no paid geocoder or new backend.
+
 ### Fixed
 - Gate map, saved places, travel history and related routes until the signed-in user belongs to a circle; route initial/no-membership states and membership-query errors with no cached result to one Circles screen instead of showing repeated Retry states across tabs.
 - Use the first-use Circles onboarding to guide users through creating a circle or joining by invite code, hide circle-dependent tabs before membership, open the map after a successful join, and offer an Open map action on circle details after membership is confirmed.
