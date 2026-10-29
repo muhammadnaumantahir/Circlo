@@ -232,20 +232,30 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       }
     });
 
-    const paths = ['/map', '/places', '/history', '/circles', '/profile'];
+    const allPaths = ['/map', '/places', '/history', '/circles', '/profile'];
+    const allDestinations = [
+      NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Map'),
+      NavigationDestination(icon: Icon(Icons.place_outlined), selectedIcon: Icon(Icons.place_rounded), label: 'Places'),
+      NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history_rounded), label: 'History'),
+      NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Circles'),
+      NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
+    ];
+    final hasCircles = ref.watch(myCirclesProvider).valueOrNull?.isNotEmpty ?? false;
+    // Before the first circle exists (or while membership could not be read), keep navigation
+    // focused on setup and the profile. Map/Places/History are available after joining a circle.
+    final paths = hasCircles ? allPaths : const ['/circles', '/profile'];
+    final destinations = hasCircles
+        ? allDestinations
+        : const [
+            NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Circles'),
+            NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
+          ];
     var index = paths.indexWhere((p) => widget.location.startsWith(p));
     if (index < 0) index = 0;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 1000;
         final scheme = Theme.of(context).colorScheme;
-        final destinations = const [
-          NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Map'),
-          NavigationDestination(icon: Icon(Icons.place_outlined), selectedIcon: Icon(Icons.place_rounded), label: 'Places'),
-          NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history_rounded), label: 'History'),
-          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Circles'),
-          NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
-        ];
         return Scaffold(
           body: wide
               ? Row(
