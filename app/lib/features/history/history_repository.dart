@@ -44,7 +44,9 @@ class HistoryRepository {
     final tracks = <DayTrack>[];
     for (final document in snapshot.docs) {
       try {
-        tracks.add(DayTrack.fromMap(document.data()));
+        final track = DayTrack.fromMap(document.data());
+        if (track.day != document.id || track.day.length != 8) continue;
+        tracks.add(track);
       } on FormatException {
         // Ignore a corrupt day rather than preventing all other suggestions.
       }
