@@ -2,7 +2,7 @@
 
 Private, consent-based location sharing for families and friends: circles with shareable QR invites, live map, place arrival/departure alerts, and travel history.
 
-**Status:** Development / hardening. Account, circle, location-sharing, saved-place, history, and in-app notification flows exist in source, but the app is not release-verified. See [project-status.md](project-status.md), [CHANGELOG.md](CHANGELOG.md), and the [feature audit](docs/feature-audit-2026-10-28.md).
+**Status:** Development / hardening. Account, circle, location-sharing, saved-place, history, and in-app notification flows exist in source, but the app is not release-verified. See the [canonical feature status and cross-chat handover](docs/feature-status.md), [Life360-inspired roadmap](docs/life360-feature-roadmap.md), [project-status.md](project-status.md), [CHANGELOG.md](CHANGELOG.md), and the [feature audit](docs/feature-audit-2026-10-28.md).
 
 ## Stack ($0 budget, no billing account)
 Flutter (web, Android, iOS) · Firebase Authentication · Cloud Firestore · FCM (later). See [architecture.md](architecture.md).
