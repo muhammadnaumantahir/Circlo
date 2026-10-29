@@ -13,6 +13,7 @@ class MemberLocation {
     required this.lng,
     required this.accuracy,
     required this.updatedAt,
+    this.batteryLevel,
   });
 
   final String uid;
@@ -20,6 +21,8 @@ class MemberLocation {
   final double lng;
   final double accuracy;
   final DateTime? updatedAt; // null while the server timestamp is still pending
+  /// Last battery percentage shared with this circle; null unless explicitly opted in.
+  final int? batteryLevel;
 
   /// Returns null for malformed or out-of-range coordinates instead of letting
   /// one bad Firestore document break the entire live-location stream.
@@ -41,12 +44,17 @@ class MemberLocation {
     }
 
     final rawUpdatedAt = data['updatedAt'];
+    final rawBatteryLevel = data['batteryLevel'];
+    final batteryLevel = rawBatteryLevel is int && rawBatteryLevel >= 0 && rawBatteryLevel <= 100
+        ? rawBatteryLevel
+        : null;
     return MemberLocation(
       uid: uid,
       lat: lat,
       lng: lng,
       accuracy: accuracy,
       updatedAt: rawUpdatedAt is Timestamp ? rawUpdatedAt.toDate() : null,
+      batteryLevel: batteryLevel,
     );
   }
 
@@ -66,6 +74,7 @@ class MyMembership {
     required this.sharesLocation,
     required this.paused,
     this.historyShared = false,
+    this.shareBattery = false,
     this.pausedUntil,
   });
 
@@ -73,6 +82,7 @@ class MyMembership {
   final bool sharesLocation;
   final bool paused;
   final bool historyShared;
+  final bool shareBattery; // independent per-circle consent; off by default
   final DateTime? pausedUntil; // timed pause: resume automatically after this moment
 
   /// Builds membership state without trusting the Firestore field types.
@@ -83,6 +93,7 @@ class MyMembership {
       sharesLocation: data['sharesLocation'] == true,
       paused: data['paused'] == true,
       historyShared: data['historyShared'] == true,
+      shareBattery: data['shareBattery'] == true,
       // A malformed optional timestamp should not terminate the whole memberships stream.
       pausedUntil: rawPausedUntil is Timestamp ? rawPausedUntil.toDate() : null,
     );
