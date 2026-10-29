@@ -25,6 +25,9 @@ Widget _app({
   bool sharingActive = true,
   bool paused = false,
   bool membershipKnown = true,
+  double locationLat = 31.5204,
+  double locationLng = 74.3587,
+  double locationAccuracy = 25,
 }) {
   final contacts = <SharedContact>[
     const SharedContact(uid: 'self', phone: '+923001111111'),
@@ -41,9 +44,9 @@ Widget _app({
   ];
   final myLocation = MemberLocation(
     uid: 'self',
-    lat: 31.5204,
-    lng: 74.3587,
-    accuracy: 25,
+    lat: locationLat,
+    lng: locationLng,
+    accuracy: locationAccuracy,
     updatedAt: locationUpdatedAt,
   );
 
@@ -142,6 +145,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sharing status is not yet confirmed for this Circle. No coordinates will be included.'), findsOneWidget);
+    final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(preview, isNot(contains('www.google.com/maps/search/')));
+  });
+
+  testWidgets('invalid location coordinates are not included and are explained', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        locationUpdatedAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        locationLat: 91,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('The last shared location has invalid coordinates or accuracy. No coordinates will be included until a valid location update arrives.'), findsOneWidget);
     final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
     expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
