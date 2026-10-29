@@ -68,6 +68,18 @@ Widget _circleContactSection({
               currentUid: currentUid,
             );
 
+            if (currentUid == null || currentUid.trim().isEmpty) {
+              return const Card(
+                child: ListTile(
+                  leading: Icon(Icons.verified_user_outlined),
+                  title: Text('Signed-in account not confirmed'),
+                  subtitle: Text(
+                    'Call and Text actions are hidden until Circlo confirms which account is signed in.',
+                  ),
+                ),
+              );
+            }
+
             if (available.isEmpty) {
               return const Card(
                 child: ListTile(
