@@ -308,7 +308,7 @@ service cloud.firestore {
           );
 
         allow delete: if isMember(cid)
-          && (resource.data.memberUid == request.auth.uid
+          && (planId == request.auth.uid
               || isOwner(cid)
               || (exists(placePath(cid, resource.data.placeId))
                   && get(placePath(cid, resource.data.placeId)).data.get('createdBy', '') == request.auth.uid));
