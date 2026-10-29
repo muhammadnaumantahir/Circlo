@@ -1,4 +1,6 @@
 # Roadmap (DRAFT v0.3 — Firebase-only)
+
+The Life360-inspired feature queue and priority order is tracked in [docs/life360-feature-roadmap.md](life360-feature-roadmap.md). CI stays manual-only; do not add server-dependent features under the current $0 Firebase-only constraint.
 ## MVP (v1.0) — reduced scope (owner decision 2026-10-13: no server-dependent features)
 0. **Blocking spikes before full implementation:** Firestore Rules for circle-scoped location access; safe circle/join-code operations without trusted functions; secure zero-cost server path for remote FCM and cleanup (or explicitly defer those features); Android/iOS background tracking on real devices (ADR-0003); free maps/geocoder (ADR-0004); Firestore quota model.
 1. **Foundation + core:** repo/CI, auth, profiles + age gate, circles, join codes, member management.
