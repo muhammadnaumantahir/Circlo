@@ -4,6 +4,31 @@ import 'package:circlo/features/places/place_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('SharedContact.tryFromMap', () {
+    test('accepts only a phone explicitly shared by its matching owner', () {
+      final contact = SharedContact.tryFromMap('u1', {
+        'uid': 'u1',
+        'phone': '+923001234567',
+        'sharePhone': true,
+      });
+      expect(contact, isNotNull);
+      expect(contact!.uid, 'u1');
+      expect(contact.phone, '+923001234567');
+    });
+
+    test('rejects unshared, mismatched, and malformed phone data', () {
+      expect(SharedContact.tryFromMap('u1', {
+        'uid': 'u1', 'phone': '+923001234567', 'sharePhone': false,
+      }), isNull);
+      expect(SharedContact.tryFromMap('u1', {
+        'uid': 'u2', 'phone': '+923001234567', 'sharePhone': true,
+      }), isNull);
+      expect(SharedContact.tryFromMap('u1', {
+        'uid': 'u1', 'phone': '03001234567', 'sharePhone': true,
+      }), isNull);
+    });
+  });
+
   group('MemberLocation.tryFromMap', () {
     test('accepts valid coordinates and defaults missing accuracy', () {
       final location = MemberLocation.tryFromMap('u1', {'lat': 31.52, 'lng': 74.35});
