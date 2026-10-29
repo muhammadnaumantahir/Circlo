@@ -161,6 +161,7 @@ void main() {
 
     expect(reads, 2);
   });
+
   test('a failed day-rollover write is retried without losing the previous day', () async {
     final attemptedDays = <String>[];
     final persistedDays = <String>[];
@@ -203,9 +204,11 @@ void main() {
     // Shutdown must retry yesterday before writing today's final track.
     await recorder.dispose();
 
-    expect(attemptedDays.where((day) => day == '20261029').length, greaterThanOrEqualTo(3));
+    expect(
+      attemptedDays.where((day) => day == '20261029').length,
+      greaterThanOrEqualTo(3),
+    );
     expect(persistedDays, contains('20261029'));
     expect(persistedDays, contains('20261030'));
   });
-
 }
