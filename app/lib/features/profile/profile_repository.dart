@@ -36,8 +36,19 @@ class ProfileRepository {
       _doc(uid).update({
         'keepHistory': keepHistory,
         'retentionDays': retentionDays,
+        if (!keepHistory) 'placeSuggestionsEnabled': false,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+  Future<void> setPlaceSuggestionsEnabled({
+    required String uid,
+    required bool enabled,
+  }) {
+    return _doc(uid).update({
+      'placeSuggestionsEnabled': enabled,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 
   Future<void> setNotificationPrefs({
     required String uid,
