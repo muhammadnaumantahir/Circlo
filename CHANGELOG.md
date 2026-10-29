@@ -4,9 +4,6 @@
 ### Added
 - Added optional per-circle battery sharing, included only in existing location-sync writes after explicit consent. The map and People list show last-reported battery status, a low-battery warning at 20% or below, and timestamp context; opting out clears the shared location projection immediately. No push or guaranteed background alert is claimed.
 
-### Added
-- Added optional per-circle battery sharing, included only in existing location-sync writes after explicit consent. The map and People list show last-reported battery status, a low-battery warning at 20% or below, and a timestamp context; opting out clears the shared location projection immediately. No push or guaranteed background alert is claimed.
-
 ### Fixed
 - Gate map, saved places, travel history and related routes until the signed-in user belongs to a circle; route initial/no-membership states and membership-query errors with no cached result to one Circles screen instead of showing repeated Retry states across tabs.
 - Use the first-use Circles onboarding to guide users through creating a circle or joining by invite code, hide circle-dependent tabs before membership, open the map after a successful join, and offer an Open map action on circle details after membership is confirmed.
