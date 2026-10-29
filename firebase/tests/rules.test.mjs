@@ -254,6 +254,36 @@ describe('live location sharing (circle-scoped)', () => {
     await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
     await assertSucceeds(setDoc(locRef(db('bob'), 'c1', 'bob'), loc('bob')));
   });
+  it('requires separate per-circle battery consent and clears battery data atomically on opt-out', async () => {
+    await seed({ bob: true });
+    await setSharing('bob', 'c1', { sharesLocation: true, paused: false });
+    const memberRef = doc(db('bob'), 'circles/c1/members/bob');
+    const locationRef = locRef(db('bob'), 'c1', 'bob');
+
+    // Location sharing alone must not authorize battery fields.
+    await assertSucceeds(setDoc(locationRef, loc('bob')));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: 18 })));
+
+    await assertSucceeds(updateDoc(memberRef, { shareBattery: true }));
+    await assertSucceeds(setDoc(locationRef, loc('bob', { batteryLevel: 18 })));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: -1 })));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: 101 })));
+    await assertFails(setDoc(locationRef, loc('bob', { batteryLevel: '18' })));
+
+    // Opt-out without clearing the currently shared percentage is not allowed.
+    await assertFails(updateDoc(memberRef, { shareBattery: false }));
+    const stopBattery = writeBatch(db('bob'));
+    stopBattery.update(memberRef, { shareBattery: false });
+    stopBattery.delete(locationRef);
+    await assertSucceeds(stopBattery.commit());
+    await assertFails(getDoc(locRef(db('alice'), 'c1', 'bob')));
+  });
+
+  it('cannot opt into battery sharing before location sharing is active', async () => {
+    await seed({ bob: true });
+    await assertFails(updateDoc(doc(db('bob'), 'circles/c1/members/bob'), { shareBattery: true }));
+  });
+
   it('cannot publish while paused', async () => {
     await seed({ bob: true });
     await setSharing('bob', 'c1', { sharesLocation: true, paused: true });
