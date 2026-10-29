@@ -257,10 +257,10 @@ class SharingController extends Notifier<SharingState> {
     try {
       for (final m in expired) {
         try {
-          await ref.read(locationRepositoryProvider).setApproximateLocation(
+          await ref.read(locationRepositoryProvider).clearExpiredApproximateLocation(
                 uid: uid,
                 circleId: m.circleId,
-                until: null,
+                expectedUntil: m.bubbleUntil!,
               );
         } catch (_) {
           // The next membership/location update retries cleanup. An expired Bubble never changes
