@@ -538,7 +538,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                 leading: Icon(Icons.blur_on, color: Theme.of(context).colorScheme.onTertiaryContainer),
                 title: const Text('Approximate Location is on'),
                 subtitle: Text(
-                  'This circle sees a coarse grid pin (~1–1.6 km), not precise GPS. Expires at ${_formatDateTime(bubbleUntil)}. Other sharing features may still reveal visits.',
+                  'This circle sees a coarse grid pin with roughly 1–1.6 km of extra grid offset plus GPS uncertainty, not precise GPS. Expires at ${_formatDateTime(bubbleUntil)}. Other sharing features may still reveal visits.',
                 ),
                 trailing: TextButton(
                   onPressed: () => _turnOffBubble(context, circle),
@@ -1000,7 +1000,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                         Icon(Icons.blur_on, size: 15, color: Theme.of(context).colorScheme.tertiary),
                         const SizedBox(width: 5),
                         const Expanded(
-                          child: Text('Approximate grid pin · roughly 1–1.6 km from device coordinates'),
+                          child: Text('Approximate grid pin · roughly 1–1.6 km of extra grid offset, plus GPS uncertainty'),
                         ),
                       ],
                     ),
@@ -1368,7 +1368,7 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                                 const SizedBox(width: 9),
                                 Expanded(
                                   child: Text(
-                                    'Coarse grid pin · roughly 1–1.6 km from the device. If the sharer was offline at expiry, this coarse pin may remain until their next sync. Other features may still reveal visits.',
+                                    'Coarse grid pin · adds roughly 1–1.6 km of grid offset plus GPS uncertainty. If the sharer was offline at expiry, this coarse pin may remain until their next sync. Other features may still reveal visits.',
                                     style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                                   ),
                                 ),
