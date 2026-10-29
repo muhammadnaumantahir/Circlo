@@ -53,6 +53,8 @@ class HistoryRecorder {
   // Process them in arrival order so mutable track state cannot change mid-write.
   Future<void> _fixQueue = Future<void>.value();
   bool _dirty = false;
+  // Finished days stay queued until Firestore confirms their write.
+  final List<DayTrack> _pendingDays = [];
   DateTime? _lastFlush;
   String _signature = '';
 
