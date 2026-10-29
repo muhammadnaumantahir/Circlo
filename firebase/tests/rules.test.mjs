@@ -120,6 +120,86 @@ describe('users profile', () => {
   });
 });
 
+describe('per-circle phone sharing', () => {
+  const contact = (uid, phone = '+923001234567') => ({
+    uid, phone, sharePhone: true, updatedAt: serverTimestamp(),
+  });
+
+  it('lets a member inspect their own opt-in document before sharing', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(getDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob')));
+    await assertFails(getDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob')));
+  });
+
+  it('shares a number only with current members of the circle where the owner opted in', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
+
+    await assertSucceeds(getDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob')));
+    await assertSucceeds(getDocs(query(
+      collection(db('alice'), 'circles/c1/sharedContacts'),
+      where('sharePhone', '==', true),
+    )));
+    await assertFails(getDocs(collection(db('alice'), 'circles/c1/sharedContacts')));
+    await assertFails(getDoc(doc(db('carol'), 'circles/c1/sharedContacts/bob')));
+    await assertFails(getDoc(doc(db('mallory'), 'circles/c1/sharedContacts/bob')));
+    await assertFails(getDoc(doc(db('alice'), 'users/bob')));
+  });
+
+  it('requires self opt-in and a phone matching the private profile', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
+    await assertFails(setDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob'), contact('bob')));
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob', '+923111111111')));
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob', '03001234567')));
+    await assertFails(setDoc(doc(db('carol'), 'circles/c1/sharedContacts/carol'), contact('carol')));
+  });
+
+  it('updates the private phone and shared copy atomically', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
+
+    const f = db('bob');
+    const batch = writeBatch(f);
+    batch.update(doc(f, 'users/bob'), { phone: '+923111111111', updatedAt: serverTimestamp() });
+    batch.update(doc(f, 'circles/c1/sharedContacts/bob'), {
+      phone: '+923111111111',
+      updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('requires contact cleanup before a member can be removed', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
+
+    await assertFails(deleteDoc(doc(db('alice'), 'circles/c1/members/bob')));
+    const f = db('alice');
+    const batch = writeBatch(f);
+    batch.delete(doc(f, 'circles/c1/sharedContacts/bob'));
+    batch.delete(doc(f, 'circles/c1/members/bob'));
+    await assertSucceeds(batch.commit());
+  });
+
+  it('lets a user revoke their own contact sharing', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
+    await assertSucceeds(deleteDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob')));
+    await assertFails(getDoc(doc(db('alice'), 'circles/c1/sharedContacts/bob')));
+  });
+
+  it('does not allow battery or contact sharing consent to cross circle membership scope', async () => {
+    await seed({ bob: true });
+    await assertSucceeds(setDoc(doc(db('bob'), 'users/bob'), profile({ displayName: 'Bob', phone: '+923001234567' })));
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/sharedContacts/bob'), contact('bob')));
+    await assertFails(getDoc(doc(db('carol'), 'circles/c1/sharedContacts/bob')));
+  });
+});
+
 describe('create circle', () => {
   const create = (uid, { code = CODE_A, circleOver = {}, memberOver = {}, skipMember = false, skipCode = false, cid = 'c9' } = {}) => {
     const f = db(uid);
