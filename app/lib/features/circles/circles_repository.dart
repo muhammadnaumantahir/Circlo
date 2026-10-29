@@ -407,7 +407,7 @@ class CirclesRepository {
     final places = await circle.collection('places').get();
     final events = await circle.collection('placeEvents').get();
     final locations = await circle.collection('locations').get();
-    final sharedContacts = await circle.collection('sharedContacts').get();
+    final sharedContacts = await circle.collection('sharedContacts').where('sharePhone', isEqualTo: true).get();
     final requests = await circle.collection('joinRequests').get();
     final circleSnap = await circle.get();
     final currentCode = circleSnap.data()?['joinCode'] as String?;
