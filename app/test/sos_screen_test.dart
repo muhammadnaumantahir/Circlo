@@ -26,6 +26,7 @@ Widget _app({
   bool paused = false,
   bool membershipKnown = true,
   bool locationStreamFails = false,
+  bool locationStreamLoading = false,
   double locationLat = 31.5204,
   double locationLng = 74.3587,
   double locationAccuracy = 25,
@@ -69,11 +70,15 @@ Widget _app({
               : const <MyMembership>[],
         ),
       ),
-      locationsProvider('family').overrideWith(
-        (ref) => locationStreamFails
-            ? Stream<Map<String, MemberLocation>>.error(StateError('offline'))
-            : Stream.value({'self': myLocation}),
-      ),
+      locationsProvider('family').overrideWith((ref) {
+        if (locationStreamLoading) {
+          return const Stream<Map<String, MemberLocation>>.empty();
+        }
+        if (locationStreamFails) {
+          return Stream<Map<String, MemberLocation>>.error(StateError('offline'));
+        }
+        return Stream.value({'self': myLocation});
+      }),
       membersProvider('family').overrideWith((ref) => Stream.value(members)),
       sharedContactsProvider('family').overrideWith((ref) => Stream.value(contacts)),
     ],
@@ -148,6 +153,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sharing status is not yet confirmed for this Circle. No coordinates will be included.'), findsOneWidget);
+    final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(preview, isNot(contains('www.google.com/maps/search/')));
+  });
+
+  testWidgets('loading location state is not described as an old fix', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        locationUpdatedAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        locationStreamLoading: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Checking for a fresh shared location. No coordinates will be included until the check finishes.'), findsOneWidget);
+    expect(find.text('The last shared fix is missing or too old. No coordinates will be included until a fresh location update arrives.'), findsNothing);
     final preview = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
     expect(preview, isNot(contains('www.google.com/maps/search/')));
   });
