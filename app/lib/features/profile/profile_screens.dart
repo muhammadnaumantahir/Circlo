@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/validators.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
+import '../circles/circle_models.dart';
 import '../history/history_models.dart';
 import '../location/sign_out.dart';
 import 'data_export.dart';
@@ -138,6 +139,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _phone = TextEditingController();
   bool _loaded = false;
   bool _busy = false;
+  final Set<String> _phoneShareBusyCircles = <String>{};
 
   @override
   void dispose() {
@@ -160,6 +162,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (mounted) showSnack(context, 'Could not save. Check your connection and try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _setPhoneSharing(Circle circle, UserProfile profile, bool share) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    final phone = profile.phone?.trim() ?? '';
+    if (share && phone.isEmpty) {
+      showSnack(context, 'Save an international phone number above before sharing it.');
+      return;
+    }
+
+    setState(() => _phoneShareBusyCircles.add(circle.id));
+    try {
+      await ref.read(circlesRepositoryProvider).setPhoneSharing(
+            circleId: circle.id,
+            uid: uid,
+            phone: phone,
+            share: share,
+          );
+      if (mounted) {
+        showSnack(
+          context,
+          share
+              ? 'Your phone number is now shared only with ${circle.name}.'
+              : 'Phone sharing turned off for ${circle.name}.',
+        );
+      }
+    } catch (_) {
+      if (mounted) showSnack(context, 'Could not update phone sharing. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => _phoneShareBusyCircles.remove(circle.id));
     }
   }
 
@@ -227,6 +261,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(profileProvider);
+    final circlesAsync = ref.watch(myCirclesProvider);
+    final uid = ref.watch(currentUidProvider);
     final email = ref.watch(authStateProvider).valueOrNull?.email ?? '';
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -317,6 +353,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   : const Text('Save changes'),
             ),
             const SizedBox(height: 28),
+            Text('Calls and texts', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 6),
+            Text(
+              'Your phone number stays private unless you share it with a specific circle. '
+              'Only members of that circle can see it. Turning sharing off removes the number from that circle.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            circlesAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, __) => const MessageView(
+                icon: Icons.cloud_off,
+                title: 'Could not load your circles',
+                message: 'Your private phone number has not been changed.',
+              ),
+              data: (circles) => circles.isEmpty
+                  ? const MessageView(
+                      icon: Icons.groups_outlined,
+                      title: 'No circles yet',
+                      message: 'Join or create a circle before sharing your number.',
+                    )
+                  : Column(
+                      children: [
+                        for (final circle in circles)
+                          _PhoneSharingTile(
+                            circle: circle,
+                            uid: uid,
+                            busy: _phoneShareBusyCircles.contains(circle.id),
+                            hasSavedPhone: (p.phone ?? '').trim().isNotEmpty,
+                            onChanged: (share) => _setPhoneSharing(circle, p, share),
+                          ),
+                      ],
+                    ),
+            ),
+            const SizedBox(height: 28),
             Text('Privacy & data', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -348,6 +422,63 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               label: Text('Delete account', style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
           ]);
+        },
+      ),
+    );
+  }
+}
+
+
+class _PhoneSharingTile extends ConsumerWidget {
+  const _PhoneSharingTile({
+    required this.circle,
+    required this.uid,
+    required this.busy,
+    required this.hasSavedPhone,
+    required this.onChanged,
+  });
+
+  final Circle circle;
+  final String? uid;
+  final bool busy;
+  final bool hasSavedPhone;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final contacts = ref.watch(sharedContactsProvider(circle.id));
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: contacts.when(
+        loading: () => const ListTile(
+          leading: Icon(Icons.phone_iphone_rounded),
+          title: Text('Loading sharing settings'),
+          trailing: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        error: (_, __) => ListTile(
+          leading: const Icon(Icons.phone_iphone_rounded),
+          title: Text(circle.name),
+          subtitle: const Text('Could not load this circle’s phone-sharing state.'),
+          trailing: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+        ),
+        data: (list) {
+          final shared = uid != null && list.any((contact) => contact.uid == uid);
+          final subtitle = shared
+              ? 'Your number is visible to this circle’s members.'
+              : hasSavedPhone
+                  ? 'Your number is private in this circle.'
+                  : 'Save your phone number above before enabling sharing.';
+          return SwitchListTile(
+            secondary: const Icon(Icons.phone_iphone_rounded),
+            title: Text(circle.name),
+            subtitle: Text(subtitle),
+            value: shared,
+            onChanged: busy ? null : onChanged,
+          );
         },
       ),
     );
