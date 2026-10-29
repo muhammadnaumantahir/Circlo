@@ -59,6 +59,7 @@ class SharingController extends Notifier<SharingState> {
   PlaceAlertEngine? _engine;
   HistoryRecorder? _history;
   Timer? _resumeTimer;
+  Timer? _bubbleTimer;
   final Battery _battery = Battery();
   List<MyMembership> _memberships = const [];
   int _syncGeneration = 0;
@@ -76,6 +77,7 @@ class SharingController extends Notifier<SharingState> {
     ref.listen(profileProvider, (_, __) => _configureHistory());
     ref.onDispose(() {
       _resumeTimer?.cancel();
+      _bubbleTimer?.cancel();
       _stop();
     });
     return const SharingState();
@@ -85,6 +87,9 @@ class SharingController extends Notifier<SharingState> {
     final profile = ref.read(profileProvider).valueOrNull;
     _history?.configure(
       keepHistory: profile?.keepHistory ?? false,
+      // Approximate map mode is independent of the user's private history preference. The
+      // per-circle copy remains under the user's existing history consent; the map pin itself
+      // is coarse while Bubble is active.
       sharedCircleIds: {for (final m in _memberships) if (m.isActive && m.historyShared) m.circleId},
       places: [
         for (final p in _engine?.places ?? const <Place>[])
@@ -141,8 +146,18 @@ class SharingController extends Notifier<SharingState> {
         if (m.isActive && m.shareBattery) m.circleId,
     };
     final batteryScopeChanged = !setEquals(previousBatteryCircles, nextBatteryCircles);
+    final previousBubbleSettings = {
+      for (final m in _memberships)
+        if (m.bubbleUntil != null) m.circleId: m.bubbleUntil!,
+    };
+    final nextBubbleSettings = {
+      for (final m in memberships)
+        if (m.bubbleUntil != null) m.circleId: m.bubbleUntil!,
+    };
+    final bubbleSettingsChanged = !mapEquals(previousBubbleSettings, nextBubbleSettings);
     _memberships = List<MyMembership>.unmodifiable(memberships);
     _handleTimedPauses(memberships);
+    _handleApproximateExpiry(memberships);
     final active = [for (final m in memberships) if (m.isActive) m.circleId];
     if (active.isEmpty) {
       await _stop();
@@ -173,11 +188,15 @@ class SharingController extends Notifier<SharingState> {
     await _start(generation: generation);
     if (generation != _syncGeneration) return;
     await _engine?.setCircles(active.toSet());
+    _engine?.setSuppressedCircles({
+      for (final m in memberships)
+        if (m.isActive && m.isApproximateAt(DateTime.now())) m.circleId,
+    });
     if (generation != _syncGeneration) return;
 
     // When sharing is enabled/disabled for a circle while the stream is already running,
     // immediately refresh the location scope rather than waiting for the next movement/heartbeat.
-    if ((scopeChanged || batteryScopeChanged) && wasRunning && _sub != null) {
+    if ((scopeChanged || batteryScopeChanged || bubbleSettingsChanged) && wasRunning && _sub != null) {
       try {
         final position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
@@ -202,6 +221,54 @@ class SharingController extends Notifier<SharingState> {
     }
     if (generation != _syncGeneration) return;
     _configureHistory();
+  }
+
+  /// Bubble expires on the client only. The timer restores the normal shared location when
+  /// the app is active; if the app was closed, the next location sync applies the expired state.
+  void _handleApproximateExpiry(List<MyMembership> memberships) {
+    _bubbleTimer?.cancel();
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    final now = DateTime.now();
+    final expired = [
+      for (final m in memberships)
+        if (m.bubbleUntil != null && !m.bubbleUntil!.isAfter(now)) m,
+    ];
+    if (expired.isNotEmpty) {
+      unawaited(_clearExpiredApproximateBubbles(uid, expired));
+    }
+
+    DateTime? next;
+    for (final m in memberships) {
+      final until = m.bubbleUntil;
+      if (until != null && until.isAfter(now) && (next == null || until.isBefore(next))) {
+        next = until;
+      }
+    }
+    if (next != null) {
+      _bubbleTimer = Timer(
+        next.difference(now) + const Duration(seconds: 1),
+        () => _handleApproximateExpiry(List<MyMembership>.of(_memberships)),
+      );
+    }
+  }
+
+  Future<void> _clearExpiredApproximateBubbles(String uid, List<MyMembership> expired) async {
+    for (final m in expired) {
+      try {
+        await ref.read(locationRepositoryProvider).setApproximateLocation(
+              uid: uid,
+              circleId: m.circleId,
+              until: null,
+            );
+      } catch (_) {
+        // The next membership/location update retries cleanup. An expired Bubble never changes
+        // the coordinate transformation decision, which is checked against the deadline on every publish.
+      }
+    }
+    if (_sub != null) {
+      await _refreshHeartbeat(_syncGeneration);
+    }
   }
 
   LocationSettings _settings() {
@@ -328,6 +395,10 @@ class SharingController extends Notifier<SharingState> {
     final time = now ? DateTime.now() : p.timestamp;
     _configureHistory(); // places may have changed since the last fix
     _history?.onFix(lat: p.latitude, lng: p.longitude, accuracy: p.accuracy, time: time);
+    _engine?.setSuppressedCircles({
+      for (final m in _memberships)
+        if (m.isActive && m.isApproximateAt(DateTime.now())) m.circleId,
+    });
     _engine?.onFix(Fix(
       lat: p.latitude,
       lng: p.longitude,
@@ -397,6 +468,10 @@ class SharingController extends Notifier<SharingState> {
       for (final m in _memberships)
         if (m.isActive && m.shareBattery && ids.contains(m.circleId)) m.circleId,
     };
+    final approximateCircleIds = {
+      for (final m in _memberships)
+        if (m.isActive && m.isApproximateAt(now) && ids.contains(m.circleId)) m.circleId,
+    };
     int? batteryLevel;
     if (batteryCircleIds.isNotEmpty) {
       try {
@@ -418,6 +493,7 @@ class SharingController extends Notifier<SharingState> {
             lng: p.longitude,
             accuracy: p.accuracy,
             batteryCircleIds: batteryCircleIds,
+            approximateCircleIds: approximateCircleIds,
             batteryLevel: batteryLevel,
           );
       if (generation != _syncGeneration) return;
