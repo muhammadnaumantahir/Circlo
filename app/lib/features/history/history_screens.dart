@@ -227,40 +227,6 @@ class _Body extends ConsumerWidget {
             ),
           ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              tooltip: 'Previous day',
-              icon: const Icon(Icons.chevron_left),
-              onPressed: () => onDate(date.subtract(const Duration(days: 1))),
-            ),
-            TextButton.icon(
-              icon: const Icon(Icons.calendar_today, size: 18),
-              label: Text(_dateLabel(date)),
-              onPressed: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: date,
-                  firstDate: DateTime.now().subtract(const Duration(days: 120)),
-                  lastDate: DateTime.now(),
-                );
-                if (picked != null) onDate(picked);
-              },
-            ),
-            IconButton(
-              tooltip: 'Next day',
-              icon: const Icon(Icons.chevron_right),
-              onPressed: isToday ? null : () => onDate(date.add(const Duration(days: 1))),
-            ),
-            if (shared && !(isMe && !keepHistory))
-              IconButton(
-                tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh),
-                onPressed: () => ref.invalidate(dayTrackProvider(key)),
-              ),
-          ],
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           child: SingleChildScrollView(
