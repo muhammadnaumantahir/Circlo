@@ -5,7 +5,7 @@
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest feature merges at audit:** PR #69 (Place Suggestions syntax repair) and PR #68 (manual SOS message/contact handoff), merged 2026-10-30
-**Latest `main` HEAD:** `e21c06bd1d68f9cc944500ce47f41401d5497cba` — merge PR #68  
+**Latest feature merge commit:** `e21c06bd1d68f9cc944500ce47f41401d5497cba` — merge PR #68 (the subsequent main commit only refreshes this tracker).  
 **Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
