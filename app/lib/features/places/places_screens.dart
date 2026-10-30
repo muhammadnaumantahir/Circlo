@@ -182,7 +182,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Row(
             children: [
-              Expanded(child: Text('Saved places', style: Theme.of(context).textTheme.titleMedium)),
+              Expanded(child: Text('Places in this circle', style: Theme.of(context).textTheme.titleMedium)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
