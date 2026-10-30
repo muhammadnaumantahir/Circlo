@@ -8,7 +8,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 
 ## Current implementation branch — not yet merged
 
-- Firestore Rules now accept an absent or explicit-null `expiresAt` as no expiry, while malformed and past timestamps stay rejected. Legacy circles with no `requiresApproval` field default to open, matching `Circle.fromMap`.
+- Firestore Rules now accept an absent or explicit-null `expiresAt` as no expiry, while malformed and past timestamps stay rejected. Legacy circles with missing/null `requiresApproval` default to open, matching `Circle.fromMap`; unexpected non-boolean values fail closed.
 - Join failures caused by `permission-denied` are surfaced as a Firebase Rules/account-verification setup issue rather than a false invalid-code message.
 - First-use onboarding and Create/Join screens use responsive gradient hero + form panels on wide web layouts and a stacked mobile layout.
 - Regression coverage has been added for explicit-null expiry, missing legacy approval flags, the full app membership/contact-cleanup/activity batch, join-code typing/formatting and wide-screen Join Circle layout. Not run.

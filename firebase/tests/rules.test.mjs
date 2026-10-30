@@ -28,12 +28,13 @@ const anon = () => env.unauthenticatedContext().firestore();
 const year = new Date().getFullYear();
 
 /** Seed circle c1 owned by alice with code CODE_A; bob optional member. */
-async function seed({ bob = false, codeExtra = {}, omitApproval = false } = {}) {
+async function seed({ bob = false, codeExtra = {}, omitApproval = false, nullApproval = false } = {}) {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const f = ctx.firestore();
     const now = Timestamp.now();
     const circleData = { name: 'Family', ownerUid: 'alice', joinCode: CODE_A, createdAt: now };
-    if (!omitApproval) circleData.requiresApproval = false;
+    if (nullApproval) circleData.requiresApproval = null;
+    else if (!omitApproval) circleData.requiresApproval = false;
     await setDoc(doc(f, 'circles/c1'), circleData);
     await setDoc(doc(f, 'circles/c1/members/alice'), { uid: 'alice', role: 'owner', displayName: 'Alice', joinedAt: now });
     await setDoc(doc(f, `joinCodes/${CODE_A}`), { circleId: 'c1', createdBy: 'alice', revoked: false, createdAt: now, ...codeExtra });
@@ -242,13 +243,18 @@ describe('join circle', () => {
     await assertFails(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
     await env.clearFirestore(); await seed({ codeExtra: { expiresAt: Timestamp.fromMillis(Date.now() - 60_000) } });
     await assertFails(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
+    await env.clearFirestore(); await seed({ codeExtra: { expiresAt: 'never' } });
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
   });
   it('treats an explicit null expiry as no expiry', async () => {
     await seed({ codeExtra: { expiresAt: null } });
     await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
   });
-  it('defaults a missing legacy approval flag to an open circle', async () => {
+  it('defaults a missing or null legacy approval flag to an open circle', async () => {
     await seed({ omitApproval: true });
+    await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
+    await env.clearFirestore();
+    await seed({ nullApproval: true });
     await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
   });
   it('accepts a code that has not expired yet', async () => {

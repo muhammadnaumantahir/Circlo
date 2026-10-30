@@ -165,7 +165,9 @@ service cloud.firestore {
               && exists(circlePath(circleId))
               && (
                 // Open circle: a valid, unrevoked, unexpired code.
-                (get(circlePath(circleId)).data.get('requiresApproval', false) == false
+                ((!('requiresApproval' in get(circlePath(circleId)).data)
+                    || get(circlePath(circleId)).data.requiresApproval == null
+                    || get(circlePath(circleId)).data.requiresApproval == false)
                   && validJoinCode(d.joinCode, circleId))
                 ||
                 // Approval circle: the owner must have approved this user's request.
