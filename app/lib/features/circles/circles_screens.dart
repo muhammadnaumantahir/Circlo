@@ -37,7 +37,7 @@ class CirclesScreen extends ConsumerWidget {
         !circles.hasError;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isFirstUse ? 'Welcome to Circlo' : 'Circles'),
+        title: isFirstUse ? const Text('Welcome to Circlo') : const SizedBox.shrink(),
         actions: isFirstUse
             ? const []
             : [
