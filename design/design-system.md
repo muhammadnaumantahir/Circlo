@@ -1,36 +1,78 @@
-# Circlo Design System (DRAFT)
+# Circlo Design System
 
-## Principles
-1. **Trust first:** sharing state is always visible and reversible within two taps.
-2. **Calm, clear, friendly:** family-oriented, not surveillance-like. Plain language.
-3. **Map is the home:** everything else supports the map.
-4. **Accessible by default.**
+**Status:** Implemented baseline, aligned with the FinMate / Stockly shared premium kit.  
+**Updated:** 2026-10-30.
 
-## Color (proposed; to be validated for contrast)
-| Token | Light | Dark | Use |
-|---|---|---|---|
-| primary | #2563EB | #7BA4F7 | primary actions, selected |
-| secondary | #0D9488 | #5EEAD4 | places, success accents |
-| surface | #FFFFFF | #121826 | cards, sheets |
-| background | #F5F7FB | #0B0F1A | screens |
-| text-primary | #111827 | #F3F4F6 | body |
-| status-online | #16A34A | #4ADE80 | sharing |
-| status-paused | #D97706 | #FBBF24 | paused |
-| status-unavailable | #6B7280 | #9CA3AF | unavailable |
-| error | #DC2626 | #F87171 | errors |
-Status is always shown with **icon + text**, never color alone.
+## Design direction
 
-## Typography
-Inter (or platform default). Scale: Display 28/34, Title 22/28, Heading 18/24, Body 16/24, Caption 13/18. Support OS text scaling up to 200%.
+Circlo uses the same polished visual language as FinMate and Stockly while retaining a distinct family-safety identity: confident blue, fresh mint, restrained violet, neutral surfaces and clear privacy cues.
 
-## Spacing and layout
-8-pt grid (4, 8, 12, 16, 24, 32). Min touch target 48×48 dp. Corner radius 12 (cards), 28 (bottom sheets), full (avatars).
+- **Trust first:** sharing state stays visible and reversible; never make location sharing appear enabled by default.
+- **Calm, clear and friendly:** family-oriented, not surveillance-like. Plain language.
+- **Map is the home:** map controls remain lightweight and legible above the map.
+- **Premium, not noisy:** large page titles, soft tinted page surfaces, 24px cards, colourful icon chips and restrained gradient hero panels.
+- **Responsive by default:** mobile navigation on narrow screens; a persistent workspace sidebar on desktop; content widths remain readable.
+- **Accessible by default:** icon plus text for status, visible focus, contrast, reduced-motion support and 44px minimum touch targets.
 
-## Components
-App bar with circle switcher; bottom navigation (Map, Circles, Places, History, Profile); member avatar marker with status ring; member bottom sheet; place card; timeline item; join-code input (segmented); status chip; consent card; empty-state illustration + CTA; snackbar/banner for offline and errors; confirmation dialog for destructive actions.
+## Brand and semantic tokens
 
-## Accessibility
-Semantic labels for markers and chips; map has an equivalent **list view** of members; focus order logical; contrast ≥4.5:1; reduce-motion respected; error text programmatically associated with fields.
+| Token | Value | Use |
+|---|---|---|
+| Brand blue | `#2563EB` | Primary actions, selected navigation, focus |
+| Deep blue | `#1D4ED8` | Gradient hero start |
+| Mint | `#17C7A1` | Secondary actions, positive accents |
+| Violet | `#8B7CFF` | Supporting feature accents |
+| Success | `#16A34A` | Active / successful status |
+| Warning | `#D97706` | Caution / pending status |
+| Danger | `#DC2626` | Errors and emergency actions |
+| Light canvas | `#F5F8FD` | App page background |
+| Light input | `#EEF3F9` | Filled form controls |
+| Dark canvas | `#07111F` | Dark-mode page background |
+| Dark card | `#101B2C` | Dark-mode surface |
+| Light border | `#DDE6F1` | Cards and controls |
+| Dark border | `#2B3B52` | Dark-mode separators |
 
-## Responsive behavior
-Phones primary (portrait). Tablets and **web desktop**: two-pane (list/side panel + map), keyboard navigation and visible focus. Landscape supported. Map shows required tile-provider attribution.
+The canonical source is `app/lib/core/widgets.dart` (`CircloPalette`). Avoid local colour literals when a semantic token exists.
+
+## Typography and spacing
+
+- Use the platform sans-serif stack. Page titles are heavy (w900), slightly tightened and large enough to establish hierarchy.
+- Body copy has a comfortable 1.4–1.5 line height. Secondary copy uses `onSurfaceVariant`.
+- Use an 8pt rhythm: 8, 12, 16, 20, 24, 32.
+- Cards use 24px radius, subtle outline and no heavy elevation.
+- Hero panels use 28px radius, blue → blue → mint gradient, restrained brand glow.
+- Controls use 16–17px radius, filled neutral backgrounds and clear focus borders.
+- Icon chips use 40–50px sizes with category/status tint at low opacity.
+- Page gutters are 20px on mobile and 24px on desktop; content remains readable.
+- Minimum touch target: 44px.
+
+## Shared components
+
+| Component | Purpose |
+|---|---|
+| `PremiumPageHeader` | Page title, eyebrow, subtitle and optional trailing action |
+| `PremiumHeroCard` | Gradient hero panel |
+| `PremiumProfileHero` | Branded account header |
+| `PremiumGlassCard` | Soft white/tinted card with subtle border and shadow |
+| `PremiumMetricCard` | Dashboard metric with icon and semantic colour |
+| `PremiumIconChip` | Consistent coloured icon tile |
+| `PremiumReveal` | Short fade/slide entrance respecting reduced motion |
+| `LoadingView`, `MessageView` | Branded loading and recovery states |
+
+Keep screen-specific UI in its feature module; reuse these shared components rather than creating a new style for every page.
+
+## Navigation and responsive layout
+
+- Mobile: Material 3 bottom navigation with persistent labels and a selected brand indicator.
+- Desktop (1000px+): extended workspace rail, account card and privacy reminder.
+- Main pages use a visible page heading and keep list content at a readable maximum width.
+- Map remains full-bleed; controls use shared tokens without a full page card over the map.
+- Create / Join and first-use onboarding use the responsive two-panel composition and stack on narrow screens.
+
+## Accessibility and motion
+
+- Status is shown using icon + label, not colour alone.
+- Keep keyboard focus visible and all primary taps at least 44px.
+- Preserve semantic labels for map markers and controls.
+- `PremiumReveal` returns the child immediately when the operating system requests reduced motion.
+- Respect OS text scaling; avoid fixed-height text containers.
