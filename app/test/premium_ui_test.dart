@@ -115,8 +115,10 @@ void main() {
     expect(find.text('Location sharing'), findsOneWidget);
   });
 
-  testWidgets('premium filter chip reports selected state and count', (tester) async {
-    var selected = false;
+  testWidgets('premium filter chip exposes its selected state and count', (tester) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+    bool? nextSelection;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -125,8 +127,8 @@ void main() {
               label: 'Places',
               count: '4',
               icon: Icons.place_rounded,
-              selected: false,
-              onSelected: (value) => selected = value,
+              selected: true,
+              onSelected: (value) => nextSelection = value,
             ),
           ),
         ),
@@ -135,8 +137,12 @@ void main() {
 
     expect(find.text('Places'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
+    final node = tester.getSemantics(find.byType(PremiumFilterChip));
+    expect(node.label, 'Places, 4');
+    expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(node.hasFlag(SemanticsFlag.isSelected), isTrue);
     await tester.tap(find.byType(PremiumFilterChip));
-    expect(selected, isTrue);
+    expect(nextSelection, isFalse);
   });
 
   test('premium palette uses the FinMate / Stockly brand colours', () {
