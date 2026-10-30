@@ -1,11 +1,11 @@
 # Circlo Feature Status & Cross-Chat Handover
 
 **Last updated:** 2026-10-30  
-**Latest status audit:** 2026-10-30 — reconciled against merged PRs #60–#72. PR #72 aligned Circlo's app-wide theme and primary feature screens with the FinMate / Stockly premium kit. Flutter tests/analyzer, responsive browser review and Cloudflare Pages verification remain pending.
+**Latest status audit:** 2026-10-30 — reconciled against merged PRs #60–#73. PR #73 extends the premium UI refresh across the Map, Circles, Places, Profile and login experience. Flutter tests/analyzer, responsive browser review and Cloudflare Pages verification remain pending.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
-**Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility) and PR #72 (premium UI refresh), merged 2026-10-30
-**Latest feature merge commit:** `828b71c593732dcf1798d732e7746b2abc85b6a0` — merge PR #72.  
+**Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility), PR #72 (initial premium UI) and PR #73 (premium UI refinement), merged 2026-10-30
+**Latest feature merge commit:** `875bc13c5035a11c295422bb1d41e0e063849e6d` — merge PR #73.  
 **Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
@@ -29,16 +29,16 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Behavior:** presentation-only; circle gating, membership, location sharing, privacy defaults and Firebase data flows are unchanged.
 - **Verification:** widget tests were added but not run. Flutter analyzer/tests, web build, responsive browser review and Android/iOS verification remain outstanding. GitHub Actions remains manual-only.
 
-## Latest premium UI refinement (active branch)
+## Latest premium UI refinement (merged via PR #73)
 
-- **Branch:** `feature/premium-ui-refinement-2`.
-- **Goal:** take PR #72's initial FinMate / Stockly alignment further with consistent premium surfaces and semantic interaction states.
-- **Map:** elevated active-circle selector, compact sharing-state pill, unified People search/status-filter panel and refined people preview.
-- **Circles / Places:** premium circle cards with owner/member labels, circle selector surfaces and a saved-place capacity indicator.
-- **Profile / Authentication:** grouped Profile form and privacy actions, distinct destructive account panel, and a contained sign-in form with inline errors.
-- **System:** reusable `PremiumStatusPill`, `PremiumTile` and `PremiumSection`; richer switch, checkbox, radio and segmented-control theme states.
-- **Behavior:** no changes to Firebase schema, membership, location sharing or consent defaults.
-- **Verification:** expanded widget tests are added but not run; Flutter analyze/tests, web build, responsive browser review and device verification remain pending. CI remains manual-only.
+- **PR:** [#73 — Polish Circlo with a more premium app-wide UI](https://github.com/muhammadnaumantahir/Circlo/pull/73), merged 2026-10-30.
+- **Merge commit:** `875bc13c5035a11c295422bb1d41e0e063849e6d`.
+- **Shared design system:** added semantic status pills, grouped glass-card sections and category-coloured setting tiles. Refined switch, checkbox, radio and segmented-control states for light/dark themes.
+- **Map:** premium active-circle selector and sharing state, single People search/filter surface and elevated floating people panel. Map remains full-bleed.
+- **Circles / Places:** ownership/member labels on circle cards, premium circle selector and saved-place capacity indicator.
+- **Profile / Authentication:** grouped profile form and privacy actions, separate destructive-action surface, contained login panel and inline errors.
+- **Behavior:** presentation-only; Firebase schema, membership, sharing consent, routes and location data behavior are unchanged.
+- **Verification:** widget tests were expanded but not run. Flutter analyzer/tests, responsive browser review, Cloudflare Pages build and Android/iOS checks remain outstanding. GitHub Actions stays manual-only.
 
 ## Status definitions
 
