@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
-- Treat an explicit Firestore `expiresAt: null` the same as a missing expiry for join codes, and default a missing legacy `requiresApproval` field to `false` in join Rules. Past and malformed expiry values remain rejected. Current branch; Rules must be deployed before the live two-account test.
+- Treat an explicit Firestore `expiresAt: null` the same as a missing expiry for join codes, and default a missing or null legacy `requiresApproval` field to `false` in join Rules. Past and malformed expiry values remain rejected. Current branch; Rules must be deployed before the live two-account test.
 - Report join permission-denied failures separately from genuinely invalid/expired codes, with an account-verification and Rules-deployment hint; the verified-email security check remains intact.
 - Refresh first-use onboarding and Create/Join Circle screens with branded, responsive desktop panels, stacked narrow layouts, inline error cards and uppercase, grouped join-code input. Widget and Firestore Rules regression tests added; not run.
 - Fix the approximate-location confirmation copy in `sharing_screen.dart` with a valid Dart triple-quoted string; the prior raw newline terminated a single-quoted string and stopped web compilation (merged via [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70)).
