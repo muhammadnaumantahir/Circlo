@@ -1,11 +1,11 @@
 # Circlo Feature Status & Cross-Chat Handover
 
 **Last updated:** 2026-10-30  
-**Latest status audit:** 2026-10-30 — `main` reconciled through merged PRs #60–#73. Follow-up History and Activity premium polish is open in PR #74 and is not yet in `main`; Flutter tests/analyzer, responsive browser review and Cloudflare Pages verification remain pending.
+**Latest status audit:** 2026-10-30 — `main` reconciled through merged PRs #60–#74. PR #74 extends the premium UI across History and Activity; Flutter tests/analyzer, responsive browser review and Cloudflare Pages verification remain pending.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
-**Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility), PR #72 (initial premium UI) and PR #73 (premium UI refinement), merged 2026-10-30
-**Latest feature merge commit:** `875bc13c5035a11c295422bb1d41e0e063849e6d` — merge PR #73.  
+**Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility), PR #72 (initial premium UI), PR #73 (premium UI refinement) and PR #74 (History / Activity premium polish), merged 2026-10-30
+**Latest feature merge commit:** `1ef9aaac1696b08460bcbc7b27e54acf76046727` — merge PR #74.  
 **Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
@@ -40,9 +40,10 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Behavior:** presentation-only; Firebase schema, membership, sharing consent, routes and location data behavior are unchanged.
 - **Verification:** widget tests were expanded but not run. Flutter analyzer/tests, responsive browser review, Cloudflare Pages build and Android/iOS checks remain outstanding. GitHub Actions stays manual-only.
 
-## Follow-up premium UI refinement (open PR #74)
+## Follow-up premium UI refinement (merged via PR #74)
 
-- **PR:** [#74 — Polish Circlo History and Activity with premium UI](https://github.com/muhammadnaumantahir/Circlo/pull/74), open; not merged into `main` yet.
+- **PR:** [#74 — Polish Circlo History and Activity with premium UI](https://github.com/muhammadnaumantahir/Circlo/pull/74), merged 2026-10-30.
+- **Merge commit:** `1ef9aaac1696b08460bcbc7b27e54acf76046727`.
 - **Shared component:** `PremiumFilterChip` adds selected/unselected styling, optional icon/count, semantic label/state and a 44px minimum touch target.
 - **History:** refreshed Circle/member and date selectors, quick-date filters, daily summary, stop timeline and grouped personal-history, per-Circle sharing and deletion settings.
 - **Activity:** refreshed category filters and feed cards; notification preferences are grouped by activity type and Circle. The app-bar back action remains available.
@@ -110,7 +111,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | #69 Place Suggestions source repair | Merged 2026-10-30 | Syntax correction is in `main`; analyzer/tests and a successful Cloudflare Pages deployment remain outstanding. |
 | #70 Cloudflare follow-up compile repairs | Merged 2026-10-30 | Fixes multiline string, malformed SOS helper and missing SharingController disposal flag; analyzer/tests and Cloudflare deployment verification pending. |
 | #71 Join-code compatibility and Circle web entry | Merged 2026-10-30 | Accepts absent/null expiry, aligns legacy approval defaults, distinguishes permission-denied failures and refreshes responsive Create/Join/onboarding screens; Rules deployment and tests pending. |
-| #74 Premium History and Activity UI | Open PR #74 — not merged | Shared filter chip, refined History controls/timeline/settings and Activity feed/preferences; presentation-only. | Flutter tests/analyzer, responsive light/dark review and Cloudflare Pages build remain pending. |
+| #74 Premium History and Activity UI | Merged 2026-10-30 | Shared filter chip, refined History controls/timeline/settings and Activity feed/preferences; presentation-only. | Flutter tests/analyzer, responsive light/dark review and Cloudflare Pages build remain pending. |
 
 ## Release checklist
 
