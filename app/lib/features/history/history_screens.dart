@@ -646,7 +646,10 @@ class HistorySettingsScreen extends ConsumerWidget {
     final byCircle = {for (final m in memberships) m.circleId: m};
 
     if (uid == null || profile == null) {
-      return Scaffold(appBar: AppBar(title: const Text('History settings')), body: const LoadingView());
+      return Scaffold(
+        appBar: AppBar(title: const Text('History settings')),
+        body: const LoadingView(),
+      );
     }
     final repo = ref.read(profileRepositoryProvider);
 
@@ -655,27 +658,164 @@ class HistorySettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          const PremiumPageHeader(eyebrow: 'PRIVATE BY DEFAULT', title: 'Your history', subtitle: 'Choose what is saved, shared and removed.'),
+          const PremiumPageHeader(
+            eyebrow: 'PRIVATE BY DEFAULT',
+            title: 'Your history',
+            subtitle: 'Choose what is saved, shared and removed.',
+          ),
           const SizedBox(height: 18),
-          PremiumSection(title: 'Personal history', subtitle: 'Control what Circlo saves to your account.', children: [
-            SwitchListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), title: const Text('Keep my travel history'), subtitle: const Text('Saves places you stay at and a simplified route while location sharing is on. Private to you until you share it with a circle.'), value: profile.keepHistory, onChanged: (v) async {
-              if (v) { final ok = await confirmAction(context, title: 'Keep a travel history?', message: 'Circlo will save places where you stay 10+ minutes and a simplified route for each day, in your account, while location sharing is on. Nobody else sees it unless you share it with a circle below. You can delete it any time.', confirmLabel: 'Keep history'); if (!ok) return; }
-              try { await repo.setHistoryPrefs(uid: uid, keepHistory: v, retentionDays: profile.retentionDays); } catch (_) { if (context.mounted) showSnack(context, 'Could not save. Check your connection and try again.'); }
-            }),
-            ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), leading: const PremiumIconChip(icon: Icons.schedule_rounded, color: CircloPalette.violet, size: 40), title: const Text('Keep history for'), subtitle: const Text('Older days are removed automatically when you open the app.'), trailing: DropdownButton<int>(value: const [7, 30, 90].contains(profile.retentionDays) ? profile.retentionDays : 30, items: const [DropdownMenuItem(value: 7, child: Text('7 days')), DropdownMenuItem(value: 30, child: Text('30 days')), DropdownMenuItem(value: 90, child: Text('90 days'))], onChanged: (v) async { if (v == null) return; try { await repo.setHistoryPrefs(uid: uid, keepHistory: profile.keepHistory, retentionDays: v); await runRetentionCleanup(ref); } catch (_) { if (context.mounted) showSnack(context, 'Could not save. Try again.'); } })),
-          ]),
+          PremiumSection(
+            title: 'Personal history',
+            subtitle: 'Control what Circlo saves to your account.',
+            children: [
+              SwitchListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                title: const Text('Keep my travel history'),
+                subtitle: const Text(
+                  'Saves places you stay at and a simplified route while location sharing is on. Private to you until you share it with a circle.',
+                ),
+                value: profile.keepHistory,
+                onChanged: (enabled) async {
+                  if (enabled) {
+                    final ok = await confirmAction(
+                      context,
+                      title: 'Keep a travel history?',
+                      message: 'Circlo will save places where you stay 10+ minutes and a simplified route for each day, in your account, while location sharing is on. '
+                          'Nobody else sees it unless you share it with a circle below. You can delete it any time.',
+                      confirmLabel: 'Keep history',
+                    );
+                    if (!ok) return;
+                  }
+                  try {
+                    await repo.setHistoryPrefs(
+                      uid: uid,
+                      keepHistory: enabled,
+                      retentionDays: profile.retentionDays,
+                    );
+                  } catch (_) {
+                    if (context.mounted) {
+                      showSnack(context, 'Could not save. Check your connection and try again.');
+                    }
+                  }
+                },
+              ),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: const PremiumIconChip(
+                  icon: Icons.schedule_rounded,
+                  color: CircloPalette.violet,
+                  size: 40,
+                ),
+                title: const Text('Keep history for'),
+                subtitle: const Text(
+                  'Older days are removed automatically when you open the app.',
+                ),
+                trailing: DropdownButton<int>(
+                  value: const [7, 30, 90].contains(profile.retentionDays)
+                      ? profile.retentionDays
+                      : 30,
+                  items: const [
+                    DropdownMenuItem(value: 7, child: Text('7 days')),
+                    DropdownMenuItem(value: 30, child: Text('30 days')),
+                    DropdownMenuItem(value: 90, child: Text('90 days')),
+                  ],
+                  onChanged: (days) async {
+                    if (days == null) return;
+                    try {
+                      await repo.setHistoryPrefs(
+                        uid: uid,
+                        keepHistory: profile.keepHistory,
+                        retentionDays: days,
+                      );
+                      await runRetentionCleanup(ref);
+                    } catch (_) {
+                      if (context.mounted) {
+                        showSnack(context, 'Could not save. Try again.');
+                      }
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 18),
-          PremiumSection(title: 'Share with circles', subtitle: 'Only circles where location sharing is on can be selected.', children: [
-            for (final c in circles) Builder(builder: (context) { final m = byCircle[c.id]; final canShare = profile.keepHistory && (m?.sharesLocation ?? false); return SwitchListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), secondary: const PremiumIconChip(icon: Icons.groups_rounded, color: CircloPalette.mint, size: 40), title: Text(c.name), subtitle: Text(!profile.keepHistory ? 'Turn on "Keep my travel history" first' : (m?.sharesLocation ?? false) ? ((m?.historyShared ?? false) ? 'History shared' : 'Not shared') : 'Location sharing is off for this circle'), value: m?.historyShared ?? false, onChanged: (canShare || (m?.historyShared ?? false)) ? (v) => _toggleCircle(context, ref, uid, c, v) : null); }),
-          ]),
+          PremiumSection(
+            title: 'Share with circles',
+            subtitle: 'Only circles where location sharing is on can be selected.',
+            children: [
+              for (final circle in circles)
+                Builder(
+                  builder: (context) {
+                    final membership = byCircle[circle.id];
+                    final canShare = profile.keepHistory &&
+                        (membership?.sharesLocation ?? false);
+                    return SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      secondary: const PremiumIconChip(
+                        icon: Icons.groups_rounded,
+                        color: CircloPalette.mint,
+                        size: 40,
+                      ),
+                      title: Text(circle.name),
+                      subtitle: Text(
+                        !profile.keepHistory
+                            ? 'Turn on "Keep my travel history" first'
+                            : (membership?.sharesLocation ?? false)
+                                ? ((membership?.historyShared ?? false)
+                                    ? 'History shared'
+                                    : 'Not shared')
+                                : 'Location sharing is off for this circle',
+                      ),
+                      value: membership?.historyShared ?? false,
+                      onChanged: (canShare ||
+                              (membership?.historyShared ?? false))
+                          ? (enabled) => _toggleCircle(
+                                context,
+                                ref,
+                                uid,
+                                circle,
+                                enabled,
+                              )
+                          : null,
+                    );
+                  },
+                ),
+            ],
+          ),
           const SizedBox(height: 18),
-          PremiumSection(title: 'Manage stored history', subtitle: 'Deleting history removes it from your account and every circle.', children: [
-            Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              OutlinedButton.icon(icon: const Icon(Icons.date_range_rounded), label: const Text('Delete a date range…'), onPressed: () => _deleteRange(context, ref, uid)),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error, side: BorderSide(color: Theme.of(context).colorScheme.error.withValues(alpha: .45))), icon: const Icon(Icons.delete_forever_rounded), label: const Text('Delete all my history'), onPressed: () => _deleteAll(context, ref, uid)),
-            ])),
-          ]),
+          PremiumSection(
+            title: 'Manage stored history',
+            subtitle: 'Deleting history removes it from your account and every circle.',
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.date_range_rounded),
+                      label: const Text('Delete a date range…'),
+                      onPressed: () => _deleteRange(context, ref, uid),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                        side: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme.error
+                              .withValues(alpha: .45),
+                        ),
+                      ),
+                      icon: const Icon(Icons.delete_forever_rounded),
+                      label: const Text('Delete all my history'),
+                      onPressed: () => _deleteAll(context, ref, uid),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
