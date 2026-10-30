@@ -278,8 +278,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _phone.text = p.phone ?? '';
             _loaded = true;
           }
-          final theme = Theme.of(context);
-          final scheme = theme.colorScheme;
           final displayName = p.displayName.trim();
           final initial = displayName.isEmpty ? '?' : displayName.substring(0, 1).toUpperCase();
           return FormPage(children: [
