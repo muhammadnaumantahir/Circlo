@@ -1,6 +1,6 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#71; see [canonical feature status and cross-chat handover](feature-status.md)). PR #71 merged the join-code Rules compatibility, permission-denied diagnostics and responsive Circle entry screens. Tests, analyzer, Firestore Rules deployment, Cloudflare Pages deployment and device behavior remain unverified. Code being in `main` does not mean tests or device behavior are verified.
+Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#72; see [canonical feature status and cross-chat handover](feature-status.md)). PR #72 refreshed Circlo's shared design system, desktop shell and primary information screens to match the FinMate / Stockly premium style. Tests, analyzer, responsive web review, Cloudflare Pages deployment and device behavior remain unverified.
 
 **Current next step:** deploy PR #71's Firestore Rules to the intended Firebase project and retry the same invitation with a second verified account. Then run the Flutter analyzer/widget tests and Firestore Emulator Rules tests through the manual-only workflow, and verify the Cloudflare Pages build. Also verify PR #68's SOS tests and two-account privacy behavior. No GitHub Actions workflow should be triggered automatically.
 
@@ -14,10 +14,13 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 - First-use onboarding and Create/Join screens use responsive gradient-hero/form panels on wide web layouts and stacked mobile layouts. Invite codes are uppercased and grouped while typing.
 - Regression coverage was added for expiry/approval edge cases, the full membership/contact-cleanup/activity join batch, invite formatting and wide-screen layout. Tests have not been run.
 
-## Active visual-quality improvement
+## Premium UI refresh (merged via PR #72)
 
-- Branch `feature/premium-finmate-stockly-ui` aligns Circlo with the FinMate / Stockly premium design kit: blue/mint/violet palette, neutral tinted surfaces, consistent typography, 24px cards, gradient account/feature heroes, category icon chips, branded loading states and responsive sidebar navigation.
-- No product behavior or sharing/privacy default is changed. Automated UI checks are being authored but remain unrun; visual checks at mobile/tablet/desktop widths and light/dark modes remain outstanding.
+- App-wide light/dark theme now uses semantic blue/mint/violet tokens, consistent typography, rounded cards and clearer controls.
+- Shared components provide gradient hero cards, page headings, glass-style surfaces, profile identity panels, metric tiles and category icon chips, plus branded loading/recovery.
+- Desktop navigation has a branded sidebar, privacy cue and account footer; mobile bottom navigation remains.
+- Circles, Places, Travel History, Activity and Profile have stronger information hierarchy. The map remains full-bleed.
+- This is presentation-only. Sharing consent, data, routes and circle-gating behavior are unchanged. Tests and responsive visual verification have not run.
 
 ## Release gates (must stay visible throughout feature work)
 
