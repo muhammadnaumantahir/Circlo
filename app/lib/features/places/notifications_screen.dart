@@ -216,7 +216,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),                Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: Row(
                     children: [
@@ -349,19 +348,11 @@ class _NotificationTile extends StatelessWidget {
             ),
           ),
           trailing: isNew
-              ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: .11),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: scheme.primary.withValues(alpha: .13)),
-                  ),
-                  child: const PremiumStatusPill(
-                    label: 'New',
-                    icon: Icons.fiber_new_rounded,
-                    color: CircloPalette.brand,
-                    compact: true,
-                  ),
+              ? const PremiumStatusPill(
+                  label: 'New',
+                  icon: Icons.fiber_new_rounded,
+                  color: CircloPalette.brand,
+                  compact: true,
                 )
               : null,
         ),
