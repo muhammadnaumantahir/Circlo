@@ -126,70 +126,110 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          GoogleSignInButton(
-            busy: _busy,
-            onPressed: _busy ? null : _signInWithGoogle,
-          ),
-          const SizedBox(height: 16),
-          const _AuthDivider(label: 'OR CONTINUE WITH EMAIL'),
-          const SizedBox(height: 18),
-          Form(
-            key: _form,
-            child: Column(children: [
-              TextFormField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded), border: OutlineInputBorder()),
-                validator: validateEmail,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _password,
-                obscureText: _hide,
-                autofillHints: const [AutofillHints.password],
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded),
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    tooltip: _hide ? 'Show password' : 'Hide password',
-                    icon: Icon(_hide ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () => setState(() => _hide = !_hide),
+          PremiumGlassCard(
+            padding: const EdgeInsets.all(20),
+            radius: 24,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GoogleSignInButton(
+                  busy: _busy,
+                  onPressed: _busy ? null : _signInWithGoogle,
+                ),
+                const SizedBox(height: 16),
+                const _AuthDivider(label: 'OR CONTINUE WITH EMAIL'),
+                const SizedBox(height: 18),
+                Form(
+                  key: _form,
+                  child: Column(children: [
+                    TextFormField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
+                      decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded), border: OutlineInputBorder()),
+                      validator: validateEmail,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _password,
+                      obscureText: _hide,
+                      autofillHints: const [AutofillHints.password],
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          tooltip: _hide ? 'Show password' : 'Hide password',
+                          icon: Icon(_hide ? Icons.visibility : Icons.visibility_off),
+                          onPressed: () => setState(() => _hide = !_hide),
+                        ),
+                      ),
+                      validator: (v) => (v == null || v.isEmpty) ? 'Enter your password' : null,
+                      onFieldSubmitted: (_) => _submit(),
+                    ),
+                  ]),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: .42),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: .16)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.error_outline_rounded, size: 19, color: Theme.of(context).colorScheme.error),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            _error!,
+                            style: TextStyle(color: Theme.of(context).colorScheme.error, height: 1.35),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _busy ? null : _submit,
+                    child: _busy
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.login_rounded),
+                              SizedBox(width: 9),
+                              Text('Log in'),
+                            ],
+                          ),
                   ),
                 ),
-                validator: (v) => (v == null || v.isEmpty) ? 'Enter your password' : null,
-                onFieldSubmitted: (_) => _submit(),
-              ),
-            ]),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          ],
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _busy ? null : _submit,
-            child: _busy
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.login_rounded),
-                      SizedBox(width: 9),
-                      Text('Log in'),
-                    ],
-                  ),
-          ),
-          TextButton.icon(
-            onPressed: () => context.go('/reset'),
-            icon: const Icon(Icons.lock_reset_rounded, size: 18),
-            label: const Text('Forgot password?'),
-          ),
-          TextButton.icon(
-            onPressed: () => context.go('/signup'),
-            icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-            label: const Text('Create an account'),
+                const SizedBox(height: 4),
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  runAlignment: WrapAlignment.center,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => context.go('/reset'),
+                      icon: const Icon(Icons.lock_reset_rounded, size: 18),
+                      label: const Text('Forgot password?'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => context.go('/signup'),
+                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                      label: const Text('Create account'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ]),
       ),
