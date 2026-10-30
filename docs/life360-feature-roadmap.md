@@ -1,8 +1,8 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-29 (reconciled with merged PRs #60–#67; see [canonical feature status and cross-chat handover](feature-status.md)). Code being in `main` does not mean tests or device behavior are verified.
+Last reviewed: 2026-10-29 (reconciled with merged PRs #60–#67; see [canonical feature status and cross-chat handover](feature-status.md)). Cloudflare Pages last succeeded on `167192e` and first failed on `1a0942b`; static review found malformed Dart source in Place Suggestions. A focused repair is in [draft PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69), not merged or verified by build/tests. Code being in `main` does not mean tests or device behavior are verified.
 
-**Current next step:** release verification is P0 before adding more safety-sensitive behavior. Run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite, rebuild Cloudflare Pages, and test Android/iOS background behavior and two-account privacy flows. No automated workflow should be triggered automatically.
+**Current next step:** release verification is P0 before adding more safety-sensitive behavior. Review [draft PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69), which repairs the malformed Place Suggestions loop/duplicate fragment found in the first failing commit window; then run the manual-only Flutter analyzer/tests, Firestore Emulator Rules suite, and confirm the Cloudflare Pages build. Provider logs remain inaccessible, so successful build verification is still required. Test Android/iOS background behavior and two-account privacy flows. No GitHub Actions workflow should be triggered automatically.
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 

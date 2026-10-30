@@ -4,6 +4,7 @@ Current feature progress and handover: [feature-status.md](feature-status.md). S
 
 | Req | Check | Where | Command | Status |
 |---|---|---|---|---|
+| Release / Cloudflare regression | Verify the Place Suggestions build blocker is repaired; ensure the visit loop and function braces parse, then run Flutter analyzer/tests and confirm the Pages build | `app/lib/features/places/place_suggestions.dart`; `app/test/place_suggestions_test.dart`; [draft PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69) | `cd app && flutter analyze && flutter test test/place_suggestions_test.dart` plus Cloudflare Pages verification | Definite malformed source found in `main`; syntax repair proposed in PR #69. Tests/build not run; provider logs unavailable |
 | FR-001–003 | Sign-up/log-in/reset flows | manual with Firebase project/emulator | `flutter run` | Not run |
 | FR-001, FR-002 | Login form validation | `app/test/login_screen_test.dart` | `flutter test` | Not run (CI) |
 | Contact sharing | Per-circle opt-in, member-scoped reads, private-profile isolation, atomic phone updates, cleanup on leave/removal/account deletion and Call/Text handler behavior | `app/test/models_test.dart`; `firebase/tests/rules.test.mjs`; manual Android/iOS/web | `cd app && flutter test test/models_test.dart`; `cd firebase && npm test` | Added on 2026-10-29; Not run here |
