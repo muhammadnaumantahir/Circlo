@@ -1,6 +1,6 @@
 # Test Plan (Increment 1)
 
-Current feature progress and handover: [feature-status.md](feature-status.md). Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are manual/automated checklists; rows marked Not run remain unverified. This authoring pass has not run Flutter or Firestore tests. The join-code compatibility and responsive web UI tests below were added in PR #71; they remain Not run.
+Current feature progress and handover: [feature-status.md](feature-status.md). Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are manual/automated checklists; rows marked Not run remain unverified. This authoring pass has not run Flutter or Firestore tests. Premium UI component/widget coverage is being added on branch `feature/premium-finmate-stockly-ui`; it remains Not run. The join-code compatibility and responsive web UI tests below were added in PR #71; they remain Not run.
 
 | Req | Check | Where | Command | Status |
 |---|---|---|---|---|
