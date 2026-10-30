@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 ### Fixed
+- Fix the approximate-location confirmation copy in `sharing_screen.dart` with a valid Dart triple-quoted string; the prior raw newline terminated a single-quoted string and stopped web compilation (merged via [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70)).
+- Restore `sos_contact.dart` as one complete recipient-filtering implementation with a properly terminated E.164-style phone-number RegExp; remove the orphaned duplicate tail and duplicate URI declarations that caused parser errors (merged via [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70)).
+- Add the missing `SharingController._disposed` lifecycle flag and set it during provider disposal so the delayed Bubble-expiry retry is not scheduled after disposal (merged via [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70)).
+- Extend SOS contact regression coverage for whitespace-only unresolved signed-in UIDs. PR #70 is merged; analyzer/tests and a successful Cloudflare Pages build are still pending.
 - Fix the approximate-location confirmation copy in `sharing_screen.dart` by using a valid multiline Dart string; the prior raw newline terminated a single-quoted string and stopped web compilation.
 - Restore `sos_contact.dart` as one complete recipient-filtering implementation with a properly terminated E.164-style phone regex; remove the orphaned duplicate tail that caused parser errors and duplicate URI declarations.
 - Add the missing `SharingController._disposed` lifecycle flag and set it during provider disposal so the delayed Bubble-expiry retry is not scheduled after disposal.

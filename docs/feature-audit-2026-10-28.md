@@ -92,4 +92,4 @@ The build log for the deployment at 2026-10-30 05:44 UTC reports:
 - `sos_contact.dart`: the phone-number RegExp is not terminated; an orphaned duplicate implementation follows the helper and URI functions are declared twice.
 - `sharing_controller.dart`: `_clearExpiredApproximateBubbles` references `_disposed`, but the controller did not declare the field.
 
-A focused repair is proposed in [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70). The package notice about newer incompatible versions is informational in this log; the compilation exits on the Dart errors above. The build and tests have not yet been rerun after the proposed changes.
+These three source repairs were merged via [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70). The package notice about newer incompatible versions is informational in this log; the compilation exits on the Dart errors above. The Cloudflare build and tests have not yet been rerun after the merged changes.
