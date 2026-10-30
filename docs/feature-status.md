@@ -1,11 +1,11 @@
 # Circlo Feature Status & Cross-Chat Handover
 
 **Last updated:** 2026-10-30  
-**Latest status audit:** 2026-10-30 — reconciled against merged PRs #60–#71. PR #71 merged the join-code Rules compatibility, separate permission-denied diagnosis, responsive Circle entry screens and regression tests. Rules deployment, Flutter/Firestore tests and Cloudflare Pages verification remain pending.
+**Latest status audit:** 2026-10-30 — reconciled against merged PRs #60–#72. PR #72 aligned Circlo's app-wide theme and primary feature screens with the FinMate / Stockly premium kit. Flutter tests/analyzer, responsive browser review and Cloudflare Pages verification remain pending.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
-**Latest feature merges at audit:** PR #68 (manual SOS message/contact handoff), PR #69 (Place Suggestions syntax repair), PR #70 (Cloudflare Dart compile repairs) and PR #71 (join-code/web UI fixes), merged 2026-10-30
-**Latest feature merge commit:** `74082021b9b73ce8fb69dea64173a74ba9daf2fd` — merge PR #71.  
+**Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility) and PR #72 (premium UI refresh), merged 2026-10-30
+**Latest feature merge commit:** `828b71c593732dcf1798d732e7746b2abc85b6a0` — merge PR #72.  
 **Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
@@ -19,13 +19,15 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Web UX:** first-use onboarding, Create Circle and Join Circle use branded responsive two-panel layouts on wide screens and stacked layouts on narrow screens. Join codes are uppercased and grouped while typing.
 - **Verification:** Firestore Rules and widget regression tests were added but not run. The updated Rules still need deployment to the intended Firebase project, followed by a real two-account test. Flutter analyzer/tests and Cloudflare Pages build remain unverified.
 
-## Latest UI refresh (active branch)
+## Latest UI refresh (merged via PR #72)
 
-- **Branch:** `feature/premium-finmate-stockly-ui`.
-- **Reference:** shared FinMate / Stockly kit: blue/mint/violet semantic tokens, soft surfaces, rounded cards, gradient hero panels, colourful icon tiles and clearer page hierarchy.
-- **Scope:** app-wide light/dark theme, shared premium components, branded loading/recovery, responsive desktop sidebar/account footer, and stronger page hierarchy for Circles, Places, Travel History, Activity and Profile. Map remains full-bleed and retains its map-first workflow.
-- **Behavior:** visual-only; Firebase data, location-consent defaults, circle gating, privacy settings and navigation destinations are preserved.
-- **Verification:** widget tests are being added; Flutter analyzer/tests, web build, visual browser review and Android/iOS verification are not run here. GitHub Actions remains manual-only.
+- **PR:** [#72 — Refresh Circlo with FinMate / Stockly premium UI](https://github.com/muhammadnaumantahir/Circlo/pull/72), merged 2026-10-30.
+- **Merge commit:** `828b71c593732dcf1798d732e7746b2abc85b6a0`.
+- **Design system:** semantic blue/mint/violet palette, refreshed light/dark themes, rounded cards/controls, stronger typography, gradient hero treatment and branded loading/recovery.
+- **Desktop:** wider workspace sidebar, privacy panel and signed-in account card. Mobile bottom navigation remains unchanged.
+- **Screens:** Circles, Saved Places, Travel History, Activity and Profile have improved page hierarchy. Map remains full-bleed and map-first.
+- **Behavior:** presentation-only; circle gating, membership, location sharing, privacy defaults and Firebase data flows are unchanged.
+- **Verification:** widget tests were added but not run. Flutter analyzer/tests, web build, responsive browser review and Android/iOS verification remain outstanding. GitHub Actions remains manual-only.
 
 ## Status definitions
 
