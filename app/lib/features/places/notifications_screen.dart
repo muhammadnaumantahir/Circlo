@@ -86,7 +86,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: const Text('Activity'),
         actions: [
           IconButton(
             tooltip: 'Notification settings',
@@ -142,8 +142,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 padding: EdgeInsets.fromLTRB(20, 18, 20, 12),
                 child: PremiumPageHeader(
                   eyebrow: 'YOUR CIRCLES',
-                  title: 'Activity',
-                  subtitle: 'The latest updates from people in your circles.',
+                  title: 'Latest updates',
+                  subtitle: 'The people and places that matter, together.',
                 ),
               ),
               const Padding(
@@ -197,45 +197,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        ChoiceChip(
-                          label: Text('All ${items.length}'),
-                          selected: _filter == _ActivityFilter.all,
-                          onSelected: (_) => setState(() => _filter = _ActivityFilter.all),
-                        ),
+                        PremiumFilterChip(label: 'All', count: '${items.length}', icon: Icons.grid_view_rounded, selected: _filter == _ActivityFilter.all, onSelected: (_) => setState(() => _filter = _ActivityFilter.all)),
                         const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: Text('Places & No Show $placeCount'),
-                          selected: _filter == _ActivityFilter.places,
-                          onSelected: (_) => setState(() => _filter = _ActivityFilter.places),
-                        ),
+                        PremiumFilterChip(label: 'Places', count: '$placeCount', icon: Icons.place_rounded, selected: _filter == _ActivityFilter.places, onSelected: (_) => setState(() => _filter = _ActivityFilter.places)),
                         const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: Text('People $peopleCount'),
-                          selected: _filter == _ActivityFilter.people,
-                          onSelected: (_) => setState(() => _filter = _ActivityFilter.people),
-                        ),
+                        PremiumFilterChip(label: 'People', count: '$peopleCount', icon: Icons.groups_rounded, selected: _filter == _ActivityFilter.people, onSelected: (_) => setState(() => _filter = _ActivityFilter.people)),
                         const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: Text('Location $locationCount'),
-                          selected: _filter == _ActivityFilter.location,
-                          onSelected: (_) => setState(() => _filter = _ActivityFilter.location),
-                        ),
+                        PremiumFilterChip(label: 'Location', count: '$locationCount', icon: Icons.near_me_rounded, selected: _filter == _ActivityFilter.location, onSelected: (_) => setState(() => _filter = _ActivityFilter.location)),
                         const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: Text('Check-ins $checkInCount'),
-                          selected: _filter == _ActivityFilter.checkIns,
-                          onSelected: (_) => setState(() => _filter = _ActivityFilter.checkIns),
-                        ),
+                        PremiumFilterChip(label: 'Check-ins', count: '$checkInCount', icon: Icons.check_circle_outline_rounded, selected: _filter == _ActivityFilter.checkIns, onSelected: (_) => setState(() => _filter = _ActivityFilter.checkIns)),
                       ],
                     ),
                   ),
                 ),
                 Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),                Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: Row(
                     children: [
@@ -340,8 +321,9 @@ class _NotificationTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-      child: Card(
-        margin: EdgeInsets.zero,
+      child: PremiumGlassCard(
+        padding: EdgeInsets.zero,
+        radius: 18,
         child: ListTile(
           minVerticalPadding: 12,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -374,15 +356,14 @@ class _NotificationTile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: scheme.primary.withValues(alpha: .13)),
                   ),
-                  child: Text(
-                    'New',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: scheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  child: const PremiumStatusPill(
+                    label: 'New',
+                    icon: Icons.fiber_new_rounded,
+                    color: CircloPalette.brand,
+                    compact: true,
                   ),
                 )
-              : Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+              : null,
         ),
       ),
     );
@@ -473,60 +454,89 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
             const Padding(
               padding: EdgeInsets.only(right: 16),
               child: Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+                child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
               ),
             ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          Text('Show me', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          for (final kind in FeedKind.values)
-            SwitchListTile(
-              title: Text(feedKindLabel(kind)),
-              value: !_off.contains(feedKindName(kind)),
-              onChanged: _saving
-                  ? null
-                  : (enabled) {
-                      final nextOff = Set<String>.of(_off);
-                      enabled
-                          ? nextOff.remove(feedKindName(kind))
-                          : nextOff.add(feedKindName(kind));
-                      _save(uid: uid, nextOff: nextOff, nextMuted: _muted);
-                    },
-            ),
-          const Divider(height: 28),
-          Text('Circles', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Muted circles do not appear in your notifications.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+          const PremiumPageHeader(
+            eyebrow: 'ACTIVITY PREFERENCES',
+            title: 'Your updates',
+            subtitle: 'Choose what appears in your activity feed.',
           ),
-          const SizedBox(height: 8),
-          for (final circle in circles)
-            SwitchListTile(
-              title: Text(circle.name),
-              subtitle: Text(_muted.contains(circle.id) ? 'Muted' : 'Notifications on'),
-              value: !_muted.contains(circle.id),
-              onChanged: _saving
-                  ? null
-                  : (enabled) {
-                      final nextMuted = Set<String>.of(_muted);
-                      enabled ? nextMuted.remove(circle.id) : nextMuted.add(circle.id);
-                      _save(uid: uid, nextOff: _off, nextMuted: nextMuted);
-                    },
+          const SizedBox(height: 18),
+          PremiumSection(
+            title: 'Activity types',
+            subtitle: 'Choose the updates you want to see.',
+            children: [
+              for (final kind in FeedKind.values)
+                SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  secondary: PremiumIconChip(
+                    icon: Icons.notifications_active_rounded,
+                    color: CircloPalette.accent(kind.index),
+                    size: 40,
+                  ),
+                  title: Text(feedKindLabel(kind)),
+                  value: !_off.contains(feedKindName(kind)),
+                  onChanged: _saving
+                      ? null
+                      : (enabled) {
+                          final nextOff = Set<String>.of(_off);
+                          enabled
+                              ? nextOff.remove(feedKindName(kind))
+                              : nextOff.add(feedKindName(kind));
+                          _save(uid: uid, nextOff: nextOff, nextMuted: _muted);
+                        },
+                ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          PremiumSection(
+            title: 'Your circles',
+            subtitle: 'Muted circles do not appear in your activity feed.',
+            children: [
+              for (final circle in circles)
+                SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  secondary: const PremiumIconChip(
+                    icon: Icons.groups_rounded,
+                    color: CircloPalette.mint,
+                    size: 40,
+                  ),
+                  title: Text(circle.name),
+                  subtitle: Text(_muted.contains(circle.id) ? 'Muted' : 'Updates on'),
+                  value: !_muted.contains(circle.id),
+                  onChanged: _saving
+                      ? null
+                      : (enabled) {
+                          final nextMuted = Set<String>.of(_muted);
+                          enabled ? nextMuted.remove(circle.id) : nextMuted.add(circle.id);
+                          _save(uid: uid, nextOff: _off, nextMuted: nextMuted);
+                        },
+                ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          PremiumGlassCard(
+            radius: 18,
+            padding: const EdgeInsets.all(14),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const PremiumIconChip(
+                icon: Icons.info_outline_rounded,
+                color: CircloPalette.brand,
+                size: 40,
+              ),
+              title: const Text('In-app updates only'),
+              subtitle: Text(
+                'Arrival/departure alerts are also configured per place. Phone push notifications are not available yet, so this feed updates while Circlo is open and syncing.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
             ),
-          const SizedBox(height: 12),
-          const Text(
-            'Arrival/departure alerts are also configured per place in the Places tab. '
-            'Phone push notifications are not available yet, so this feed updates while Circlo is open and syncing.',
-            style: TextStyle(fontSize: 12),
           ),
         ],
       ),
