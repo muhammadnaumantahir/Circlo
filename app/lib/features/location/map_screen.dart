@@ -718,10 +718,34 @@ class _MapBodyState extends ConsumerState<_MapBody> {
         );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+      child: PremiumGlassCard(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        radius: 20,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'PEOPLE',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.05,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${views.length} ${views.length == 1 ? 'member' : 'members'}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
           TextField(
             controller: _searchController,
             onChanged: (value) => setState(() => _query = value),
@@ -789,7 +813,8 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                 ),
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1548,44 +1573,39 @@ class _PeoplePeekCard extends StatelessWidget {
         ? '$sharing sharing now'
         : (paused > 0 ? '$paused paused' : 'No active location updates');
 
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: .13),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .75)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        child: Column(
+    return PremiumGlassCard(
+      padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
+      radius: 25,
+      child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: CircloPalette.brand.withValues(alpha: .10),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.groups_rounded, color: CircloPalette.brand, size: 20),
+                PremiumIconChip(
+                  icon: Icons.groups_rounded,
+                  color: CircloPalette.brand,
+                  size: 40,
                 ),
-                const SizedBox(width: 9),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Your people', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
                       Text(
-                        '$status · ${views.length} ${views.length == 1 ? 'member' : 'members'}',
+                        '${views.length} ${views.length == 1 ? 'member' : 'members'} in this circle',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
                       ),
                     ],
                   ),
+                ),
+                PremiumStatusPill(
+                  label: sharing > 0 ? '$sharing sharing' : (paused > 0 ? '$paused paused' : 'Quiet'),
+                  icon: sharing > 0 ? Icons.location_on_rounded : (paused > 0 ? Icons.pause_rounded : Icons.more_horiz_rounded),
+                  color: sharing > 0 ? CircloPalette.success : (paused > 0 ? CircloPalette.warning : scheme.onSurfaceVariant),
+                  compact: true,
                 ),
                 TextButton(
                   onPressed: onAllPeople,
@@ -1731,67 +1751,73 @@ class _Header extends ConsumerWidget {
     final icon = active > 0
         ? Icons.location_on_rounded
         : (pausedCount > 0 ? Icons.pause_circle_outline_rounded : Icons.visibility_off_rounded);
-    final chipBackground = active > 0
-        ? scheme.primaryContainer
-        : (pausedCount > 0 ? scheme.secondaryContainer : scheme.surface);
-    final chipForeground = active > 0
-        ? scheme.onPrimaryContainer
-        : (pausedCount > 0 ? scheme.onSecondaryContainer : scheme.onSurfaceVariant);
+    final compact = MediaQuery.sizeOf(context).width < 430;
+    final statusColor = active > 0
+        ? CircloPalette.success
+        : (pausedCount > 0 ? CircloPalette.warning : scheme.onSurfaceVariant);
+    final statusLabelText = active > 0
+        ? (compact ? 'Sharing' : label)
+        : (pausedCount > 0 ? 'Paused' : 'Not sharing');
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: scheme.outlineVariant.withOpacity(0.65)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(13),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+      child: PremiumGlassCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        radius: 20,
+        child: Row(
+          children: [
+            PremiumIconChip(
+              icon: Icons.groups_rounded,
+              color: CircloPalette.brand,
+              size: 44,
             ),
-            child: Icon(Icons.groups_rounded, color: scheme.onPrimaryContainer, size: 21),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: selected.id,
-              underline: const SizedBox.shrink(),
-              icon: const Icon(Icons.unfold_more_rounded, size: 20),
-              style: theme.textTheme.titleMedium,
-              items: [
-                for (final c in circles)
-                  DropdownMenuItem(
-                    value: c.id,
-                    child: Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'ACTIVE CIRCLE',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.05,
+                    ),
                   ),
-              ],
-              onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
-            ),
-          ),
-          const SizedBox(width: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 174),
-            child: ActionChip(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-              side: BorderSide.none,
-              backgroundColor: chipBackground,
-              avatar: Icon(icon, size: 17, color: chipForeground),
-              label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-              labelStyle: theme.textTheme.labelMedium?.copyWith(
-                color: chipForeground,
-                fontWeight: FontWeight.w700,
+                  const SizedBox(height: 2),
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: selected.id,
+                    underline: const SizedBox.shrink(),
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    items: [
+                      for (final c in circles)
+                        DropdownMenuItem(
+                          value: c.id,
+                          child: Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                    ],
+                    onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
+                  ),
+                ],
               ),
-              onPressed: () => context.push('/sharing'),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            PremiumStatusPill(
+              label: statusLabelText,
+              icon: icon,
+              color: statusColor,
+              onTap: () => context.push('/sharing'),
+              compact: compact,
+            ),
+          ],
+        ),
       ),
     );
   }
