@@ -68,15 +68,22 @@ class Member {
       );
 }
 
-enum JoinFailureKind { invalid, alreadyMember }
+enum JoinFailureKind { invalid, alreadyMember, permissionDenied }
 
 class JoinFailure implements Exception {
   const JoinFailure(this.kind);
   final JoinFailureKind kind;
 
-  String get message => kind == JoinFailureKind.alreadyMember
-      ? 'You are already in this circle.'
-      : 'That code is not valid or has expired. Check it and try again.';
+  String get message {
+    switch (kind) {
+      case JoinFailureKind.alreadyMember:
+        return 'You are already in this circle.';
+      case JoinFailureKind.permissionDenied:
+        return 'Firebase blocked this join. Make sure this account has a verified email and the latest Circlo Firestore rules are deployed, then try again.';
+      case JoinFailureKind.invalid:
+        return 'That code is not valid or has expired. Check it and try again.';
+    }
+  }
 
   @override
   String toString() => message;

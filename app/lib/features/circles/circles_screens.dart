@@ -135,100 +135,202 @@ class _CircleOnboarding extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 820;
+        final hero = PremiumHeroCard(
+          padding: const EdgeInsets.all(28),
+          radius: 30,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Center(child: PremiumBrandMark(size: 76)),
-              const SizedBox(height: 22),
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: Colors.white.withValues(alpha: .22)),
+                ),
+                child: const Icon(Icons.hub_rounded, color: Colors.white, size: 34),
+              ),
+              const SizedBox(height: 28),
               Text(
                 'Your people, in sync.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Start by creating a private circle or joining one with an invite code. '
-                'Your shared map, saved places and travel history will appear once you belong to a circle.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 26),
-              Card(
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          PremiumIconChip(icon: Icons.groups_rounded, color: CircloPalette.brand, size: 46),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Create a circle', style: TextStyle(fontWeight: FontWeight.w800)),
-                                SizedBox(height: 3),
-                                Text('Start a group and invite people you trust.'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      FilledButton.icon(
-                        onPressed: onCreate,
-                        icon: const Icon(Icons.add_rounded),
-                        label: const Text('Create a circle'),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Divider(height: 1),
-                      ),
-                      Row(
-                        children: [
-                          PremiumIconChip(icon: Icons.vpn_key_rounded, color: CircloPalette.mint, size: 46),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Join a circle', style: TextStyle(fontWeight: FontWeight.w800)),
-                                SizedBox(height: 3),
-                                Text('Enter the invite code someone shared with you.'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      OutlinedButton.icon(
-                        onPressed: onJoin,
-                        icon: const Icon(Icons.arrow_forward_rounded),
-                        label: const Text('Join with an invite code'),
-                      ),
-                    ],
-                  ),
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -.8,
+                  height: 1.05,
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               Text(
-                'Location sharing is always your choice. You can decide which circles can see you.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                'A private space for the people who matter. Stay connected through a shared map, saved places and helpful updates.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: Colors.white.withValues(alpha: .9),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 26),
+              const _OnboardingTrustRow(
+                icon: Icons.privacy_tip_outlined,
+                title: 'Private circles',
+                detail: 'Only invited members can join.',
+              ),
+              const SizedBox(height: 14),
+              const _OnboardingTrustRow(
+                icon: Icons.location_on_outlined,
+                title: 'Your choice, always',
+                detail: 'Location sharing starts off.',
               ),
             ],
           ),
-        ),
-      ),
+        );
+
+        final actions = Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const PremiumSectionHeader(
+                  title: 'Get started',
+                  subtitle: 'Create a new circle or join one with an invite code.',
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    const PremiumIconChip(
+                      icon: Icons.groups_rounded,
+                      color: CircloPalette.brand,
+                      size: 50,
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Create a circle', style: TextStyle(fontWeight: FontWeight.w800)),
+                          SizedBox(height: 4),
+                          Text('Start a group and invite people you trust.'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  onPressed: onCreate,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Create a circle'),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 18),
+                  child: Divider(height: 1),
+                ),
+                Row(
+                  children: [
+                    const PremiumIconChip(
+                      icon: Icons.vpn_key_rounded,
+                      color: CircloPalette.mint,
+                      size: 50,
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Join a circle', style: TextStyle(fontWeight: FontWeight.w800)),
+                          SizedBox(height: 4),
+                          Text('Enter an invite code shared by the owner.'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: onJoin,
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  label: const Text('Join with an invite code'),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.shield_outlined, size: 18, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Location sharing is optional. You choose which circles can see your location.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+
+        return Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1040),
+              child: wide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(flex: 5, child: hero),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 5, child: actions),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [hero, const SizedBox(height: 18), actions],
+                    ),
+            ),
+          ),
+        );
+      },
     );
   }
+}
+
+class _OnboardingTrustRow extends StatelessWidget {
+  const _OnboardingTrustRow({
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 21),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                Text(detail, style: TextStyle(color: Colors.white.withValues(alpha: .82), fontSize: 13)),
+              ],
+            ),
+          ),
+        ],
+      );
 }
 
 class _CircleCollectionHero extends StatelessWidget {
@@ -365,7 +467,10 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
     if (!_form.currentState!.validate()) return;
     final uid = ref.read(currentUidProvider);
     final profile = ref.read(profileProvider).valueOrNull;
-    if (uid == null || profile == null) return;
+    if (uid == null || profile == null) {
+      setState(() => _error = 'Your profile is still loading. Please try again.');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -377,6 +482,12 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
             name: _name.text,
           );
       if (mounted) context.pushReplacement('/circles/$id');
+    } on FirebaseException catch (e) {
+      if (mounted) {
+        setState(() => _error = e.code == 'permission-denied'
+            ? 'Firebase blocked circle creation. Confirm your email is verified and the latest Circlo Firestore rules are deployed.'
+            : 'Could not create the circle. Check your connection and try again.');
+      }
     } catch (_) {
       if (mounted) setState(() => _error = 'Could not create the circle. Check your connection and try again.');
     } finally {
@@ -386,35 +497,146 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Create a circle')),
       body: SafeArea(
-        child: FormPage(children: [
-          const Text('A circle is a private group. Only people you invite with the join code can see it.'),
-          const SizedBox(height: 16),
-          Form(
-            key: _form,
-            child: TextFormField(
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Circle name', border: OutlineInputBorder()),
-              validator: validateCircleName,
-              onFieldSubmitted: (_) => _submit(),
-            ),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          ],
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _busy ? null : _submit,
-            child: _busy
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Create circle'),
-          ),
-        ]),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 820;
+            final intro = PremiumHeroCard(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.groups_rounded, color: Colors.white, size: 42),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Bring your people together.',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Create a private circle, then invite family or friends with a code that you control.',
+                    style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: .9)),
+                  ),
+                  const SizedBox(height: 24),
+                  const _OnboardingTrustRow(
+                    icon: Icons.key_rounded,
+                    title: 'Invite-only access',
+                    detail: 'Share your code with people you trust.',
+                  ),
+                  const SizedBox(height: 14),
+                  const _OnboardingTrustRow(
+                    icon: Icons.location_off_outlined,
+                    title: 'Sharing starts off',
+                    detail: 'Every member chooses their own settings.',
+                  ),
+                ],
+              ),
+            );
+            final formCard = Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const PremiumSectionHeader(
+                        title: 'Name your circle',
+                        subtitle: 'Keep it simple. You can manage members and invitations later.',
+                      ),
+                      const SizedBox(height: 22),
+                      TextFormField(
+                        controller: _name,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Circle name',
+                          hintText: 'e.g. The family',
+                          prefixIcon: Icon(Icons.edit_outlined),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: validateCircleName,
+                        onFieldSubmitted: (_) => _submit(),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 14),
+                        _CircleFormError(message: _error!),
+                      ],
+                      const SizedBox(height: 22),
+                      FilledButton.icon(
+                        onPressed: _busy ? null : _submit,
+                        icon: _busy
+                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.add_rounded),
+                        label: Text(_busy ? 'Creating…' : 'Create circle'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: wide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(flex: 5, child: intro),
+                            const SizedBox(width: 24),
+                            Expanded(flex: 5, child: formCard),
+                          ],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [intro, const SizedBox(height: 18), formCard],
+                        ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+class _JoinCodeTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final cursor = newValue.selection.extentOffset < 0
+        ? newValue.text.length
+        : newValue.selection.extentOffset.clamp(0, newValue.text.length).toInt();
+    final charsBeforeCursor = newValue.text
+        .substring(0, cursor)
+        .replaceAll(RegExp(r'[^A-Za-z0-9]'), '')
+        .length;
+    final normalized = newValue.text
+        .toUpperCase()
+        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    final limited = normalized.length > 10 ? normalized.substring(0, 10) : normalized;
+    final formatted = limited.length > 5
+        ? '${limited.substring(0, 5)}-${limited.substring(5)}'
+        : limited;
+    final nextCursor = (charsBeforeCursor > 5 ? charsBeforeCursor + 1 : charsBeforeCursor)
+        .clamp(0, formatted.length)
+        .toInt();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: nextCursor),
+      composing: TextRange.empty,
     );
   }
 }
@@ -452,7 +674,10 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
     if (!_form.currentState!.validate()) return;
     final uid = ref.read(currentUidProvider);
     final profile = ref.read(profileProvider).valueOrNull;
-    if (uid == null || profile == null) return;
+    if (uid == null || profile == null) {
+      setState(() => _error = 'Your profile is still loading. Please try again.');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -468,8 +693,6 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
         showSnack(context, 'Request sent. The owner has to approve it before you can join.');
         context.pop();
       } else {
-        // Go straight to the shared map after a successful join, as in a Circle-based
-        // location app. Refresh membership first so route gating sees the new circle.
         ref.read(selectedCircleIdProvider.notifier).state = outcome.circleId;
         ref.invalidate(myCirclesProvider);
         try {
@@ -486,8 +709,12 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
       }
     } on JoinFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
-    } on FirebaseException {
-      if (mounted) setState(() => _error = 'Could not join. Check your connection and try again.');
+    } on FirebaseException catch (e) {
+      if (mounted) {
+        setState(() => _error = e.code == 'permission-denied'
+            ? const JoinFailure(JoinFailureKind.permissionDenied).message
+            : 'Could not join. Check your connection and try again.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -495,35 +722,171 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Join a circle')),
       body: SafeArea(
-        child: FormPage(children: [
-          const Text('Ask the circle owner for the join code and enter it below.'),
-          const SizedBox(height: 16),
-          Form(
-            key: _form,
-            child: TextFormField(
-              controller: _code,
-              textCapitalization: TextCapitalization.characters,
-              autocorrect: false,
-              decoration: const InputDecoration(labelText: 'Join code', hintText: 'ABCDE-FGHJK', border: OutlineInputBorder()),
-              validator: (v) => isValidJoinCode(normalizeJoinCode(v ?? '')) ? null : 'Enter the 10-character code',
-              onFieldSubmitted: (_) => _submit(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 820;
+            final intro = PremiumHeroCard(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.vpn_key_rounded, color: Colors.white, size: 42),
+                  const SizedBox(height: 24),
+                  Text(
+                    'You’re one step away.',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Enter the invitation code from your circle owner. Once you join, your shared map and circle spaces will unlock.',
+                    style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: .9)),
+                  ),
+                  const SizedBox(height: 24),
+                  const _OnboardingTrustRow(
+                    icon: Icons.verified_user_outlined,
+                    title: 'Private by design',
+                    detail: 'Only people with a valid invite can join.',
+                  ),
+                  const SizedBox(height: 14),
+                  const _OnboardingTrustRow(
+                    icon: Icons.location_off_outlined,
+                    title: 'Your location stays yours',
+                    detail: 'Joining does not turn sharing on.',
+                  ),
+                ],
+              ),
+            );
+            final formCard = Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const PremiumSectionHeader(
+                        title: 'Enter invite code',
+                        subtitle: 'Ask the circle owner for the join code and enter it below.',
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _code,
+                        textCapitalization: TextCapitalization.characters,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        keyboardType: TextInputType.visiblePassword,
+                        inputFormatters: [_JoinCodeTextInputFormatter()],
+                        maxLength: 11,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2.2,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Join code',
+                          hintText: 'ABCDE-FGHJK',
+                          counterText: '',
+                          prefixIcon: Icon(Icons.key_rounded),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) => isValidJoinCode(normalizeJoinCode(v ?? ''))
+                            ? null
+                            : 'Enter the 10-character code',
+                        onChanged: (_) {
+                          if (_error != null) setState(() => _error = null);
+                        },
+                        onFieldSubmitted: (_) => _submit(),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 14),
+                        _CircleFormError(message: _error!),
+                      ],
+                      const SizedBox(height: 22),
+                      FilledButton.icon(
+                        onPressed: _busy ? null : _submit,
+                        icon: _busy
+                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.login_rounded),
+                        label: Text(_busy ? 'Joining…' : 'Join circle'),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Codes are not case-sensitive. Spaces and dashes are ignored.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: wide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(flex: 5, child: intro),
+                            const SizedBox(width: 24),
+                            Expanded(flex: 5, child: formCard),
+                          ],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [intro, const SizedBox(height: 18), formCard],
+                        ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CircleFormError extends StatelessWidget {
+  const _CircleFormError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.error.withValues(alpha: .25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline_rounded, color: scheme.onErrorContainer, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: scheme.onErrorContainer, height: 1.4, fontWeight: FontWeight.w600),
             ),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          ],
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _busy ? null : _submit,
-            child: _busy
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Join circle'),
-          ),
-        ]),
+        ],
       ),
     );
   }

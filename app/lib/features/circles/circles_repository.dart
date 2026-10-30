@@ -206,7 +206,7 @@ class CirclesRepository {
       return JoinOutcome(circleId: circleId, requested: true);
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
-        throw const JoinFailure(JoinFailureKind.invalid);
+        throw const JoinFailure(JoinFailureKind.permissionDenied);
       }
       rethrow;
     }
