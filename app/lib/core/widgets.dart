@@ -435,7 +435,7 @@ class PremiumFilterChip extends StatelessWidget {
           onTap: () => onSelected(!selected),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            constraints: const BoxConstraints(minHeight: 42),
+            constraints: const BoxConstraints(minHeight: 44),
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
             decoration: BoxDecoration(
               color: selected
