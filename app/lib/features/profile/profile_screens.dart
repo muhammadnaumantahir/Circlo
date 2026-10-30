@@ -366,7 +366,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
             ),
             const SizedBox(height: 28),
-            const SizedBox(height: 28),
             PremiumSection(
               title: 'Privacy & data',
               subtitle: 'Manage your location, history and personal data.',
