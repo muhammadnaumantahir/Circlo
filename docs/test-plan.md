@@ -1,9 +1,10 @@
 # Test Plan (Increment 1)
 
-Current feature progress and handover: [feature-status.md](feature-status.md). Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are manual/automated checklists; rows marked Not run remain unverified. This authoring pass has not run Flutter or Firestore tests. Premium UI component/widget coverage is being added on branch `feature/premium-finmate-stockly-ui`; it remains Not run. The join-code compatibility and responsive web UI tests below were added in PR #71; they remain Not run.
+Current feature progress and handover: [feature-status.md](feature-status.md). Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are manual/automated checklists; rows marked Not run remain unverified. This authoring pass has not run Flutter or Firestore tests. Premium UI component/widget coverage was added in PR #72; it remains Not run. The join-code compatibility and responsive web UI tests below were added in PR #71; they remain Not run.
 
 | Req | Check | Where | Command | Status |
 |---|---|---|---|---|
+| UI / regression | Premium page header, glass-card action, profile hero identity and semantic palette tokens | `app/test/premium_ui_test.dart` | `cd app && flutter test test/premium_ui_test.dart` | Added in PR #72; Not run |
 | Release / Cloudflare regression | Verify the Place Suggestions repair plus follow-up Dart compile fixes; run analyzer/tests and confirm a successful Pages build for latest `main` | `app/lib/features/places/place_suggestions.dart`; `app/lib/features/location/sharing_screen.dart`; `app/lib/features/sos/sos_contact.dart`; `app/lib/features/location/sharing_controller.dart` | `cd app && flutter analyze && flutter test` plus a new Cloudflare Pages deployment | PR #69, #70 and #71 source fixes are merged; analyzer/tests and Cloudflare deployment have not run after the latest repairs |
 | UI / regression | Premium page header, glass-card tap behavior, profile hero identity and semantic palette tokens | `app/test/premium_ui_test.dart` | `cd app && flutter test test/premium_ui_test.dart` | Added on current branch; Not run |
 | FR-001–003 | Sign-up/log-in/reset flows | manual with Firebase project/emulator | `flutter run` | Not run |
