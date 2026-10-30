@@ -621,11 +621,11 @@ class _JoinCodeTextInputFormatter extends TextInputFormatter {
         : newValue.selection.extentOffset.clamp(0, newValue.text.length).toInt();
     final charsBeforeCursor = newValue.text
         .substring(0, cursor)
-        .replaceAll(RegExp(r'[^A-Za-z0-9]'), '')
+        .replaceAll(RegExp(r'[\s-]'), '')
         .length;
     final normalized = newValue.text
         .toUpperCase()
-        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+        .replaceAll(RegExp(r'[\s-]'), '');
     final limited = normalized.length > 10 ? normalized.substring(0, 10) : normalized;
     final formatted = limited.length > 5
         ? '${limited.substring(0, 5)}-${limited.substring(5)}'
@@ -784,7 +784,10 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
                         autocorrect: false,
                         enableSuggestions: false,
                         keyboardType: TextInputType.visiblePassword,
-                        inputFormatters: [_JoinCodeTextInputFormatter()],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9\s-]')),
+                          _JoinCodeTextInputFormatter(),
+                        ],
                         maxLength: 11,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.headlineSmall?.copyWith(
