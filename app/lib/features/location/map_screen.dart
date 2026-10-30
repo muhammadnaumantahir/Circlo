@@ -143,13 +143,57 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ],
         ),
         actions: [
-          IconButton.filledTonal(
-            tooltip: 'Check in or send a quick note',
-            onPressed: _savingCheckIn ? null : _showCheckInSheet,
-            icon: _savingCheckIn
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.task_alt_rounded),
-          ),
+          // Four separate actions do not fit reliably beside the map title on narrow phones.
+          if (MediaQuery.sizeOf(context).width < 440)
+            PopupMenuButton<String>(
+              tooltip: 'Quick actions',
+              onSelected: (action) {
+                if (action == 'checkin') {
+                  _showCheckInSheet();
+                } else if (action == 'sos') {
+                  context.push('/sos');
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem<String>(
+                  value: 'checkin',
+                  child: Row(
+                    children: [
+                      Icon(Icons.task_alt_rounded),
+                      SizedBox(width: 10),
+                      Text('Check in / Quick Note'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'sos',
+                  child: Row(
+                    children: [
+                      Icon(Icons.emergency_rounded, color: Theme.of(context).colorScheme.error),
+                      const SizedBox(width: 10),
+                      const Text('SOS message'),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else ...[
+            IconButton.filledTonal(
+              tooltip: 'Check in or send a quick note',
+              onPressed: _savingCheckIn ? null : _showCheckInSheet,
+              icon: _savingCheckIn
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.task_alt_rounded),
+            ),
+            IconButton(
+              tooltip: 'SOS / emergency message',
+              style: IconButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () => context.push('/sos'),
+              icon: const Icon(Icons.emergency_rounded),
+            ),
+          ],
           const NotificationsBell(),
           const SizedBox(width: 4),
           Padding(

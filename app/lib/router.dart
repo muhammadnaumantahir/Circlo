@@ -16,12 +16,14 @@ import 'features/places/places_screens.dart';
 import 'features/places/place_suggestions.dart';
 import 'features/profile/account_deletion_screen.dart';
 import 'features/profile/profile_screens.dart';
+import 'features/sos/sos_screen.dart';
 import 'providers.dart';
 
 const _publicRoutes = {'/login', '/signup', '/reset'};
 const _authOnlyRoutes = {'/splash', '/verify-email', '/profile-setup'};
 const _circleRequiredRoutes = {
   '/map',
+  '/sos',
   '/places',
   '/history',
   '/sharing',
@@ -137,6 +139,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => HomeShell(location: state.matchedLocation, child: child),
         routes: [
           GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
+          GoRoute(path: '/sos', builder: (_, __) => const SosScreen()),
           GoRoute(path: '/places', builder: (_, __) => const PlacesScreen()),
           GoRoute(path: '/history', builder: (_, __) => const HistoryScreen()),
           GoRoute(path: '/circles', builder: (_, __) => const CirclesScreen()),

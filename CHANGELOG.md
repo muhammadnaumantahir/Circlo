@@ -2,7 +2,15 @@
 
 ## [Unreleased]
 ### Fixed
-- Draft release-blocker fix in [PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69) repairs malformed Dart source in `place_suggestions.dart`: restores the visit loop inside `buildPlaceSuggestions` and removes an orphaned duplicate implementation fragment. Existing malformed-day-key regression coverage remains in place. This fix is not merged; Flutter tests/analyzer and Cloudflare build have not run.
+- Repair malformed Dart source in `app/lib/features/places/place_suggestions.dart` (merged via [PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69)): restore the `track.visits` loop inside `buildPlaceSuggestions` and remove the orphaned duplicate implementation fragment. Existing malformed-day-key regression coverage remains. Flutter analyzer/tests and the Cloudflare Pages build still need verification.
+- Make the SOS message builder fail closed on invalid latitude/longitude, non-finite values and invalid accuracy even if a malformed `MemberLocation` reaches the helper. Regression cases were added; tests have not run.
+- Correct the malformed duplicate in the SOS contact helper discovered during review of PR #68. Recipient filtering and dialer/SMS URI helpers are restored; regression coverage includes malformed phone-number forms, but no tests or build checks have run.
+- Fail closed for SOS contact actions until the signed-in user ID is resolved. The recipient helper returns no contacts and the UI explains that Call/Text actions are hidden rather than risking showing the current user's contact; a regression test was added, but no tests or build checks have run.
+
+### Added
+- Add a Circle-gated, user-reviewed SOS message handoff (merged via [PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68)): share or copy a prepared message, with a last-shared map link only when Circle location sharing is active and the fix is fresh; approximate Bubble pins are labelled and stale/unavailable/invalid coordinates are omitted. The screen distinguishes sharing-off/paused/unconfirmed and location-loading/error states, and refreshes freshness locally each minute without extra Firebase reads.
+- Add Call and prefilled Text actions only for current Circle members who explicitly shared a valid phone number with that Circle. Self, former/non-members and malformed numbers are excluded; actions fail closed until the signed-in UID is resolved. Call opens the dialer and Text opens an unsent draft for user review; no automatic send, delivery/read acknowledgement, remote push or emergency dispatch is provided.
+- On map screens narrower than 440 px, move Check-in and SOS into the Quick actions menu to reduce app-bar overflow risk while keeping Notifications and Profile accessible.
 
 ### Added
 - Add per-circle Approximate Location (Bubble): choose 1, 4 or 8 hours to share a grid-snapped map pin (~1–1.6 km) instead of exact coordinates. The old live location is deleted during precision changes, the map shows the coarse-pin uncertainty region and label, and directions are disabled for coarse pins. Expiry is client-side; if the app is closed, precise sharing resumes on the next sync after reopen. Place alerts, manual check-ins and separately opted-in Travel History remain independent and can still disclose visits.
