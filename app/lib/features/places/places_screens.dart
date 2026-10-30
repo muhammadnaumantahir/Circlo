@@ -157,6 +157,15 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
     return Column(
       children: [
         Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+          child: PremiumPageHeader(
+            eyebrow: 'YOUR CIRCLE',
+            title: 'Saved places',
+            subtitle: 'Keep important places close and manage arrival alerts.',
+            trailing: PremiumIconChip(icon: Icons.place_rounded, color: CircloPalette.mint, size: 46),
+          ),
+        ),
+        Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: DropdownButton<String>(
             isExpanded: true,
