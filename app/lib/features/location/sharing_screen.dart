@@ -450,10 +450,9 @@ class _CircleSharingTile extends ConsumerWidget {
       final confirmed = await confirmAction(
         context,
         title: 'Use approximate location in ${circle.name}?',
-        message: 'For this circle, Circlo will share a grid-snapped map pin roughly 1–1.6 km from your actual coordinates for the selected time. The previous precise location is removed before the coarse pin is sent. When the timer ends, your current location is shared precisely again.
+        message: '''For this circle, Circlo will share a grid-snapped map pin roughly 1–1.6 km from your actual coordinates for the selected time. The previous precise location is removed before the coarse pin is sent. When the timer ends, your current location is shared precisely again.
 
-'
-            'Important: this changes only the map pin. Saved Place arrival/departure alerts, expected-arrival alerts, manual check-ins and separately enabled Travel History may still reveal places you visit. Existing history/activity is not deleted. Use Pause or Stop sharing if you need to hide your location completely.',
+Important: this changes only the map pin. Saved Place arrival/departure alerts, expected-arrival alerts, manual check-ins and separately enabled Travel History may still reveal places you visit. Existing history/activity is not deleted. Use Pause or Stop sharing if you need to hide your location completely.''',
         confirmLabel: 'Use approximate location',
       );
       if (!confirmed || !context.mounted) return;

@@ -65,6 +65,7 @@ class SharingController extends Notifier<SharingState> {
   List<MyMembership> _memberships = const [];
   int _syncGeneration = 0;
   int _streamGeneration = 0;
+  bool _disposed = false;
   static const Duration _heartbeatEvery = Duration(minutes: 5);
 
   @override
@@ -77,6 +78,7 @@ class SharingController extends Notifier<SharingState> {
     // Re-evaluate when the user switches "Keep my travel history" on/off.
     ref.listen(profileProvider, (_, __) => _configureHistory());
     ref.onDispose(() {
+      _disposed = true;
       _resumeTimer?.cancel();
       _bubbleTimer?.cancel();
       _stop();

@@ -37,7 +37,7 @@ void main() {
       Member(uid: 'amina', displayName: 'Amina', role: 'member'),
     ];
 
-    for (final unresolvedUid in <String?>[null, '']) {
+    for (final unresolvedUid in <String?>[null, '', '  ']) {
       final recipients = sosContactRecipients(
         sharedContacts: sharedContacts,
         circleMembers: members,

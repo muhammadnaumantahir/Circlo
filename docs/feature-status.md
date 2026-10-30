@@ -1,7 +1,7 @@
 # Circlo Feature Status & Cross-Chat Handover
 
 **Last updated:** 2026-10-30  
-**Latest status audit:** 2026-10-30 — reconciled against merged PRs #60–#69. The Place Suggestions syntax repair (#69) and manual SOS message/contact handoff (#68) are now in `main`. The repair addresses a definite malformed visit loop and orphaned duplicate Dart fragment; the exact Cloudflare provider error is still unknown and a new successful Pages build is required. All new Flutter tests, analyzer, Firestore Emulator checks and real-device verification remain unrun.
+**Latest status audit:** 2026-10-30 — reconciled against merged PRs #60–#69 and the latest Cloudflare Pages build log. PR #69 repaired malformed Place Suggestions source; the subsequent deployment exposed three additional Dart compile blockers in the approximate-location confirmation string, SOS contact helper and SharingController disposal guard. A focused repair is in [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70). Flutter analyzer/tests and a successful Pages deployment remain pending.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest feature merges at audit:** PR #69 (Place Suggestions syntax repair) and PR #68 (manual SOS message/contact handoff), merged 2026-10-30
@@ -33,13 +33,13 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | 10 | Per-Circle phone sharing / Call / Text | In main — unverified | Phone number is shared only by explicit per-Circle consent; Call/Text opens the device handler; private profile stays owner-only. [PR #64](https://github.com/muhammadnaumantahir/Circlo/pull/64) | Run Rules/model tests; test opt-out, phone change, member removal, account deletion and Android/iOS/web handlers. |
 | 11 | Low-battery status | In main — partial | Optional per-Circle battery consent, battery percentage piggybacked on normal location sync, last-reported label and in-app warning at 20% or below. [PR #65](https://github.com/muhammadnaumantahir/Circlo/pull/65) | Test consent isolation and stale values. It is **not** a phone push notification or guaranteed background warning. |
 | 12 | Temporary approximate location / Bubble | In main — partial | Per-Circle 1/4/8-hour coarse map pin, grid snapping/uncertainty label, deletion of old live projection during precision changes, Directions disabled for coarse pins. [PR #67](https://github.com/muhammadnaumantahir/Circlo/pull/67) | Test expiry, app-closed behavior and other independent disclosure paths. Expiry is client-driven; place alerts, check-ins and opted-in History can still reveal visits. |
-| 13 | Web build error fix | In main — source repair merged; deployment pending | Earlier `backgrounds`, integer-index, and nullable `uid` fixes remain in [PR #53](https://github.com/muhammadnaumantahir/Circlo/pull/53). The later Place Suggestions Dart syntax regression is repaired via [PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69). | Confirm the latest `main` deployment succeeds on Cloudflare Pages and run Flutter analyzer/tests; inspect provider logs if failure persists. |
+| 13 | Web build error fix | In main — follow-up compile repairs pending | Place Suggestions source repair is merged via [PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69). The next Cloudflare log identified broken multiline text, malformed/duplicated SOS helper source and an undefined SharingController disposal flag; repair is proposed in [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70). | Run Flutter analyze/tests and confirm a successful Cloudflare Pages deployment after PR #70. |
 | 14 | In-app activity / manual check-ins | In main — unverified | Searchable activity feed, filters, unread state, membership/location/place events, self-reported check-ins and Quick Notes. | Cross-account authorization, feed parsing, stale/offline states and UI tests. These are in-app items, not remote phone pushes. |
 | 15 | SOS message and opted-in Circle contacts | In main — partial / unverified | Circle-gated, user-reviewed SOS message with share/copy; Call and unsent prefilled Text actions only for current Circle members who explicitly shared a valid phone number. Fresh active location links only; Bubble pins labelled approximate; contact actions fail closed until UID is confirmed. [PR #68](https://github.com/muhammadnaumantahir/Circlo/pull/68) | Run SOS helper/widget tests; verify share sheet, copy, phone handlers, narrow layouts and two-account privacy. No auto-send, delivery/read acknowledgement, remote push or emergency dispatch. |
 
 ## Recommended next steps (keep this section current)
 
-1. **Release verification first (P0):** run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite, then confirm a successful Cloudflare Pages deployment from the latest `main`. PR #69 repaired the definite Place Suggestions source corruption, but provider logs were unavailable and the repair is not considered verified until the deployment succeeds. Verify Android/iOS background tracking and two-account privacy behavior before release.
+1. **Release verification first (P0):** merge and verify [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70), run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite, then confirm a successful Cloudflare Pages deployment from latest `main`. The latest Pages log exposed three more compile blockers: invalid multiline confirmation text, malformed duplicated SOS contact source and a missing SharingController disposal flag. Verify Android/iOS background tracking and two-account privacy behavior before release.
 2. **Validate the new SOS handoff (PR #68):** run its three regression test files and manually verify share/copy, Call/Text handlers, UID fail-closed behavior, approximate/stale location messaging, small-screen layout and two-account isolation. Keep the feature described as manual handoff only, not emergency dispatch.
 3. **Keep deferred under $0/Firebase-only:** remote push notifications and trusted automatic emergency delivery until a secure, no-cost delivery architecture with acknowledgement/fallback is proven; never embed sender credentials in the client.
 4. Then evaluate driving/crash detection, flight/landing alerts, tracker integrations and pet tracking as listed below.
@@ -48,7 +48,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 
 | Priority | Feature | Status | Next step / limitation |
 |---:|---|---|---|
-| P0 | Release verification | Required before release | PR #69 has merged the Place Suggestions source repair. Still run manual Flutter analyze/tests and Firestore Emulator Rules tests; inspect/confirm a successful Cloudflare Pages build from latest `main`; test Android/iOS background tracking and two-account privacy flows. |
+| P0 | Release verification | Required before release | Merge/verify [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70) for the three Dart compile blockers found in the latest Cloudflare log; run manual Flutter analyze/tests and Firestore Emulator Rules tests; confirm a successful Pages build; test Android/iOS background tracking and two-account privacy flows. |
 | P1 | Remote push notifications | Deferred | Requires a trusted delivery path. Do not put server credentials in the Flutter app. Reassess only after confirming a truly no-cost deployable architecture. |
 | P2 | Trusted SOS delivery / emergency dispatch | Deferred / not implemented | PR #68 provides manual message sharing/copy plus Call and unsent prefilled SMS for explicitly opted-in Circle contacts only. No automatic send, delivery acknowledgement, remote push, server scheduler or emergency-dispatch integration. A trusted delivery path, fallback, abuse controls and real-device tests remain prerequisites. |
 | P3 | Driving reports / crash detection | Not started — native research | Native motion/location collection, false-positive controls, platform limits and real-device validation are needed. |
@@ -68,12 +68,14 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | #59 Automatic Place Suggestions | Closed, superseded | Older proposal; the privacy-reviewed implementation is in `main` via PR #63 and its source repair via PR #69. |
 | #68 SOS message/contact handoff | Merged 2026-10-30 | Code is in `main`; tests, web build and native behavior remain unverified. |
 | #69 Place Suggestions source repair | Merged 2026-10-30 | Syntax correction is in `main`; analyzer/tests and a successful Cloudflare Pages deployment remain outstanding. |
+| #70 Cloudflare follow-up compile repairs | Open / proposed | Fix multiline string, malformed SOS helper and missing SharingController disposal flag; tests and deployment verification pending. |
 
 ## Release checklist
 
 - [ ] Flutter analyzer and full app tests pass on the manual CI workflow.
 - [ ] Firebase Emulator Rules tests pass.
-- [ ] Confirm a successful Cloudflare Pages deployment from latest `main` after the PR #69 source repair; run Flutter analyzer/tests and Firestore Rules tests through the manual workflow.
+- [ ] Merge PR #70's additional Dart compile repairs, then confirm a successful Cloudflare Pages deployment from latest `main`.
+- [ ] Run Flutter analyzer/tests and Firestore Rules tests through the manual workflow.
 - [ ] Run the SOS message/contact/widget tests from PR #68 and complete two-account + Android/iOS/web handler verification.
 - [ ] Android and iOS tested with screen locked, app backgrounded, battery saver, denied permissions and offline recovery.
 - [ ] Two-account tests confirm per-Circle isolation, opt-out deletion, member removal and account deletion.

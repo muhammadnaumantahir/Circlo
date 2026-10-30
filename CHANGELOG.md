@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 ### Fixed
+- Fix the approximate-location confirmation copy in `sharing_screen.dart` by using a valid multiline Dart string; the prior raw newline terminated a single-quoted string and stopped web compilation.
+- Restore `sos_contact.dart` as one complete recipient-filtering implementation with a properly terminated E.164-style phone regex; remove the orphaned duplicate tail that caused parser errors and duplicate URI declarations.
+- Add the missing `SharingController._disposed` lifecycle flag and set it during provider disposal so the delayed Bubble-expiry retry is not scheduled after disposal.
+- Extend SOS contact regression coverage for whitespace-only unresolved signed-in UIDs.
 - Repair malformed Dart source in `app/lib/features/places/place_suggestions.dart` (merged via [PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69)): restore the `track.visits` loop inside `buildPlaceSuggestions` and remove the orphaned duplicate implementation fragment. Existing malformed-day-key regression coverage remains. Flutter analyzer/tests and the Cloudflare Pages build still need verification.
 - Make the SOS message builder fail closed on invalid latitude/longitude, non-finite values and invalid accuracy even if a malformed `MemberLocation` reaches the helper. Regression cases were added; tests have not run.
 - Correct the malformed duplicate in the SOS contact helper discovered during review of PR #68. Recipient filtering and dialer/SMS URI helpers are restored; regression coverage includes malformed phone-number forms, but no tests or build checks have run.
