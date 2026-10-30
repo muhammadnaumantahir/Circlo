@@ -56,6 +56,9 @@ The canonical source is `app/lib/core/widgets.dart` (`CircloPalette`). Avoid loc
 | `PremiumGlassCard` | Soft white/tinted card with subtle border and shadow |
 | `PremiumMetricCard` | Dashboard metric with icon and semantic colour |
 | `PremiumIconChip` | Consistent coloured icon tile |
+| `PremiumStatusPill` | Semantic status capsule for sharing, roles and activity, with optional action |
+| `PremiumTile` | Category-coloured settings and navigation row |
+| `PremiumSection` | Uppercase section label with a grouped glass-card surface |
 | `PremiumReveal` | Short fade/slide entrance respecting reduced motion |
 | `LoadingView`, `MessageView` | Branded loading and recovery states |
 
@@ -68,6 +71,19 @@ Keep screen-specific UI in its feature module; reuse these shared components rat
 - Main pages use a visible page heading and keep list content at a readable maximum width.
 - Map remains full-bleed; controls use shared tokens without a full page card over the map.
 - Create / Join and first-use onboarding use the responsive two-panel composition and stack on narrow screens.
+
+## Premium refinement (2026-10-30)
+
+The follow-up polish extends the FinMate / Stockly kit across the daily Circlo surfaces:
+
+- Map: active-circle selector, visible sharing-state capsule, unified People search/filter panel and elevated people preview.
+- Circles: ownership/member role capsules and large touch-friendly glass cards.
+- Places: current-circle selector and saved-place capacity indicator.
+- Profile: grouped profile form, category-coloured privacy rows and a separate destructive account action.
+- Authentication: contained sign-in panel with an inline error surface and clear primary action.
+- Theme: selected/unselected states for switches, checkboxes, radios and segmented controls.
+
+These are presentation changes only. Sharing defaults, member access, backend data and navigation destinations must stay unchanged.
 
 ## Accessibility and motion
 
