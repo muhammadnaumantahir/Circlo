@@ -29,6 +29,17 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Behavior:** presentation-only; circle gating, membership, location sharing, privacy defaults and Firebase data flows are unchanged.
 - **Verification:** widget tests were added but not run. Flutter analyzer/tests, web build, responsive browser review and Android/iOS verification remain outstanding. GitHub Actions remains manual-only.
 
+## Latest premium UI refinement (active branch)
+
+- **Branch:** `feature/premium-ui-refinement-2`.
+- **Goal:** take PR #72's initial FinMate / Stockly alignment further with consistent premium surfaces and semantic interaction states.
+- **Map:** elevated active-circle selector, compact sharing-state pill, unified People search/status-filter panel and refined people preview.
+- **Circles / Places:** premium circle cards with owner/member labels, circle selector surfaces and a saved-place capacity indicator.
+- **Profile / Authentication:** grouped Profile form and privacy actions, distinct destructive account panel, and a contained sign-in form with inline errors.
+- **System:** reusable `PremiumStatusPill`, `PremiumTile` and `PremiumSection`; richer switch, checkbox, radio and segmented-control theme states.
+- **Behavior:** no changes to Firebase schema, membership, location sharing or consent defaults.
+- **Verification:** expanded widget tests are added but not run; Flutter analyze/tests, web build, responsive browser review and device verification remain pending. CI remains manual-only.
+
 ## Status definitions
 
 - **In main — unverified:** implementation is merged, but its required automated/device checks have not been confirmed as passing.

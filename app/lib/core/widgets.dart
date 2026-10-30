@@ -341,6 +341,170 @@ class PremiumMetricCard extends StatelessWidget {
   }
 }
 
+/// Small semantic status capsule used for sharing, role and activity states.
+class PremiumStatusPill extends StatelessWidget {
+  const PremiumStatusPill({
+    super.key,
+    required this.label,
+    this.icon,
+    this.color,
+    this.onTap,
+    this.compact = false,
+  });
+
+  final String label;
+  final IconData? icon;
+  final Color? color;
+  final VoidCallback? onTap;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tint = color ?? scheme.primary;
+    final content = Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 12,
+        vertical: compact ? 6 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: tint.withValues(alpha: .20)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: compact ? 13 : 15, color: tint),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: tint,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .15,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) return content;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: content,
+      ),
+    );
+  }
+}
+
+/// Reusable settings / navigation row with a category-coloured icon.
+class PremiumTile extends StatelessWidget {
+  const PremiumTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.color,
+    this.trailing,
+    this.onTap,
+    this.enabled = true,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Color? color;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    enabled: enabled,
+    onTap: enabled ? onTap : null,
+    leading: PremiumIconChip(icon: icon, color: color, size: 42),
+    title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+    subtitle: subtitle == null ? null : Text(subtitle!),
+    trailing: trailing ?? (onTap == null ? null : const Icon(Icons.chevron_right_rounded)),
+  );
+}
+
+/// Uppercase section label and grouped premium surface used by settings pages.
+class PremiumSection extends StatelessWidget {
+  const PremiumSection({
+    super.key,
+    required this.title,
+    required this.children,
+    this.subtitle,
+  });
+
+  final String title;
+  final String? subtitle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return PremiumReveal(
+      delay: const Duration(milliseconds: 70),
+      offset: 8,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 6, bottom: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title.toUpperCase(),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.1,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          PremiumGlassCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  if (i > 0)
+                    Divider(
+                      height: 1,
+                      indent: 68,
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: .42),
+                    ),
+                  children[i],
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Firebase-backed Google provider button; behavior is supplied by the auth layer.
 class GoogleSignInButton extends StatelessWidget {
   const GoogleSignInButton({

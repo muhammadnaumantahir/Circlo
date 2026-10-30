@@ -37,7 +37,7 @@ class CirclesScreen extends ConsumerWidget {
         !circles.hasError;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isFirstUse ? 'Welcome to Circlo' : 'Circles'),
+        title: isFirstUse ? const Text('Welcome to Circlo') : const SizedBox.shrink(),
         actions: isFirstUse
             ? const []
             : [
@@ -73,7 +73,6 @@ class CirclesScreen extends ConsumerWidget {
               onJoin: () => context.push('/circles/join'),
             );
           }
-          final scheme = Theme.of(context).colorScheme;
           const icons = [
             Icons.home_rounded,
             Icons.diversity_3_rounded,
@@ -94,31 +93,65 @@ class CirclesScreen extends ConsumerWidget {
               if (i == 1) return _CircleCollectionHero(count: list.length);
               final c = list[i - 2];
               final tone = ((i - 2) % icons.length).toInt();
-              return Card(
-                margin: EdgeInsets.zero,
-                child: ListTile(
-                  minVerticalPadding: 12,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: PremiumIconChip(
-                    icon: icons[tone],
-                    color: CircloPalette.accent(tone),
-                    size: 50,
-                  ),
-                  title: Text(c.name, style: Theme.of(context).textTheme.titleMedium),
-                  subtitle: Text(
-                    '${c.ownerUid == ref.watch(currentUidProvider) ? 'Owner' : 'Member'} · Members and sharing settings',
-                  ),
-                  trailing: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: scheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: scheme.outlineVariant.withOpacity(0.65)),
+              final isOwner = c.ownerUid == ref.watch(currentUidProvider);
+              return PremiumGlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                radius: 22,
+                onTap: () => context.push('/circles/${c.id}'),
+                child: Row(
+                  children: [
+                    PremiumIconChip(
+                      icon: icons[tone],
+                      color: CircloPalette.accent(tone),
+                      size: 54,
                     ),
-                    child: Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant, size: 20),
-                  ),
-                  onTap: () => context.push('/circles/${c.id}'),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            c.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Members and sharing settings',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          PremiumStatusPill(
+                            label: isOwner ? 'Circle owner' : 'Circle member',
+                            icon: isOwner ? Icons.verified_user_rounded : Icons.groups_rounded,
+                            color: isOwner ? CircloPalette.brand : CircloPalette.mint,
+                            compact: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: .08),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 18,
+                      ),
+                    ),
+                  ],
                 ),
               );
             },

@@ -64,6 +64,57 @@ void main() {
     expect(find.text('N'), findsOneWidget);
   });
 
+  testWidgets('premium status pill exposes its state and tap action', (tester) async {
+    var tapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: PremiumStatusPill(
+              label: 'Sharing',
+              icon: Icons.location_on_rounded,
+              color: CircloPalette.success,
+              onTap: () => tapped = true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Sharing'), findsOneWidget);
+    await tester.tap(find.text('Sharing'));
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('premium section groups tiles beneath a heading', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: EdgeInsets.all(20),
+            child: PremiumSection(
+              title: 'Privacy & data',
+              children: [
+                PremiumTile(
+                  icon: Icons.history_rounded,
+                  title: 'Travel history settings',
+                ),
+                PremiumTile(
+                  icon: Icons.share_location_rounded,
+                  title: 'Location sharing',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('PRIVACY & DATA'), findsOneWidget);
+    expect(find.text('Travel history settings'), findsOneWidget);
+    expect(find.text('Location sharing'), findsOneWidget);
+  });
+
   test('premium palette uses the FinMate / Stockly brand colours', () {
     expect(CircloPalette.brand, const Color(0xFF2563EB));
     expect(CircloPalette.mint, const Color(0xFF17C7A1));

@@ -4,7 +4,7 @@ Current feature progress and handover: [feature-status.md](feature-status.md). S
 
 | Req | Check | Where | Command | Status |
 |---|---|---|---|---|
-| UI / regression | Premium page header, glass-card action, profile hero identity and semantic palette tokens | `app/test/premium_ui_test.dart` | `cd app && flutter test test/premium_ui_test.dart` | Added in PR #72; Not run |
+| UI / regression | Premium page header, glass-card action, profile hero identity, status-pill tap behavior, grouped section rendering and semantic palette tokens | `app/test/premium_ui_test.dart` | `cd app && flutter test test/premium_ui_test.dart` | Expanded on branch `feature/premium-ui-refinement-2`; Not run |
 | Release / Cloudflare regression | Verify the Place Suggestions repair plus follow-up Dart compile fixes; run analyzer/tests and confirm a successful Pages build for latest `main` | `app/lib/features/places/place_suggestions.dart`; `app/lib/features/location/sharing_screen.dart`; `app/lib/features/sos/sos_contact.dart`; `app/lib/features/location/sharing_controller.dart` | `cd app && flutter analyze && flutter test` plus a new Cloudflare Pages deployment | PR #69, #70 and #71 source fixes are merged; analyzer/tests and Cloudflare deployment have not run after the latest repairs |
 | UI / regression | Premium page header, glass-card tap behavior, profile hero identity and semantic palette tokens | `app/test/premium_ui_test.dart` | `cd app && flutter test test/premium_ui_test.dart` | Added on current branch; Not run |
 | FR-001–003 | Sign-up/log-in/reset flows | manual with Firebase project/emulator | `flutter run` | Not run |

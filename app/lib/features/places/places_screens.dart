@@ -166,37 +166,99 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: DropdownButton<String>(
-            isExpanded: true,
-            value: circle.id,
-            underline: const SizedBox.shrink(),
-            items: [
-              for (final c in widget.circles)
-                DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis)),
-            ],
-            onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+          child: PremiumGlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+            radius: 19,
+            child: Row(
+              children: [
+                PremiumIconChip(
+                  icon: Icons.groups_rounded,
+                  color: CircloPalette.brand,
+                  size: 42,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'CURRENT CIRCLE',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: .9,
+                        ),
+                      ),
+                      DropdownButton<String>(
+                        isExpanded: true,
+                        value: circle.id,
+                        underline: const SizedBox.shrink(),
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        items: [
+                          for (final c in widget.circles)
+                            DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis)),
+                        ],
+                        onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Row(
-            children: [
-              Expanded(child: Text('Places in this circle', style: Theme.of(context).textTheme.titleMedium)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  (placesAsync.valueOrNull == null ? '—' : count.toString()) + ' / ' + kMaxPlacesPerCircle.toString(),
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+          padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
+          child: PremiumGlassCard(
+            padding: const EdgeInsets.fromLTRB(15, 13, 15, 12),
+            radius: 19,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'PLACE LIBRARY',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: .9,
+                        ),
                       ),
+                    ),
+                    PremiumStatusPill(
+                      label: (placesAsync.valueOrNull == null ? '—' : count.toString()) + ' / ' + kMaxPlacesPerCircle.toString(),
+                      icon: Icons.place_rounded,
+                      color: CircloPalette.mint,
+                      compact: true,
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                    value: placesAsync.valueOrNull == null ? 0 : (count / kMaxPlacesPerCircle).clamp(0.0, 1.0).toDouble(),
+                    minHeight: 6,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: CircloPalette.mint,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  'Saved places and arrival alerts for this circle.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         if (placesAsync.valueOrNull != null && places.isNotEmpty)

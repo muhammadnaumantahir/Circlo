@@ -22,6 +22,10 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 - Circles, Places, Travel History, Activity and Profile have stronger information hierarchy. The map remains full-bleed.
 - This is presentation-only. Sharing consent, data, routes and circle-gating behavior are unchanged. Tests and responsive visual verification have not run.
 
+## Premium UI refinement (active branch)
+
+Branch `feature/premium-ui-refinement-2` follows PR #72 with deeper polish across the Map, Circles, Places, Profile and sign-in surfaces. It adds semantic status capsules, grouped settings rows, glass-card page controls, better mobile-fit status labels and refined theme states for switches and segmented controls. Presentation-only; no location, membership or Firebase behavior is changed. Widget tests have been expanded but are not run.
+
 ## Release gates (must stay visible throughout feature work)
 
 - [ ] Run the manual GitHub Actions workflow for Flutter analyze/tests and Firestore Emulator rules tests when ready.

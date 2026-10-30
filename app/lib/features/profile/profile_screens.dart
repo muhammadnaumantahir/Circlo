@@ -294,30 +294,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               subtitle: 'Keep your contact information up to date.',
             ),
             const SizedBox(height: 16),
-            Form(
-              key: _form,
-              child: Column(children: [
-                TextFormField(
-                  controller: _name,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
-                  validator: validateDisplayName,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _phone,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone (optional)', border: OutlineInputBorder()),
-                  validator: validatePhone,
-                ),
-              ]),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _busy ? null : _save,
-              child: _busy
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Save changes'),
+            PremiumGlassCard(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                children: [
+                  Form(
+                    key: _form,
+                    child: Column(children: [
+                      TextFormField(
+                        controller: _name,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
+                        validator: validateDisplayName,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _phone,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(labelText: 'Phone (optional)', border: OutlineInputBorder()),
+                        validator: validatePhone,
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _busy ? null : _save,
+                      child: _busy
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Save changes'),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 28),
             const PremiumPageHeader(
@@ -356,39 +366,60 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
             ),
             const SizedBox(height: 28),
-            const PremiumPageHeader(
-              eyebrow: 'CONTROL',
+            PremiumSection(
               title: 'Privacy & data',
               subtitle: 'Manage your location, history and personal data.',
+              children: [
+                PremiumTile(
+                  icon: Icons.history_rounded,
+                  title: 'Travel history settings',
+                  subtitle: 'Choose what is saved and shared.',
+                  color: CircloPalette.violet,
+                  onTap: () => context.push('/history/settings'),
+                ),
+                PremiumTile(
+                  icon: Icons.share_location_rounded,
+                  title: 'Location sharing',
+                  subtitle: 'Review circle-by-circle sharing controls.',
+                  color: CircloPalette.mint,
+                  onTap: () => context.push('/sharing'),
+                ),
+                PremiumTile(
+                  icon: Icons.download_rounded,
+                  title: 'Export my data',
+                  subtitle: 'Copy a portable view of your Circlo data.',
+                  color: CircloPalette.brand,
+                  onTap: () => _export(context, ref),
+                ),
+                PremiumTile(
+                  icon: Icons.logout_rounded,
+                  title: 'Log out',
+                  subtitle: 'Stop sharing before signing out.',
+                  color: CircloPalette.warning,
+                  onTap: () => signOutStoppingSharing(ref),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => context.push('/history/settings'),
-              icon: const Icon(Icons.history),
-              label: const Text('Travel history settings'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => context.push('/sharing'),
-              icon: const Icon(Icons.share_location),
-              label: const Text('Location sharing'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => _export(context, ref),
-              icon: const Icon(Icons.download),
-              label: const Text('Export my data'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => signOutStoppingSharing(ref),
-              child: const Text('Log out'),
-            ),
-            const SizedBox(height: 24),
-            TextButton.icon(
-              onPressed: () => context.push('/account/delete'),
-              icon: Icon(Icons.delete_forever, color: Theme.of(context).colorScheme.error),
-              label: Text('Delete account', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            const SizedBox(height: 18),
+            PremiumGlassCard(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: PremiumIconChip(
+                  icon: Icons.delete_forever_rounded,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  'Delete account',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                subtitle: const Text('Permanently remove your account and associated data.'),
+                trailing: Icon(Icons.chevron_right_rounded, color: Theme.of(context).colorScheme.error),
+                onTap: () => context.push('/account/delete'),
+              ),
             ),
           ]);
         },
@@ -416,9 +447,12 @@ class _PhoneSharingTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final contacts = ref.watch(sharedContactsProvider(circle.id));
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: contacts.when(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: PremiumGlassCard(
+        padding: EdgeInsets.zero,
+        radius: 20,
+        child: contacts.when(
         loading: () => const ListTile(
           leading: Icon(Icons.phone_iphone_rounded),
           title: Text('Loading sharing settings'),
@@ -449,6 +483,7 @@ class _PhoneSharingTile extends ConsumerWidget {
             onChanged: busy || (!hasValidPhone && !shared) ? null : onChanged,
           );
         },
+      ),
       ),
     );
   }
