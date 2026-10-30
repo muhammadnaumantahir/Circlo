@@ -48,7 +48,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Travel history'),
+        title: const Text('History'),
         actions: [
           IconButton(
             tooltip: 'History settings',
@@ -155,6 +155,14 @@ class _Body extends ConsumerWidget {
 
     return Column(
       children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: PremiumPageHeader(
+            eyebrow: 'YOUR JOURNEY',
+            title: 'Travel history',
+            subtitle: 'A simple timeline of shared days and places.',
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
           child: Row(children: [
