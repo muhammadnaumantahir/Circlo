@@ -115,6 +115,30 @@ void main() {
     expect(find.text('Location sharing'), findsOneWidget);
   });
 
+  testWidgets('premium filter chip shows its count and responds to selection', (tester) async {
+    var selected = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: PremiumFilterChip(
+              label: 'Places',
+              count: '4',
+              icon: Icons.place_rounded,
+              selected: false,
+              onSelected: (value) => selected = value,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Places'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
+    await tester.tap(find.byType(PremiumFilterChip));
+    expect(selected, isTrue);
+  });
+
   test('premium palette uses the FinMate / Stockly brand colours', () {
     expect(CircloPalette.brand, const Color(0xFF2563EB));
     expect(CircloPalette.mint, const Color(0xFF17C7A1));

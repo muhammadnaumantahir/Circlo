@@ -404,6 +404,90 @@ class PremiumStatusPill extends StatelessWidget {
   }
 }
 
+class PremiumFilterChip extends StatelessWidget {
+  const PremiumFilterChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+    this.icon,
+    this.count,
+  });
+
+  final String label;
+  final bool selected;
+  final ValueChanged<bool> onSelected;
+  final IconData? icon;
+  final String? count;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tint = selected ? scheme.primary : scheme.onSurfaceVariant;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: count == null ? label : '$label, $count',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: () => onSelected(!selected),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            constraints: const BoxConstraints(minHeight: 44),
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+            decoration: BoxDecoration(
+              color: selected
+                  ? scheme.primary.withValues(alpha: .11)
+                  : scheme.surface.withValues(alpha: .76),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: selected
+                    ? scheme.primary.withValues(alpha: .30)
+                    : scheme.outlineVariant.withValues(alpha: .72),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon!, size: 15, color: tint),
+                  const SizedBox(width: 7),
+                ],
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: tint,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (count != null) ...[
+                  const SizedBox(width: 7),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: tint.withValues(alpha: selected ? .13 : .09),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      count!,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: tint,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Reusable settings / navigation row with a category-coloured icon.
 class PremiumTile extends StatelessWidget {
   const PremiumTile({

@@ -57,6 +57,7 @@ The canonical source is `app/lib/core/widgets.dart` (`CircloPalette`). Avoid loc
 | `PremiumMetricCard` | Dashboard metric with icon and semantic colour |
 | `PremiumIconChip` | Consistent coloured icon tile |
 | `PremiumStatusPill` | Semantic status capsule for sharing, roles and activity, with optional action |
+| `PremiumFilterChip` | Accessible selected/unselected filter chip with optional icon and count, used for feed categories and quick date filters |
 | `PremiumTile` | Category-coloured settings and navigation row |
 | `PremiumSection` | Uppercase section label with a grouped glass-card surface |
 | `PremiumReveal` | Short fade/slide entrance respecting reduced motion |
@@ -84,6 +85,16 @@ The follow-up polish extends the FinMate / Stockly kit across the daily Circlo s
 - Theme: selected/unselected states for switches, checkboxes, radios and segmented controls.
 
 These are presentation changes only. Sharing defaults, member access, backend data and navigation destinations must stay unchanged.
+
+## Premium refinement — history and activity (2026-10-30)
+
+- History: group Circle/member selectors and date navigation into compact glass surfaces; use consistent quick-date chips and a summary card with semantic status.
+- History timeline and settings: use raised stop cards, clear empty-state surfaces, and grouped personal-history, per-Circle sharing, and stored-history actions.
+- Activity: use count-bearing category filter chips and consistent glass feed rows. Notification preferences use grouped activity-type and Circle sections.
+- Keep the notification screen's navigation/back affordance; do not turn non-actionable feed rows into fake links.
+- `PremiumFilterChip` has a 44px minimum height and exposes label, selected state and count to semantics.
+
+These changes are presentation-only. Existing data queries, consent checks, preference writes, deletion confirmations and route actions remain the source of behavior.
 
 ## Accessibility and motion
 

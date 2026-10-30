@@ -47,16 +47,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('History'),
-        actions: [
-          IconButton(
-            tooltip: 'History settings',
-            icon: const Icon(Icons.tune),
-            onPressed: () => context.push('/history/settings'),
-          ),
-        ],
-      ),
       body: circlesAsync.when(
         loading: () => const LoadingView(),
         error: (_, __) => const MessageView(icon: Icons.cloud_off, title: 'Could not load your circles'),
@@ -155,97 +145,129 @@ class _Body extends ConsumerWidget {
 
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
           child: PremiumPageHeader(
             eyebrow: 'YOUR JOURNEY',
             title: 'Travel history',
             subtitle: 'A simple timeline of shared days and places.',
+            trailing: IconButton.filledTonal(
+              tooltip: 'History settings',
+              onPressed: () => context.push('/history/settings'),
+              icon: const Icon(Icons.tune_rounded),
+            ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-          child: Row(children: [
-            Expanded(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: circle.id,
-                underline: const SizedBox.shrink(),
-                items: [for (final c in circles) DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))],
-                onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
-              ),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+          child: PremiumGlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            radius: 18,
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: circle.id,
+                    underline: const SizedBox.shrink(),
+                    borderRadius: BorderRadius.circular(14),
+                    icon: const Icon(Icons.expand_more_rounded),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
+                    items: [
+                      for (final c in circles)
+                        DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis)),
+                    ],
+                    onChanged: (id) => ref.read(selectedCircleIdProvider.notifier).state = id,
+                  ),
+                ),
+                Container(width: 1, height: 30, color: Theme.of(context).colorScheme.outlineVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: effectiveMember,
+                    underline: const SizedBox.shrink(),
+                    borderRadius: BorderRadius.circular(14),
+                    icon: const Icon(Icons.expand_more_rounded),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
+                    items: [
+                      for (final m in members)
+                        DropdownMenuItem(value: m.uid, child: Text(m.uid == uid ? 'Me' : m.displayName, overflow: TextOverflow.ellipsis)),
+                    ],
+                    onChanged: (m) {
+                      if (m != null) onMember(m);
+                    },
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: effectiveMember,
-                underline: const SizedBox.shrink(),
-                items: [
-                  for (final m in members)
-                    DropdownMenuItem(value: m.uid, child: Text(m.uid == uid ? 'Me' : m.displayName, overflow: TextOverflow.ellipsis)),
-                ],
-                onChanged: (m) {
-                  if (m != null) onMember(m);
-                },
-              ),
-            ),
-          ]),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              tooltip: 'Previous day',
-              icon: const Icon(Icons.chevron_left),
-              onPressed: () => onDate(date.subtract(const Duration(days: 1))),
-            ),
-            TextButton.icon(
-              icon: const Icon(Icons.calendar_today, size: 18),
-              label: Text(_dateLabel(date)),
-              onPressed: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: date,
-                  firstDate: DateTime.now().subtract(const Duration(days: 120)),
-                  lastDate: DateTime.now(),
-                );
-                if (picked != null) onDate(picked);
-              },
-            ),
-            IconButton(
-              tooltip: 'Next day',
-              icon: const Icon(Icons.chevron_right),
-              onPressed: isToday ? null : () => onDate(date.add(const Duration(days: 1))),
-            ),
-            if (shared && !(isMe && !keepHistory))
-              IconButton(
-                tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh),
-                onPressed: () => ref.invalidate(dayTrackProvider(key)),
-              ),
-          ],
+          ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+          child: PremiumGlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            radius: 18,
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: 'Previous day',
+                  onPressed: () => onDate(date.subtract(const Duration(days: 1))),
+                  icon: const Icon(Icons.chevron_left_rounded),
+                ),
+                Expanded(
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                    label: Text(_dateLabel(date)),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: date,
+                        firstDate: DateTime.now().subtract(const Duration(days: 120)),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) onDate(picked);
+                    },
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Next day',
+                  onPressed: isToday ? null : () => onDate(date.add(const Duration(days: 1))),
+                  icon: const Icon(Icons.chevron_right_rounded),
+                ),
+                if (shared && !(isMe && !keepHistory))
+                  IconButton(
+                    tooltip: 'Refresh',
+                    onPressed: () => ref.invalidate(dayTrackProvider(key)),
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                ChoiceChip(
-                  label: const Text('Today'),
+                PremiumFilterChip(
+                  label: 'Today',
+                  icon: Icons.today_rounded,
                   selected: isToday,
                   onSelected: (_) => onDate(_calendarDateOffset(0)),
                 ),
                 const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('Yesterday'),
+                PremiumFilterChip(
+                  label: 'Yesterday',
+                  icon: Icons.history_rounded,
                   selected: isYesterday,
                   onSelected: (_) => onDate(_calendarDateOffset(1)),
                 ),
                 const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('7 days ago'),
+                PremiumFilterChip(
+                  label: '7 days ago',
+                  icon: Icons.date_range_rounded,
                   selected: isWeekAgo,
                   onSelected: (_) => onDate(_calendarDateOffset(7)),
                 ),
@@ -270,50 +292,48 @@ class _HistoryDaySummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final lastFix = track.lastSeen > 0 ? formatClock(track.lastSeen, track.tzOffsetMin) : '—';
-    return Card(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      child: PremiumGlassCard(
+        radius: 20,
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.insights_rounded, color: scheme.primary, size: 20),
-                const SizedBox(width: 8),
+                const PremiumIconChip(icon: Icons.insights_rounded, color: CircloPalette.brand, size: 40),
+                const SizedBox(width: 11),
                 Expanded(
-                  child: Text('Day at a glance', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                  child: Text(
+                    'Day at a glance',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
                 ),
-                Text(
-                  'SIMPLIFIED',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        letterSpacing: .7,
-                        fontWeight: FontWeight.w800,
-                      ),
+                const PremiumStatusPill(
+                  label: 'Simplified',
+                  icon: Icons.verified_user_outlined,
+                  color: CircloPalette.mint,
+                  compact: true,
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(child: _HistoryMetric(label: 'Stops', value: track.visits.length.toString())),
+              Expanded(child: _HistoryMetric(label: 'Route points', value: track.route.length.toString())),
+              Expanded(child: _HistoryMetric(label: 'Last recorded', value: lastFix)),
+            ]),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _HistoryMetric(label: 'Stops', value: track.visits.length.toString())),
-                Expanded(child: _HistoryMetric(label: 'Route points', value: track.route.length.toString())),
-                Expanded(child: _HistoryMetric(label: 'Last recorded', value: lastFix)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Stops shorter than 10 minutes are not included. The route is simplified to limit stored detail.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-            ),
+            Text('Stops shorter than 10 minutes are not included. The route is simplified to limit stored detail.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
           ],
         ),
       ),
     );
   }
 }
-
 class _HistoryMetric extends StatelessWidget {
   const _HistoryMetric({required this.label, required this.value});
 
@@ -486,18 +506,20 @@ class _HistoryNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(icon, color: scheme.onSurfaceVariant),
-        title: Text(title, style: Theme.of(context).textTheme.titleSmall),
-        subtitle: Text(message),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: PremiumGlassCard(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        radius: 18,
+        child: ListTile(
+          leading: PremiumIconChip(icon: icon, color: CircloPalette.violet, size: 40),
+          title: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          subtitle: Text(message),
+        ),
       ),
     );
   }
 }
-
 class _VisitTile extends StatelessWidget {
   const _VisitTile({required this.index, required this.visit, required this.track});
   final int index;
@@ -538,10 +560,11 @@ class _VisitTile extends StatelessWidget {
     final accent = CircloPalette.accent(index - 1);
     final scheme = Theme.of(context).colorScheme;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(13),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: PremiumGlassCard(
+        radius: 18,
+        padding: const EdgeInsets.all(15),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -634,98 +657,180 @@ class HistorySettingsScreen extends ConsumerWidget {
     final byCircle = {for (final m in memberships) m.circleId: m};
 
     if (uid == null || profile == null) {
-      return Scaffold(appBar: AppBar(title: const Text('History settings')), body: const LoadingView());
+      return Scaffold(
+        appBar: AppBar(title: const Text('History settings')),
+        body: const LoadingView(),
+      );
     }
     final repo = ref.read(profileRepositoryProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('History settings')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          SwitchListTile(
-            title: const Text('Keep my travel history'),
-            subtitle: const Text('Records places you stay at and a simplified route, only while location sharing is on. Private to you until you share it with a circle.'),
-            value: profile.keepHistory,
-            onChanged: (v) async {
-              if (v) {
-                final ok = await confirmAction(
-                  context,
-                  title: 'Keep a travel history?',
-                  message: 'Circlo will save places where you stay 10+ minutes and a simplified route for each day, in your account, while location sharing is on. '
-                      'Nobody else sees it unless you share it with a circle below. You can delete it any time.',
-                  confirmLabel: 'Keep history',
-                );
-                if (!ok) return;
-              }
-              try {
-                await repo.setHistoryPrefs(uid: uid, keepHistory: v, retentionDays: profile.retentionDays);
-              } catch (_) {
-                if (context.mounted) showSnack(context, 'Could not save. Check your connection and try again.');
-              }
-            },
+          const PremiumPageHeader(
+            eyebrow: 'PRIVATE BY DEFAULT',
+            title: 'Your history',
+            subtitle: 'Choose what is saved, shared and removed.',
           ),
-          ListTile(
-            title: const Text('Keep history for'),
-            trailing: DropdownButton<int>(
-              value: const [7, 30, 90].contains(profile.retentionDays) ? profile.retentionDays : 30,
-              items: const [
-                DropdownMenuItem(value: 7, child: Text('7 days')),
-                DropdownMenuItem(value: 30, child: Text('30 days')),
-                DropdownMenuItem(value: 90, child: Text('90 days')),
-              ],
-              onChanged: (v) async {
-                if (v == null) return;
-                try {
-                  await repo.setHistoryPrefs(uid: uid, keepHistory: profile.keepHistory, retentionDays: v);
-                  await runRetentionCleanup(ref);
-                } catch (_) {
-                  if (context.mounted) showSnack(context, 'Could not save. Try again.');
-                }
-              },
-            ),
-            subtitle: const Text('Older days are removed automatically when you open the app (no server involved).'),
+          const SizedBox(height: 18),
+          PremiumSection(
+            title: 'Personal history',
+            subtitle: 'Control what Circlo saves to your account.',
+            children: [
+              SwitchListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                title: const Text('Keep my travel history'),
+                subtitle: const Text(
+                  'Saves places you stay at and a simplified route while location sharing is on. Private to you until you share it with a circle.',
+                ),
+                value: profile.keepHistory,
+                onChanged: (enabled) async {
+                  if (enabled) {
+                    final ok = await confirmAction(
+                      context,
+                      title: 'Keep a travel history?',
+                      message: 'Circlo will save places where you stay 10+ minutes and a simplified route for each day, in your account, while location sharing is on. '
+                          'Nobody else sees it unless you share it with a circle below. You can delete it any time.',
+                      confirmLabel: 'Keep history',
+                    );
+                    if (!ok) return;
+                  }
+                  try {
+                    await repo.setHistoryPrefs(
+                      uid: uid,
+                      keepHistory: enabled,
+                      retentionDays: profile.retentionDays,
+                    );
+                  } catch (_) {
+                    if (context.mounted) {
+                      showSnack(context, 'Could not save. Check your connection and try again.');
+                    }
+                  }
+                },
+              ),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: const PremiumIconChip(
+                  icon: Icons.schedule_rounded,
+                  color: CircloPalette.violet,
+                  size: 40,
+                ),
+                title: const Text('Keep history for'),
+                subtitle: const Text(
+                  'Older days are removed automatically when you open the app.',
+                ),
+                trailing: DropdownButton<int>(
+                  value: const [7, 30, 90].contains(profile.retentionDays)
+                      ? profile.retentionDays
+                      : 30,
+                  items: const [
+                    DropdownMenuItem(value: 7, child: Text('7 days')),
+                    DropdownMenuItem(value: 30, child: Text('30 days')),
+                    DropdownMenuItem(value: 90, child: Text('90 days')),
+                  ],
+                  onChanged: (days) async {
+                    if (days == null) return;
+                    try {
+                      await repo.setHistoryPrefs(
+                        uid: uid,
+                        keepHistory: profile.keepHistory,
+                        retentionDays: days,
+                      );
+                      await runRetentionCleanup(ref);
+                    } catch (_) {
+                      if (context.mounted) {
+                        showSnack(context, 'Could not save. Try again.');
+                      }
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
-          const Divider(),
-          Text('Share my history with', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          const Text('Only circles where location sharing is on can be chosen. Turning sharing off for a circle also stops sharing history with it.'),
-          for (final c in circles)
-            Builder(builder: (context) {
-              final m = byCircle[c.id];
-              final canShare = profile.keepHistory && (m?.sharesLocation ?? false);
-              return SwitchListTile(
-                title: Text(c.name),
-                subtitle: Text(!profile.keepHistory
-                    ? 'Turn on "Keep my travel history" first'
-                    : (m?.sharesLocation ?? false)
-                        ? ((m?.historyShared ?? false) ? 'History shared' : 'Not shared')
-                        : 'Location sharing is off for this circle'),
-                value: m?.historyShared ?? false,
-                onChanged: (canShare || (m?.historyShared ?? false))
-                    ? (v) => _toggleCircle(context, ref, uid, c, v)
-                    : null,
-              );
-            }),
-          const Divider(),
-          Text('Delete', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.date_range),
-            label: const Text('Delete a date range…'),
-            onPressed: () => _deleteRange(context, ref, uid),
+          const SizedBox(height: 18),
+          PremiumSection(
+            title: 'Share with circles',
+            subtitle: 'Only circles where location sharing is on can be selected.',
+            children: [
+              for (final circle in circles)
+                Builder(
+                  builder: (context) {
+                    final membership = byCircle[circle.id];
+                    final canShare = profile.keepHistory &&
+                        (membership?.sharesLocation ?? false);
+                    return SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      secondary: const PremiumIconChip(
+                        icon: Icons.groups_rounded,
+                        color: CircloPalette.mint,
+                        size: 40,
+                      ),
+                      title: Text(circle.name),
+                      subtitle: Text(
+                        !profile.keepHistory
+                            ? 'Turn on "Keep my travel history" first'
+                            : (membership?.sharesLocation ?? false)
+                                ? ((membership?.historyShared ?? false)
+                                    ? 'History shared'
+                                    : 'Not shared')
+                                : 'Location sharing is off for this circle',
+                      ),
+                      value: membership?.historyShared ?? false,
+                      onChanged: (canShare ||
+                              (membership?.historyShared ?? false))
+                          ? (enabled) => _toggleCircle(
+                                context,
+                                ref,
+                                uid,
+                                circle,
+                                enabled,
+                              )
+                          : null,
+                    );
+                  },
+                ),
+            ],
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.delete_forever),
-            label: const Text('Delete all my history'),
-            onPressed: () => _deleteAll(context, ref, uid),
+          const SizedBox(height: 18),
+          PremiumSection(
+            title: 'Manage stored history',
+            subtitle: 'Deleting history removes it from your account and every circle.',
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.date_range_rounded),
+                      label: const Text('Delete a date range…'),
+                      onPressed: () => _deleteRange(context, ref, uid),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                        side: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme.error
+                              .withValues(alpha: .45),
+                        ),
+                      ),
+                      icon: const Icon(Icons.delete_forever_rounded),
+                      label: const Text('Delete all my history'),
+                      onPressed: () => _deleteAll(context, ref, uid),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-
   Future<void> _toggleCircle(BuildContext context, WidgetRef ref, String uid, Circle c, bool enable) async {
     final repo = ref.read(historyRepositoryProvider);
     if (enable) {
