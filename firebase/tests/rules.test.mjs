@@ -28,12 +28,13 @@ const anon = () => env.unauthenticatedContext().firestore();
 const year = new Date().getFullYear();
 
 /** Seed circle c1 owned by alice with code CODE_A; bob optional member. */
-async function seed({ bob = false, codeExtra = {}, omitApproval = false, nullApproval = false } = {}) {
+async function seed({ bob = false, codeExtra = {}, omitApproval = false, nullApproval = false, invalidApproval = false } = {}) {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const f = ctx.firestore();
     const now = Timestamp.now();
     const circleData = { name: 'Family', ownerUid: 'alice', joinCode: CODE_A, createdAt: now };
     if (nullApproval) circleData.requiresApproval = null;
+    else if (invalidApproval) circleData.requiresApproval = 'false';
     else if (!omitApproval) circleData.requiresApproval = false;
     await setDoc(doc(f, 'circles/c1'), circleData);
     await setDoc(doc(f, 'circles/c1/members/alice'), { uid: 'alice', role: 'owner', displayName: 'Alice', joinedAt: now });
@@ -256,6 +257,10 @@ describe('join circle', () => {
     await env.clearFirestore();
     await seed({ nullApproval: true });
     await assertSucceeds(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
+  });
+  it('fails closed when a legacy approval flag has an unexpected type', async () => {
+    await seed({ invalidApproval: true });
+    await assertFails(setDoc(doc(db('bob'), 'circles/c1/members/bob'), joinDoc('bob')));
   });
   it('accepts a code that has not expired yet', async () => {
     await seed({ codeExtra: { expiresAt: Timestamp.fromMillis(Date.now() + 3_600_000) } });
