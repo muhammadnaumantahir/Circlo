@@ -7,7 +7,7 @@ Implementation tasks and test IDs are placeholders to be created in Phase 6/7 (s
 | Requirements | Design | Architecture component | Planned task | Planned test |
 |---|---|---|---|---|
 | FR-001–007 | S1, S2, S8 | Firebase Auth + Firestore users/{uid} | T-AUTH | TC-AUTH-* (unit, integration, e2e) |
-| FR-010–022 | S4 | circles module, Firestore circles/members/joinCodes; trusted join flow spike | T-CIRCLE | TC-CIR-* + Firestore Rules Emulator tests |
+| FR-010–022 | S4 | circles module, Firestore circles/members/joinCodes; trusted join flow spike | T-CIRCLE | `firebase/tests/rules.test.mjs`: explicit null/missing expiry, absent legacy approval flag, app-shaped batch join and invalid/revoked/expired code cases |
 | FR-030–038 (Inc. 2: FR-030–037 partly; FR-038 not built) | S2, S3 | location service, `live_locations` | T-LOC (after ADR-0003 spike) | TC-LOC-* (device field tests) |
 | FR-040–051 | S5 | places module, on-device evaluator + `place_events` (ADR-0002) | T-PLACE | TC-PLC-* (simulated tracks, dedup) |
 | FR-060–068 | S6 | history module, visit builder, retention cleanup (trusted mechanism unresolved) | T-HIST | TC-HIS-* |
@@ -15,7 +15,7 @@ Implementation tasks and test IDs are placeholders to be created in Phase 6/7 (s
 | FR-070–074 | S3 | map module | T-MAP | TC-MAP-* |
 | FR-112 | S5, S6, S8 | `PlaceSuggestions` local analyzer, `HistoryRepository.getRecentMine`, explicit private profile consent, review-only place editor handoff | T-PLACE-SUGGEST | `app/test/place_suggestions_test.dart`; `app/test/models_test.dart`; `firebase/tests/rules.test.mjs` |
 | FR-080–084 | S7, S8 | notifications module, FCM (trusted sender unresolved) | T-NOTIF | TC-NOT-* |
-| FR-100–105 | S1, S2, web specifics | Flutter web build, age gate, on-device evaluator (ADR-0002) | T-PLATFORM/T-PLACE | TC-PLAT-*, TC-MIN-*, TC-PLC-* |
+| FR-100–105 | S1, S2, web specifics | Flutter web build, responsive Circle onboarding/Create/Join layouts, age gate, on-device evaluator (ADR-0002) | T-PLATFORM/T-PLACE | `app/test/circle_invite_test.dart`; `app/test/circle_first_onboarding_test.dart`; web width/device matrix |
 | FR-090–094 | S4, S8 | Firestore Rules, account deletion workflow | T-SEC | TC-SEC-* (Firestore Emulator Rules tests) |
 | NFR-001–004 | — | adaptive location, free-tier throttling | T-PERF | TC-PERF-* |
 | NFR-005–006, 011–012, 014 | — | Firestore Rules, rate limits, deletion | T-SEC | TC-SEC-* |

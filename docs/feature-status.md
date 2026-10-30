@@ -1,7 +1,7 @@
 # Circlo Feature Status & Cross-Chat Handover
 
 **Last updated:** 2026-10-30  
-**Latest status audit:** 2026-10-30 — reconciled against merged PRs #60–#70 and the latest Cloudflare Pages build log. PR #69 repaired malformed Place Suggestions source. Follow-up compile errors in the approximate-location confirmation string, SOS contact helper and SharingController disposal guard were fixed and merged via [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70). Flutter analyzer/tests and a successful Pages deployment remain pending.
+**Latest status audit:** 2026-10-30 — reconciled against merged PRs #60–#70, the latest Cloudflare Pages build log, and current join-code work on `fix/join-code-null-expiry-and-premium-web-ui`. PR #70's compile repairs are merged; this branch now addresses Firestore's explicit-null expiry mismatch, legacy approval defaults, join-error diagnosis and responsive Circle entry screens. Tests and Pages deployment remain pending.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest feature merges at audit:** PR #69 (Place Suggestions syntax repair), PR #68 (manual SOS message/contact handoff) and PR #70 (Cloudflare Dart compile repairs), merged 2026-10-30
@@ -9,6 +9,14 @@
 **Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
+
+## Current work (not yet in main)
+
+- **Branch:** `fix/join-code-null-expiry-and-premium-web-ui` (implementation commit `82bfa925` plus follow-up input-formatting commit `4a76ddd5`).
+- **Join-code compatibility:** Firestore Rules previously accepted a missing `expiresAt` or a future timestamp, but rejected an explicit `null`; the app displays an explicit null as “no expiry”. The branch treats absent/null as no expiry and rejects malformed or past values. It also aligns the Rules fallback for a legacy Circle with missing/null `requiresApproval` with the app's default (`false`). The live Firebase document was not inspected, so explicit null is a source-level mismatch that may explain the reported code; it is not confirmed as the only cause.
+- **Error diagnosis:** a permission-denied join no longer gets reported as an invalid/expired code. The screen explains that verified email and the latest deployed Firestore Rules should be checked. It does not weaken the verified-email requirement.
+- **Web UX:** first-use onboarding, Create Circle and Join Circle use branded, responsive two-panel layouts on wide screens and a stacked layout on narrow screens. Join codes are uppercased and formatted while typing.
+- **Verification:** Firestore regression tests and widget tests are authored on this branch; none have been run. The Rules must still be deployed to the intended Firebase project before a production two-account test.
 
 ## Status definitions
 
@@ -39,7 +47,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 
 ## Recommended next steps (keep this section current)
 
-1. **Release verification first (P0):** run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite, then confirm a successful Cloudflare Pages deployment from latest `main`. PR #70 merged the three compile repairs found in the latest Pages log: invalid multiline confirmation text, malformed duplicated SOS contact source and a missing SharingController disposal flag. Verify Android/iOS background tracking and two-account privacy behavior before release.
+1. **Join-code fix first (P0):** merge and deploy the Rules update from the current branch, then retry the same invite using a second account with a verified email. Confirm the join-code document's `expiresAt` is absent or null and the Circle's approval setting is off; if Firestore still denies the join, use the new permission-denied message to check deployed Rules and account verification. Then run the manual-only Flutter analyzer/tests and Firestore Emulator Rules suite and confirm a successful Cloudflare Pages build. Do not mark this verified until the Rules deployment and two-account join succeed.
 2. **Validate the new SOS handoff (PR #68):** run its three regression test files and manually verify share/copy, Call/Text handlers, UID fail-closed behavior, approximate/stale location messaging, small-screen layout and two-account isolation. Keep the feature described as manual handoff only, not emergency dispatch.
 3. **Keep deferred under $0/Firebase-only:** remote push notifications and trusted automatic emergency delivery until a secure, no-cost delivery architecture with acknowledgement/fallback is proven; never embed sender credentials in the client.
 4. Then evaluate driving/crash detection, flight/landing alerts, tracker integrations and pet tracking as listed below.

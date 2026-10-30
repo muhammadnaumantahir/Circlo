@@ -1,6 +1,6 @@
 # Test Plan (Increment 1)
 
-Current feature progress and handover: [feature-status.md](feature-status.md). Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are manual/automated checklists; rows marked Not run remain unverified. This authoring pass has not run Flutter or Firestore tests.
+Current feature progress and handover: [feature-status.md](feature-status.md). Statuses: **Passed / Failed / Blocked / Not run / N/A**. The checks below are manual/automated checklists; rows marked Not run remain unverified. This authoring pass has not run Flutter or Firestore tests. The join-code compatibility and responsive web UI tests below are authored on branch `fix/join-code-null-expiry-and-premium-web-ui`; they remain Not run.
 
 | Req | Check | Where | Command | Status |
 |---|---|---|---|---|
@@ -10,13 +10,13 @@ Current feature progress and handover: [feature-status.md](feature-status.md). S
 | Contact sharing | Per-circle opt-in, member-scoped reads, private-profile isolation, atomic phone updates, cleanup on leave/removal/account deletion and Call/Text handler behavior | `app/test/models_test.dart`; `firebase/tests/rules.test.mjs`; manual Android/iOS/web | `cd app && flutter test test/models_test.dart`; `cd firebase && npm test` | Added on 2026-10-29; Not run here |
 | FR-004, FR-102 | Validators: name, phone, email, password, birth year, min age 13 | `app/test/validators_test.dart` | `flutter test` | Not run (CI) |
 | FR-011, NFR-011 | Join-code generation/format | `app/test/join_code_test.dart` | `flutter test` | Not run (CI) |
-| FR-012 | Web invite code prefill and manual join-code entry | `app/test/circle_invite_test.dart` | `cd app && flutter test test/circle_invite_test.dart` | Added on 2026-10-28; Not run here |
+| FR-012 | Web invite code prefill/manual entry, uppercase and hyphen formatting, and responsive wide-screen Join Circle layout | `app/test/circle_invite_test.dart` | `cd app && flutter test test/circle_invite_test.dart` | Existing prefill tests plus new formatting and desktop layout tests; Not run here |
 | FR-012 | QR invite and OS share sheet on web, Android and iOS; expired code blocked from sharing/QR | manual web + native devices | manual | Not run — required |
 | First-use navigation | No-circle account sees Create/Join onboarding, map/places/history tabs remain hidden, and all feature tabs appear after membership exists | `app/test/circle_first_onboarding_test.dart` | `cd app && flutter test test/circle_first_onboarding_test.dart` | Added 2026-10-29; Not run here |
 | FR-004, FR-102, NFR-006 | Profile rules: own-only, age ≥13, immutable birth year | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Blocked here (emulator download blocked); runs in CI |
 | FR-010, FR-011 | Create circle batch rules | same | same | Blocked here; CI |
-| FR-013, FR-020 | Join with valid/invalid/revoked/expired code; rotate code | same | same | Blocked here; CI |
-| FR-017, FR-019, FR-090, FR-092 | Membership-scoped reads; leave/remove revokes access | same | same | Blocked here; CI |
+| FR-013, FR-020 | Join with valid/invalid/revoked/expired code; explicit null expiry means no expiry; malformed/past expiry rejected; missing/null legacy `requiresApproval` defaults to open; malformed approval values fail closed; rotate code | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | New regression cases on current branch; Not run here |
+| FR-013, FR-017, FR-019, FR-090, FR-092 | Actual atomic join batch (member create, own stale contact cleanup, joined activity) and membership-scoped reads; leave/remove revokes access | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | App-shaped batch regression added on current branch; Not run here |
 | FR-030–035, FR-090 | Location rules: writes require active consent; list query requires `sharing == true`; direct get checks the marker and current per-circle consent; pausing/stopping/removal requires atomic location deletion; legacy/orphan documents are denied | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Added on 2026-10-28; Not run here |
 | Privacy regression | A member cannot pause/stop sharing while leaving a location document behind; location data becomes unreadable when the parent circle is missing | `firebase/tests/rules.test.mjs` | `cd firebase && npm test` | Added on 2026-10-28; Not run here |
 | CI | Flutter analyze/unit tests plus Firestore Emulator rules tests | `.github/workflows/flutter_ci.yml` (manual dispatch) | GitHub Actions → Flutter CI → Run workflow | Updated on 2026-10-28; Not run here |

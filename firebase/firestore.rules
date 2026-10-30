@@ -137,7 +137,9 @@ service cloud.firestore {
         return validCodeFormat(code)
           && c.circleId == circleId
           && c.revoked == false
-          && (!('expiresAt' in c) || c.expiresAt > request.time);
+          && (!('expiresAt' in c)
+            || c.expiresAt == null
+            || (c.expiresAt is timestamp && c.expiresAt > request.time));
       }
 
       function validMemberCreate(d, circleId, memberUid) {
@@ -163,7 +165,10 @@ service cloud.firestore {
               && exists(circlePath(circleId))
               && (
                 // Open circle: a valid, unrevoked, unexpired code.
-                (get(circlePath(circleId)).data.requiresApproval == false && validJoinCode(d.joinCode, circleId))
+                ((!('requiresApproval' in get(circlePath(circleId)).data)
+                    || get(circlePath(circleId)).data.requiresApproval == null
+                    || get(circlePath(circleId)).data.requiresApproval == false)
+                  && validJoinCode(d.joinCode, circleId))
                 ||
                 // Approval circle: the owner must have approved this user's request.
                 (get(circlePath(circleId)).data.requiresApproval == true
@@ -606,6 +611,7 @@ service cloud.firestore {
         && request.resource.data.revoked == false
         && request.resource.data.createdAt == request.time
         && (!('expiresAt' in request.resource.data)
+            || request.resource.data.expiresAt == null
             || (request.resource.data.expiresAt is timestamp
                 && request.resource.data.expiresAt > request.time
                 && request.resource.data.expiresAt < request.time + duration.value(31, 'd')))
