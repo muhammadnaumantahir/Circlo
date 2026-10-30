@@ -17,6 +17,14 @@ Use [feature-status.md](feature-status.md) as the canonical feature checklist an
 - Circles, Places, Travel History, Activity and Profile receive clearer page hierarchy. Map stays full-bleed and map/location behavior is not being redesigned.
 - This is a presentation-only change; Circle membership, privacy and location-sharing behavior remain unchanged. Tests and responsive visual verification are pending.
 
+## Premium UI refresh (merged via PR #72)
+
+- Shared app theme aligns with FinMate / Stockly: semantic blue/mint/violet palette, stronger type hierarchy, soft page backgrounds, consistent cards and controls in light/dark mode.
+- Reusable UI components include gradient hero cards, page headers, glass cards, profile heroes, metric cards, icon chips and branded loading/recovery.
+- Desktop shell has a larger workspace sidebar, privacy panel and clickable profile/account footer. Mobile bottom navigation is retained.
+- Circles, Places, Travel History, Activity and Profile have refreshed page hierarchy. Map remains full-bleed.
+- Visual-only; no membership, location-sharing, privacy or backend behavior changed. Widget tests have been added but Flutter analyze/tests, browser checks and device checks have not run.
+
 ## What exists in the code
 
 | Area | Current implementation | Confidence / limit |
