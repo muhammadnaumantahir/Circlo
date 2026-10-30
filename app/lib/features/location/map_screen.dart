@@ -1569,10 +1569,6 @@ class _PeoplePeekCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final sharing = views.where((v) => v.status == ShareStatus.sharing).length;
     final paused = views.where((v) => v.status == ShareStatus.paused).length;
-    final status = sharing > 0
-        ? '$sharing sharing now'
-        : (paused > 0 ? '$paused paused' : 'No active location updates');
-
     return PremiumGlassCard(
       padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
       radius: 25,
