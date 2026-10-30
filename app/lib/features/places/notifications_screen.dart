@@ -138,12 +138,24 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           return ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
-              const Card(
-                margin: EdgeInsets.all(12),
-                child: ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Notifications appear here while Circlo is open.'),
-                  subtitle: Text('Phone push notifications about other people are not available yet.'),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 18, 20, 12),
+                child: PremiumPageHeader(
+                  eyebrow: 'YOUR CIRCLES',
+                  title: 'Activity',
+                  subtitle: 'The latest updates from people in your circles.',
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: PremiumGlassCard(
+                  padding: EdgeInsets.all(14),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.info_outline_rounded),
+                    title: Text('Notifications appear here while Circlo is open.'),
+                    subtitle: Text('Phone push notifications about other people are not available yet.'),
+                  ),
                 ),
               ),
               if (items.isEmpty)

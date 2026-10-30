@@ -10,6 +10,13 @@ Use [feature-status.md](feature-status.md) as the canonical feature checklist an
 - First-use onboarding and Create/Join screens have responsive two-panel desktop layouts, stacked mobile layouts, richer branded visuals, and formatted join-code entry.
 - Regression tests for Rules edge cases, the app-shaped join batch and responsive join form are in `main`; not run. Deploy updated Rules before testing against the real Firebase project.
 
+## UI refresh branch (not yet merged)
+
+- The shared visual system is being aligned with FinMate / Stockly: blue/mint/violet semantic tokens, stronger typography, soft page surfaces, rounded glass cards, gradient heroes, coloured icon chips and clear page headings.
+- Desktop navigation adds a branded workspace header and signed-in profile card; mobile bottom navigation remains.
+- Circles, Places, Travel History, Activity and Profile receive clearer page hierarchy. Map stays full-bleed and map/location behavior is not being redesigned.
+- This is a presentation-only change; Circle membership, privacy and location-sharing behavior remain unchanged. Tests and responsive visual verification are pending.
+
 ## What exists in the code
 
 | Area | Current implementation | Confidence / limit |

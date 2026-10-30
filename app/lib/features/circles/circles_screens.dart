@@ -37,7 +37,7 @@ class CirclesScreen extends ConsumerWidget {
         !circles.hasError;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isFirstUse ? 'Welcome to Circlo' : 'Your circles'),
+        title: Text(isFirstUse ? 'Welcome to Circlo' : 'Circles'),
         actions: isFirstUse
             ? const []
             : [
@@ -80,13 +80,20 @@ class CirclesScreen extends ConsumerWidget {
             Icons.group_work_rounded,
           ];
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 104),
-            itemCount: list.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 112),
+            itemCount: list.length + 2,
+            separatorBuilder: (_, __) => const SizedBox(height: 14),
             itemBuilder: (context, i) {
-              if (i == 0) return _CircleCollectionHero(count: list.length);
-              final c = list[i - 1];
-              final tone = ((i - 1) % icons.length).toInt();
+              if (i == 0) {
+                return const PremiumPageHeader(
+                  eyebrow: 'YOUR SPACE',
+                  title: 'Your circles',
+                  subtitle: 'The people and places that matter, together.',
+                );
+              }
+              if (i == 1) return _CircleCollectionHero(count: list.length);
+              final c = list[i - 2];
+              final tone = ((i - 2) % icons.length).toInt();
               return Card(
                 margin: EdgeInsets.zero,
                 child: ListTile(

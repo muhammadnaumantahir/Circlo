@@ -283,6 +283,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ];
     var index = paths.indexWhere((p) => widget.location.startsWith(p));
     if (index < 0) index = 0;
+    final profile = ref.watch(profileProvider).valueOrNull;
+    final accountName = profile?.displayName.trim().isNotEmpty == true
+        ? profile!.displayName.trim()
+        : 'Your account';
+    final accountInitial = accountName == 'Your account' ? '?' : accountName.substring(0, 1).toUpperCase();
+    final email = ref.watch(authStateProvider).valueOrNull?.email ?? '';
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 1000;
@@ -292,7 +298,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               ? Row(
                   children: [
                     Container(
-                      width: 238,
+                      width: 260,
                       decoration: BoxDecoration(
                         color: scheme.surface,
                         border: Border(
@@ -304,35 +310,60 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 18, 16, 20),
+                              padding: const EdgeInsets.fromLTRB(20, 22, 18, 18),
                               child: Row(
                                 children: [
-                                  const PremiumBrandMark(size: 42),
-                                  const SizedBox(width: 11),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Circlo',
-                                        style: Theme.of(context).textTheme.titleLarge,
-                                      ),
-                                      Text(
-                                        'STAY IN SYNC',
-                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                              color: scheme.onSurfaceVariant,
-                                              letterSpacing: 1.25,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                      ),
-                                    ],
+                                  const PremiumBrandMark(size: 46),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Circlo', style: Theme.of(context).textTheme.titleLarge),
+                                        Text(
+                                          'YOUR PEOPLE, IN SYNC',
+                                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                                color: scheme.onSurfaceVariant,
+                                                letterSpacing: 1.15,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+                              child: PremiumHeroCard(
+                                padding: const EdgeInsets.all(16),
+                                radius: 22,
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.shield_rounded, color: Colors.white, size: 26),
+                                    const SizedBox(width: 11),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Private by choice', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            'Stay close while staying in control.',
+                                            style: TextStyle(color: Colors.white.withValues(alpha: .84), fontSize: 12, height: 1.35),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Padding(
                               padding: const EdgeInsets.fromLTRB(22, 0, 0, 8),
                               child: Text(
-                                'YOUR SPACE',
+                                'WORKSPACE',
                                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                       color: scheme.onSurfaceVariant,
                                       letterSpacing: 1.2,
@@ -343,7 +374,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                             Expanded(
                               child: NavigationRail(
                                 extended: true,
-                                minExtendedWidth: 218,
+                                minExtendedWidth: 238,
                                 selectedIndex: index,
                                 onDestinationSelected: (i) => context.go(paths[i]),
                                 destinations: [
@@ -357,18 +388,44 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 12, 16, 18),
+                              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+                              child: PremiumGlassCard(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                                onTap: () => context.go('/profile'),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 19,
+                                      backgroundColor: scheme.primary.withValues(alpha: .12),
+                                      foregroundColor: scheme.primary,
+                                      child: Text(accountInitial, style: const TextStyle(fontWeight: FontWeight.w900)),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(accountName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900)),
+                                          Text(email.isEmpty ? 'Personal account' : email, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(Icons.settings_outlined, size: 18, color: scheme.onSurfaceVariant),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(22, 4, 16, 16),
                               child: Row(
                                 children: [
-                                  Icon(Icons.shield_outlined, size: 18, color: scheme.primary),
+                                  Icon(Icons.lock_outline_rounded, size: 16, color: scheme.primary),
                                   const SizedBox(width: 8),
                                   Expanded(
-                                    child: Text(
-                                      'Your location. Your choice.',
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                            color: scheme.onSurfaceVariant,
-                                          ),
-                                    ),
+                                    child: Text('Your location. Your choice.',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
                                   ),
                                 ],
                               ),

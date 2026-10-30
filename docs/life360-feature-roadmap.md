@@ -14,6 +14,11 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 - First-use onboarding and Create/Join screens use responsive gradient-hero/form panels on wide web layouts and stacked mobile layouts. Invite codes are uppercased and grouped while typing.
 - Regression coverage was added for expiry/approval edge cases, the full membership/contact-cleanup/activity join batch, invite formatting and wide-screen layout. Tests have not been run.
 
+## Active visual-quality improvement
+
+- Branch `feature/premium-finmate-stockly-ui` aligns Circlo with the FinMate / Stockly premium design kit: blue/mint/violet palette, neutral tinted surfaces, consistent typography, 24px cards, gradient account/feature heroes, category icon chips, branded loading states and responsive sidebar navigation.
+- No product behavior or sharing/privacy default is changed. Automated UI checks are being authored but remain unrun; visual checks at mobile/tablet/desktop widths and light/dark modes remain outstanding.
+
 ## Release gates (must stay visible throughout feature work)
 
 - [ ] Run the manual GitHub Actions workflow for Flutter analyze/tests and Firestore Emulator rules tests when ready.

@@ -5,15 +5,25 @@ class LoadingView extends StatelessWidget {
   final String? label;
 
   @override
-  Widget build(BuildContext context) => Center(
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(),
-            if (label != null) ...[const SizedBox(height: 16), Text(label!)],
+            const PremiumBrandMark(size: 52),
+            const SizedBox(height: 18),
+            SizedBox(width: 26, height: 26, child: CircularProgressIndicator(strokeWidth: 2.5, color: scheme.primary)),
+            const SizedBox(height: 14),
+            Text(label ?? 'Getting things ready…', style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w700)),
           ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class MessageView extends StatelessWidget {
@@ -42,13 +52,14 @@ class MessageView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 84,
-                height: 84,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
+                  gradient: CircloPalette.heroGradient,
                   borderRadius: BorderRadius.circular(28),
+                  boxShadow: [BoxShadow(color: CircloPalette.brand.withValues(alpha: .20), blurRadius: 26, offset: const Offset(0, 10))],
                 ),
-                child: Icon(icon, size: 40, color: scheme.onPrimaryContainer),
+                child: Icon(icon, size: 40, color: Colors.white),
               ),
               const SizedBox(height: 22),
               Text(
@@ -121,7 +132,7 @@ class FormPage extends StatelessWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
+            constraints: const BoxConstraints(maxWidth: 560),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: children),
@@ -133,144 +144,201 @@ class FormPage extends StatelessWidget {
 
 /// Calm, colorful design tokens shared across Circlo's feature screens.
 abstract final class CircloPalette {
-  static const brand = Color(0xFF5B4FE8);
-  static const mint = Color(0xFF18B8A5);
-  static const violet = Color(0xFF9B8AFB);
+  static const brand = Color(0xFF2563EB);
+  static const brandDark = Color(0xFF60A5FA);
+  static const mint = Color(0xFF17C7A1);
+  static const violet = Color(0xFF8B7CFF);
+  static const success = Color(0xFF16A34A);
+  static const warning = Color(0xFFD97706);
+  static const danger = Color(0xFFDC2626);
   static const orange = Color(0xFFF59E0B);
   static const rose = Color(0xFFF472B6);
-  static const ink = Color(0xFF171B3B);
-  static const muted = Color(0xFF68708A);
-  static const canvas = Color(0xFFF7F7FC);
-  static const darkCanvas = Color(0xFF0D1524);
-  static const darkSurface = Color(0xFF111C2D);
-  static const heroGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF4338CA), Color(0xFF665BEA), Color(0xFF18B8A5)],
-  );
-
+  static const ink = Color(0xFF10203A);
+  static const muted = Color(0xFF65738B);
+  static const canvas = Color(0xFFF5F8FD);
+  static const darkCanvas = Color(0xFF07111F);
+  static const darkSurface = Color(0xFF101B2C);
+  static const inputLight = Color(0xFFEEF3F9);
+  static const borderLight = Color(0xFFDDE6F1);
+  static const borderDark = Color(0xFF2B3B52);
+  static const heroGradient = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1D4ED8), Color(0xFF2563EB), Color(0xFF17C7A1)]);
   static const accents = <Color>[brand, mint, violet, orange, rose];
-
   static Color accent(int index) => accents[index % accents.length];
+  static Color forCategory(String? value) => switch ((value ?? '').trim().toLowerCase()) {
+    'home' || 'family' => const Color(0xFF2563EB),
+    'places' || 'travel' => const Color(0xFF0D9488),
+    'history' => const Color(0xFF8B7CFF),
+    'people' || 'members' => const Color(0xFFE772A1),
+    'safety' || 'sos' => const Color(0xFFDC3F4D),
+    'notifications' || 'alerts' => const Color(0xFFD97706),
+    _ => brand,
+  };
 }
 
-/// Colored icon tile inspired by the shared FinMate/Stockly premium kit.
 class PremiumIconChip extends StatelessWidget {
-  const PremiumIconChip({
-    super.key,
-    required this.icon,
-    this.color,
-    this.size = 48,
-  });
-
+  const PremiumIconChip({super.key, required this.icon, this.color, this.size = 40});
   final IconData icon;
   final Color? color;
   final double size;
-
   @override
   Widget build(BuildContext context) {
     final tint = color ?? Theme.of(context).colorScheme.primary;
     return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: tint.withValues(alpha: .13),
-        borderRadius: BorderRadius.circular(size * .31),
-        border: Border.all(color: tint.withValues(alpha: .10)),
-      ),
+      width: size, height: size,
+      decoration: BoxDecoration(color: tint.withValues(alpha: .14), borderRadius: BorderRadius.circular(size * .31), border: Border.all(color: tint.withValues(alpha: .09))),
       alignment: Alignment.center,
-      child: Icon(icon, color: tint, size: size * .5),
+      child: Icon(icon, color: tint, size: size * .52),
     );
   }
 }
 
-/// Gradient feature card for brand-led entry points and summary panels.
-class PremiumHeroCard extends StatelessWidget {
-  const PremiumHeroCard({
-    super.key,
-    required this.child,
-    this.padding = const EdgeInsets.all(20),
-    this.radius = 26,
-  });
+class PremiumReveal extends StatelessWidget {
+  const PremiumReveal({super.key, required this.child, this.delay = Duration.zero, this.offset = 12});
+  final Widget child;
+  final Duration delay;
+  final double offset;
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return child;
+    final duration = const Duration(milliseconds: 360) + delay;
+    final start = duration.inMilliseconds == 0 ? 0.0 : delay.inMilliseconds / duration.inMilliseconds;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1), duration: duration,
+      curve: Interval(start, 1, curve: Curves.easeOutCubic),
+      builder: (context, value, child) => Opacity(opacity: value, child: Transform.translate(offset: Offset(0, (1 - value) * offset), child: child)),
+      child: child,
+    );
+  }
+}
 
+class PremiumHeroCard extends StatelessWidget {
+  const PremiumHeroCard({super.key, required this.child, this.padding = const EdgeInsets.all(20), this.radius = 28});
   final Widget child;
   final EdgeInsetsGeometry padding;
   final double radius;
-
   @override
-  Widget build(BuildContext context) => Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          gradient: CircloPalette.heroGradient,
-          borderRadius: BorderRadius.circular(radius),
-          boxShadow: [
-            BoxShadow(
-              color: CircloPalette.brand.withValues(alpha: .20),
-              blurRadius: 28,
-              offset: const Offset(0, 11),
-            ),
-          ],
-        ),
-        child: child,
-      );
+  Widget build(BuildContext context) => PremiumReveal(
+    child: Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        gradient: CircloPalette.heroGradient,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: Colors.white.withValues(alpha: .14)),
+        boxShadow: [BoxShadow(color: CircloPalette.brand.withValues(alpha: .24), blurRadius: 28, offset: const Offset(0, 11))],
+      ),
+      child: child,
+    ),
+  );
 }
 
 class PremiumBrandMark extends StatelessWidget {
   const PremiumBrandMark({super.key, this.size = 68});
-
   final double size;
-
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          gradient: CircloPalette.heroGradient,
-          borderRadius: BorderRadius.circular(size * .32),
-          boxShadow: [
-            BoxShadow(
-              color: CircloPalette.brand.withValues(alpha: .22),
-              blurRadius: 22,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Icon(Icons.hub_rounded, size: size * .48, color: Colors.white),
-      );
+    width: size, height: size,
+    decoration: BoxDecoration(
+      gradient: CircloPalette.heroGradient,
+      borderRadius: BorderRadius.circular(size * .32),
+      boxShadow: [BoxShadow(color: CircloPalette.brand.withValues(alpha: .22), blurRadius: 22, offset: const Offset(0, 8))],
+    ),
+    child: Icon(Icons.hub_rounded, size: size * .48, color: Colors.white),
+  );
 }
 
-class PremiumSectionHeader extends StatelessWidget {
-  const PremiumSectionHeader({
-    super.key,
-    required this.title,
-    this.subtitle,
-  });
-
+class PremiumPageHeader extends StatelessWidget {
+  const PremiumPageHeader({super.key, required this.title, this.subtitle, this.trailing, this.eyebrow});
   final String title;
   final String? subtitle;
-
+  final Widget? trailing;
+  final String? eyebrow;
   @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -.4,
-                ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
-          ],
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (eyebrow != null) ...[
+          Text(eyebrow!.toUpperCase(), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w900, letterSpacing: 1.25)),
+          const SizedBox(height: 5),
         ],
-      );
+        Text(title, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -.95)),
+        if (subtitle != null) ...[
+          const SizedBox(height: 5),
+          Text(subtitle!, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ],
+      ])),
+      if (trailing != null) ...[const SizedBox(width: 12), trailing!],
+    ]);
+  }
+}
+
+class PremiumGlassCard extends StatelessWidget {
+  const PremiumGlassCard({super.key, required this.child, this.padding = const EdgeInsets.all(20), this.onTap, this.radius = 24});
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final VoidCallback? onTap;
+  final double radius;
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final card = Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: dark ? [const Color(0xFF17263E).withValues(alpha: .98), const Color(0xFF101B2C).withValues(alpha: .96)] : [Colors.white.withValues(alpha: .98), const Color(0xFFF2F7FF).withValues(alpha: .94)],
+        ),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: dark ? Colors.white.withValues(alpha: .08) : const Color(0xFFDDE7F5).withValues(alpha: .9)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: dark ? .16 : .035), blurRadius: 24, offset: const Offset(0, 8))],
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+    if (onTap == null) return ClipRRect(borderRadius: BorderRadius.circular(radius), child: card);
+    return Material(color: Colors.transparent, borderRadius: BorderRadius.circular(radius), child: InkWell(borderRadius: BorderRadius.circular(radius), onTap: onTap, child: card));
+  }
+}
+
+class PremiumProfileHero extends StatelessWidget {
+  const PremiumProfileHero({super.key, required this.title, required this.subtitle, required this.initial, this.trailing});
+  final String title;
+  final String subtitle;
+  final String initial;
+  final Widget? trailing;
+  @override
+  Widget build(BuildContext context) => PremiumHeroCard(child: Row(children: [
+    CircleAvatar(radius: 29, backgroundColor: Colors.white.withValues(alpha: .18), foregroundColor: Colors.white, child: Text(initial, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900))),
+    const SizedBox(width: 14),
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -.3)),
+      const SizedBox(height: 4),
+      Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withValues(alpha: .82), fontSize: 12.5)),
+    ])),
+    if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+  ]));
+}
+
+class PremiumMetricCard extends StatelessWidget {
+  const PremiumMetricCard({super.key, required this.label, required this.value, required this.icon, this.color, this.caption});
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color? color;
+  final String? caption;
+  @override
+  Widget build(BuildContext context) {
+    final tint = color ?? Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    return PremiumGlassCard(padding: const EdgeInsets.all(17), child: Row(children: [
+      PremiumIconChip(icon: icon, color: tint, size: 44),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 2),
+        Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleLarge?.copyWith(color: tint, fontWeight: FontWeight.w900)),
+        if (caption != null) Text(caption!, style: theme.textTheme.labelSmall),
+      ])),
+    ]));
+  }
 }
 
 /// Firebase-backed Google provider button; behavior is supplied by the auth layer.
