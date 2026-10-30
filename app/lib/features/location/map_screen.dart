@@ -1602,15 +1602,18 @@ class _PeoplePeekCard extends StatelessWidget {
                   ),
                 ),
                 PremiumStatusPill(
-                  label: sharing > 0 ? '$sharing sharing' : (paused > 0 ? '$paused paused' : 'Quiet'),
+                  label: sharing > 0
+                      ? (MediaQuery.sizeOf(context).width < 400 ? 'Sharing' : '$sharing sharing')
+                      : (paused > 0 ? '$paused paused' : 'Quiet'),
                   icon: sharing > 0 ? Icons.location_on_rounded : (paused > 0 ? Icons.pause_rounded : Icons.more_horiz_rounded),
                   color: sharing > 0 ? CircloPalette.success : (paused > 0 ? CircloPalette.warning : scheme.onSurfaceVariant),
                   compact: true,
                 ),
-                TextButton(
+                IconButton(
+                  tooltip: 'See all people',
+                  visualDensity: VisualDensity.compact,
                   onPressed: onAllPeople,
-                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 9)),
-                  child: const Text('See all'),
+                  icon: const Icon(Icons.arrow_forward_rounded),
                 ),
               ],
             ),
