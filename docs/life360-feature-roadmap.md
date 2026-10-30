@@ -26,6 +26,13 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 
 [PR #73](https://github.com/muhammadnaumantahir/Circlo/pull/73) follows PR #72 with deeper polish across the Map, Circles, Places, Profile and sign-in surfaces. It adds semantic status capsules, grouped settings rows, glass-card page controls, better mobile-fit status labels and refined theme states for switches and segmented controls. Presentation-only; no location, membership or Firebase behavior is changed. Widget tests have been expanded but are not run.
 
+## Follow-up premium UI refinement (in progress)
+
+- The follow-up pass extends the shared style to History and Activity: compact selectors, quick date filters, clearer daily summaries and stop cards, plus grouped privacy/history and notification preference surfaces.
+- A shared `PremiumFilterChip` provides consistent selected states, counts, iconography and a 44px minimum touch target.
+- Visual-only: Circle membership, location-sharing consent, history retention/deletion, notification preference writes, Firebase schema/rules and navigation destinations are unchanged.
+- Widget tests and mobile/tablet/desktop light/dark browser review are still required. GitHub Actions remains manual-only.
+
 ## Release gates (must stay visible throughout feature work)
 
 - [ ] Run the manual GitHub Actions workflow for Flutter analyze/tests and Firestore Emulator rules tests when ready.
