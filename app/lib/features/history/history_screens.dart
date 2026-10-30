@@ -210,19 +210,37 @@ class _Body extends ConsumerWidget {
             radius: 18,
             child: Row(
               children: [
-                IconButton(tooltip: 'Previous day', onPressed: () => onDate(date.subtract(const Duration(days: 1))), icon: const Icon(Icons.chevron_left_rounded)),
+                IconButton(
+                  tooltip: 'Previous day',
+                  onPressed: () => onDate(date.subtract(const Duration(days: 1))),
+                  icon: const Icon(Icons.chevron_left_rounded),
+                ),
                 Expanded(
                   child: TextButton.icon(
                     icon: const Icon(Icons.calendar_month_rounded, size: 18),
                     label: Text(_dateLabel(date)),
                     onPressed: () async {
-                      final picked = await showDatePicker(context: context, initialDate: date, firstDate: DateTime.now().subtract(const Duration(days: 120)), lastDate: DateTime.now());
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: date,
+                        firstDate: DateTime.now().subtract(const Duration(days: 120)),
+                        lastDate: DateTime.now(),
+                      );
                       if (picked != null) onDate(picked);
                     },
                   ),
                 ),
-                IconButton(tooltip: 'Next day', onPressed: isToday ? null : () => onDate(date.add(const Duration(days: 1))), icon: const Icon(Icons.chevron_right_rounded)),
-                if (shared && !(isMe && !keepHistory)) IconButton(tooltip: 'Refresh', onPressed: () => ref.invalidate(dayTrackProvider(key)), icon: const Icon(Icons.refresh_rounded)),
+                IconButton(
+                  tooltip: 'Next day',
+                  onPressed: isToday ? null : () => onDate(date.add(const Duration(days: 1))),
+                  icon: const Icon(Icons.chevron_right_rounded),
+                ),
+                if (shared && !(isMe && !keepHistory))
+                  IconButton(
+                    tooltip: 'Refresh',
+                    onPressed: () => ref.invalidate(dayTrackProvider(key)),
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
               ],
             ),
           ),
@@ -233,11 +251,26 @@ class _Body extends ConsumerWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                PremiumFilterChip(label: 'Today', icon: Icons.today_rounded, selected: isToday, onSelected: (_) => onDate(_calendarDateOffset(0))),
+                PremiumFilterChip(
+                  label: 'Today',
+                  icon: Icons.today_rounded,
+                  selected: isToday,
+                  onSelected: (_) => onDate(_calendarDateOffset(0)),
+                ),
                 const SizedBox(width: 8),
-                PremiumFilterChip(label: 'Yesterday', icon: Icons.history_rounded, selected: isYesterday, onSelected: (_) => onDate(_calendarDateOffset(1))),
+                PremiumFilterChip(
+                  label: 'Yesterday',
+                  icon: Icons.history_rounded,
+                  selected: isYesterday,
+                  onSelected: (_) => onDate(_calendarDateOffset(1)),
+                ),
                 const SizedBox(width: 8),
-                PremiumFilterChip(label: '7 days ago', icon: Icons.date_range_rounded, selected: isWeekAgo, onSelected: (_) => onDate(_calendarDateOffset(7))),
+                PremiumFilterChip(
+                  label: '7 days ago',
+                  icon: Icons.date_range_rounded,
+                  selected: isWeekAgo,
+                  onSelected: (_) => onDate(_calendarDateOffset(7)),
+                ),
               ],
             ),
           ),
@@ -271,8 +304,20 @@ class _HistoryDaySummary extends StatelessWidget {
               children: [
                 const PremiumIconChip(icon: Icons.insights_rounded, color: CircloPalette.brand, size: 40),
                 const SizedBox(width: 11),
-                Expanded(child: Text('Day at a glance', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900))),
-                const PremiumStatusPill(label: 'Simplified', icon: Icons.verified_user_outlined, color: CircloPalette.mint, compact: true),
+                Expanded(
+                  child: Text(
+                    'Day at a glance',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+                const PremiumStatusPill(
+                  label: 'Simplified',
+                  icon: Icons.verified_user_outlined,
+                  color: CircloPalette.mint,
+                  compact: true,
+                ),
               ],
             ),
             const SizedBox(height: 16),
