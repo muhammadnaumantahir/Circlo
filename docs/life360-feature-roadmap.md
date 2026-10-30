@@ -1,6 +1,6 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#73; see [canonical feature status and cross-chat handover](feature-status.md)). PR #73 expanded the FinMate / Stockly premium styling across the Map, Circles, Places, Profile and login flows. Tests, analyzer, responsive web review, Cloudflare Pages deployment and device behavior remain unverified.
+Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#74; see [canonical feature status and cross-chat handover](feature-status.md)). PR #74 extends the shared premium styling through History and Activity. Tests, analyzer, responsive web review, Cloudflare Pages deployment and device behavior remain unverified.
 
 **Current next step:** deploy PR #71's Firestore Rules to the intended Firebase project and retry the same invitation with a second verified account. Then run the Flutter analyzer/widget tests and Firestore Emulator Rules tests through the manual-only workflow, and verify the Cloudflare Pages build. Also verify PR #68's SOS tests and two-account privacy behavior. No GitHub Actions workflow should be triggered automatically.
 
@@ -26,9 +26,9 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 
 [PR #73](https://github.com/muhammadnaumantahir/Circlo/pull/73) follows PR #72 with deeper polish across the Map, Circles, Places, Profile and sign-in surfaces. It adds semantic status capsules, grouped settings rows, glass-card page controls, better mobile-fit status labels and refined theme states for switches and segmented controls. Presentation-only; no location, membership or Firebase behavior is changed. Widget tests have been expanded but are not run.
 
-## Follow-up premium UI refinement (open PR #74)
+## Follow-up premium UI refinement (merged via PR #74)
 
-[PR #74 — Polish Circlo History and Activity with premium UI](https://github.com/muhammadnaumantahir/Circlo/pull/74)
+Merged via [PR #74 — Polish Circlo History and Activity with premium UI](https://github.com/muhammadnaumantahir/Circlo/pull/74)
 
 - The follow-up pass extends the shared style to History and Activity: compact selectors, quick date filters, clearer daily summaries and stop cards, plus grouped privacy/history and notification preference surfaces.
 - A shared `PremiumFilterChip` provides consistent selected states, counts, iconography and a 44px minimum touch target.
