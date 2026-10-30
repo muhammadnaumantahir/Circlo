@@ -19,6 +19,14 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Web UX:** first-use onboarding, Create Circle and Join Circle use branded responsive two-panel layouts on wide screens and stacked layouts on narrow screens. Join codes are uppercased and grouped while typing.
 - **Verification:** Firestore Rules and widget regression tests were added but not run. The updated Rules still need deployment to the intended Firebase project, followed by a real two-account test. Flutter analyzer/tests and Cloudflare Pages build remain unverified.
 
+## Latest UI refresh (active branch)
+
+- **Branch:** `feature/premium-finmate-stockly-ui`.
+- **Reference:** shared FinMate / Stockly kit: blue/mint/violet semantic tokens, soft surfaces, rounded cards, gradient hero panels, colourful icon tiles and clearer page hierarchy.
+- **Scope:** app-wide light/dark theme, shared premium components, branded loading/recovery, responsive desktop sidebar/account footer, and stronger page hierarchy for Circles, Places, Travel History, Activity and Profile. Map remains full-bleed and retains its map-first workflow.
+- **Behavior:** visual-only; Firebase data, location-consent defaults, circle gating, privacy settings and navigation destinations are preserved.
+- **Verification:** widget tests are being added; Flutter analyzer/tests, web build, visual browser review and Android/iOS verification are not run here. GitHub Actions remains manual-only.
+
 ## Status definitions
 
 - **In main — unverified:** implementation is merged, but its required automated/device checks have not been confirmed as passing.
