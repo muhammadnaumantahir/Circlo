@@ -25,15 +25,14 @@ Use [feature-status.md](feature-status.md) as the canonical feature checklist an
 - Circles, Places, Travel History, Activity and Profile have refreshed page hierarchy. Map remains full-bleed.
 - Visual-only; no membership, location-sharing, privacy or backend behavior changed. Widget tests have been added but Flutter analyze/tests, browser checks and device checks have not run.
 
-## Premium UI refinement (active branch)
+## Premium UI refinement (merged via PR #73)
 
-- Map: premium active-circle selector and status capsule, grouped search/status filters and a better-composed floating people preview.
-- Circles: elevated circle cards with clear owner/member identity. The normal Circles page uses one body heading rather than repeating it in the app bar.
-- Places: current-circle selector and a visual saved-place capacity bar.
-- Profile: grouped form panel, grouped privacy/data actions and a separate destructive-action card.
-- Authentication: grouped login panel and inline error card.
-- Theme/components: reusable semantic status pill, tile and grouped section components; interactive control states refined.
-- Visual-only; location consent, sharing rules, Firebase data and navigation flows remain unchanged. Flutter tests/analyzer and responsive browser/device review have not run.
+- The map's active-circle selector, sharing status, People search/filter surface and floating people panel now share a more deliberate premium treatment while keeping the map full-bleed.
+- Circles use elevated cards with owner/member identity; Places has a premium circle selector and saved-place capacity display.
+- Profile groups account details and privacy actions into clear surfaces, with destructive account deletion separated visually.
+- Login uses one contained form panel and a distinct inline error treatment.
+- New shared components include semantic status capsules, grouped settings sections and category-coloured settings rows. Switches, checkboxes, radios and segmented controls now have more consistent selected states.
+- PR #73 is presentation-only; no circle membership, location-sharing consent or backend data behavior changed. Added widget coverage is not run; analyzer/build/browser/device validation is still outstanding.
 
 ## What exists in the code
 
