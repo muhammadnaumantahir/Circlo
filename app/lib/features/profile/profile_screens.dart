@@ -283,52 +283,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           final displayName = p.displayName.trim();
           final initial = displayName.isEmpty ? '?' : displayName.substring(0, 1).toUpperCase();
           return FormPage(children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: scheme.outlineVariant.withOpacity(0.65)),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 29,
-                    backgroundColor: scheme.primaryContainer,
-                    foregroundColor: scheme.onPrimaryContainer,
-                    child: Text(
-                      initial,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: scheme.onPrimaryContainer,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(displayName.isEmpty ? 'Your profile' : displayName, style: theme.textTheme.titleLarge),
-                        const SizedBox(height: 4),
-                        Text(
-                          email,
-                          style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Personal account',
-                          style: theme.textTheme.labelMedium?.copyWith(color: scheme.primary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            PremiumProfileHero(
+              title: displayName.isEmpty ? 'Your profile' : displayName,
+              subtitle: email.isEmpty ? 'Personal Circlo account' : email,
+              initial: initial,
+              trailing: Icon(Icons.verified_rounded, color: Colors.white.withValues(alpha: .9), size: 22),
             ),
-            const SizedBox(height: 24),
-            Text('Personal details', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 12),
+            const SizedBox(height: 26),
+            const PremiumPageHeader(
+              eyebrow: 'ACCOUNT',
+              title: 'Personal details',
+              subtitle: 'Keep your contact information up to date.',
+            ),
+            const SizedBox(height: 16),
             Form(
               key: _form,
               child: Column(children: [
@@ -355,12 +322,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   : const Text('Save changes'),
             ),
             const SizedBox(height: 28),
-            Text('Calls and texts', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(
-              'Your phone number stays private unless you share it with a specific circle. '
-              'Only members of that circle can see it. Turning sharing off removes that circle’s copy.',
-              style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+            const PremiumPageHeader(
+              eyebrow: 'CIRCLE CONTACTS',
+              title: 'Calls and texts',
+              subtitle: 'Your number stays private until you share it with a specific circle.',
             ),
             const SizedBox(height: 12),
             circlesAsync.when(
@@ -393,7 +358,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
             ),
             const SizedBox(height: 28),
-            Text('Privacy & data', style: theme.textTheme.titleMedium),
+            const PremiumPageHeader(
+              eyebrow: 'CONTROL',
+              title: 'Privacy & data',
+              subtitle: 'Manage your location, history and personal data.',
+            ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () => context.push('/history/settings'),
