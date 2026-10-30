@@ -27,6 +27,25 @@ IconData _iconFor(FeedItem i) {
   }
 }
 
+IconData _iconForKind(FeedKind kind) {
+  switch (kind) {
+    case FeedKind.place:
+      return Icons.place_rounded;
+    case FeedKind.noShow:
+      return Icons.alarm_off_rounded;
+    case FeedKind.membership:
+      return Icons.groups_rounded;
+    case FeedKind.sharing:
+      return Icons.share_location_rounded;
+    case FeedKind.unavailable:
+      return Icons.location_off_rounded;
+    case FeedKind.requests:
+      return Icons.person_add_alt_rounded;
+    case FeedKind.checkIns:
+      return Icons.check_circle_outline_rounded;
+  }
+}
+
 /// Bell icon with an unread badge; opens the notifications list.
 class NotificationsBell extends ConsumerWidget {
   const NotificationsBell({super.key});
@@ -204,7 +223,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       children: [
                         PremiumFilterChip(label: 'All', count: '${items.length}', icon: Icons.grid_view_rounded, selected: _filter == _ActivityFilter.all, onSelected: (_) => setState(() => _filter = _ActivityFilter.all)),
                         const SizedBox(width: 8),
-                        PremiumFilterChip(label: 'Places', count: '$placeCount', icon: Icons.place_rounded, selected: _filter == _ActivityFilter.places, onSelected: (_) => setState(() => _filter = _ActivityFilter.places)),
+                        PremiumFilterChip(label: 'Places & no-shows', count: '$placeCount', icon: Icons.place_rounded, selected: _filter == _ActivityFilter.places, onSelected: (_) => setState(() => _filter = _ActivityFilter.places)),
                         const SizedBox(width: 8),
                         PremiumFilterChip(label: 'People', count: '$peopleCount', icon: Icons.groups_rounded, selected: _filter == _ActivityFilter.people, onSelected: (_) => setState(() => _filter = _ActivityFilter.people)),
                         const SizedBox(width: 8),
@@ -467,7 +486,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 SwitchListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   secondary: PremiumIconChip(
-                    icon: Icons.notifications_active_rounded,
+                    icon: _iconForKind(kind),
                     color: CircloPalette.accent(kind.index),
                     size: 40,
                   ),
