@@ -4,7 +4,8 @@
 **Latest status audit:** 2026-10-30 — reconciled against merged PRs #60–#69. The Place Suggestions syntax repair (#69) and manual SOS message/contact handoff (#68) are now in `main`. The repair addresses a definite malformed visit loop and orphaned duplicate Dart fragment; the exact Cloudflare provider error is still unknown and a new successful Pages build is required. All new Flutter tests, analyzer, Firestore Emulator checks and real-device verification remain unrun.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
-**Latest feature merges at audit:** PR #69 (Place Suggestions syntax repair) and PR #68 (manual SOS message/contact handoff), merged 2026-10-30  
+**Latest feature merges at audit:** PR #69 (Place Suggestions syntax repair) and PR #68 (manual SOS message/contact handoff), merged 2026-10-30
+**Latest `main` HEAD:** `e21c06bd1d68f9cc944500ce47f41401d5497cba` — merge PR #68  
 **Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
@@ -47,7 +48,7 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 
 | Priority | Feature | Status | Next step / limitation |
 |---:|---|---|---|
-| P0 | Release verification | Required before release | Review [PR #69](https://github.com/muhammadnaumantahir/Circlo/pull/69) for the malformed Place Suggestions source fix; run manual Flutter analyze/tests and Firestore Emulator Rules tests; confirm Cloudflare web build; test Android/iOS background tracking and two-account privacy flows. |
+| P0 | Release verification | Required before release | PR #69 has merged the Place Suggestions source repair. Still run manual Flutter analyze/tests and Firestore Emulator Rules tests; inspect/confirm a successful Cloudflare Pages build from latest `main`; test Android/iOS background tracking and two-account privacy flows. |
 | P1 | Remote push notifications | Deferred | Requires a trusted delivery path. Do not put server credentials in the Flutter app. Reassess only after confirming a truly no-cost deployable architecture. |
 | P2 | Trusted SOS delivery / emergency dispatch | Deferred / not implemented | PR #68 provides manual message sharing/copy plus Call and unsent prefilled SMS for explicitly opted-in Circle contacts only. No automatic send, delivery acknowledgement, remote push, server scheduler or emergency-dispatch integration. A trusted delivery path, fallback, abuse controls and real-device tests remain prerequisites. |
 | P3 | Driving reports / crash detection | Not started — native research | Native motion/location collection, false-positive controls, platform limits and real-device validation are needed. |
