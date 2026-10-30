@@ -114,6 +114,48 @@ ThemeData _theme(Brightness brightness) {
       secondaryLabelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w800),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
     ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((states) =>
+        states.contains(WidgetState.selected) ? scheme.onPrimary : scheme.outline),
+      trackColor: WidgetStateProperty.resolveWith((states) =>
+        states.contains(WidgetState.selected) ? scheme.primary : scheme.surfaceContainerHighest),
+      trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+        states.contains(WidgetState.selected) ? scheme.primary : border.withValues(alpha: .8)),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      side: BorderSide(color: border, width: 1.4),
+      fillColor: WidgetStateProperty.resolveWith((states) =>
+        states.contains(WidgetState.selected) ? scheme.primary : Colors.transparent),
+      checkColor: WidgetStateProperty.all(Colors.white),
+    ),
+    radioTheme: RadioThemeData(
+      fillColor: WidgetStateProperty.resolveWith((states) =>
+        states.contains(WidgetState.selected) ? scheme.primary : scheme.onSurfaceVariant),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        minimumSize: WidgetStateProperty.all(const Size(0, 44)),
+        padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+        backgroundColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected)
+              ? scheme.primary.withValues(alpha: .12)
+              : surface),
+        foregroundColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected) ? scheme.primary : scheme.onSurfaceVariant),
+        side: WidgetStateProperty.resolveWith((states) => BorderSide(
+          color: states.contains(WidgetState.selected)
+              ? scheme.primary.withValues(alpha: .4)
+              : border,
+        )),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        textStyle: WidgetStateProperty.all(
+          const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+        ),
+      ),
+    ),
     dividerTheme: DividerThemeData(color: border.withValues(alpha: .72), thickness: 1, space: 1),
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: surface, modalBackgroundColor: surface, surfaceTintColor: Colors.transparent, showDragHandle: true,
