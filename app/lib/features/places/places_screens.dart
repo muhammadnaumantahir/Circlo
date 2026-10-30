@@ -244,7 +244,7 @@ class _PlacesBodyState extends ConsumerState<_PlacesBody> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(99),
                   child: LinearProgressIndicator(
-                    value: placesAsync.valueOrNull == null ? 0 : (count / kMaxPlacesPerCircle).clamp(0.0, 1.0),
+                    value: placesAsync.valueOrNull == null ? 0 : (count / kMaxPlacesPerCircle).clamp(0.0, 1.0).toDouble(),
                     minHeight: 6,
                     backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     color: CircloPalette.mint,
