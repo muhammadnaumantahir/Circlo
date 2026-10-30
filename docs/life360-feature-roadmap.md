@@ -1,6 +1,6 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#72; see [canonical feature status and cross-chat handover](feature-status.md)). PR #72 refreshed Circlo's shared design system, desktop shell and primary information screens to match the FinMate / Stockly premium style. Tests, analyzer, responsive web review, Cloudflare Pages deployment and device behavior remain unverified.
+Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#73; see [canonical feature status and cross-chat handover](feature-status.md)). PR #73 expanded the FinMate / Stockly premium styling across the Map, Circles, Places, Profile and login flows. Tests, analyzer, responsive web review, Cloudflare Pages deployment and device behavior remain unverified.
 
 **Current next step:** deploy PR #71's Firestore Rules to the intended Firebase project and retry the same invitation with a second verified account. Then run the Flutter analyzer/widget tests and Firestore Emulator Rules tests through the manual-only workflow, and verify the Cloudflare Pages build. Also verify PR #68's SOS tests and two-account privacy behavior. No GitHub Actions workflow should be triggered automatically.
 
@@ -22,9 +22,9 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 - Circles, Places, Travel History, Activity and Profile have stronger information hierarchy. The map remains full-bleed.
 - This is presentation-only. Sharing consent, data, routes and circle-gating behavior are unchanged. Tests and responsive visual verification have not run.
 
-## Premium UI refinement (active branch)
+## Premium UI refinement (merged via PR #73)
 
-Branch `feature/premium-ui-refinement-2` follows PR #72 with deeper polish across the Map, Circles, Places, Profile and sign-in surfaces. It adds semantic status capsules, grouped settings rows, glass-card page controls, better mobile-fit status labels and refined theme states for switches and segmented controls. Presentation-only; no location, membership or Firebase behavior is changed. Widget tests have been expanded but are not run.
+[PR #73](https://github.com/muhammadnaumantahir/Circlo/pull/73) follows PR #72 with deeper polish across the Map, Circles, Places, Profile and sign-in surfaces. It adds semantic status capsules, grouped settings rows, glass-card page controls, better mobile-fit status labels and refined theme states for switches and segmented controls. Presentation-only; no location, membership or Firebase behavior is changed. Widget tests have been expanded but are not run.
 
 ## Release gates (must stay visible throughout feature work)
 
