@@ -1,10 +1,17 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#70 and the latest Cloudflare build failure; see [canonical feature status and cross-chat handover](feature-status.md)). PR #70 has merged fixes for three additional Dart compile blockers in sharing-screen copy, the SOS contact helper and SharingController disposal handling. Tests, analyzer, Cloudflare Pages deployment and device behavior remain unverified. Code being in `main` does not mean tests or device behavior are verified.
+Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#70 and current join-code/web UI work; see [canonical feature status and cross-chat handover](feature-status.md)). PR #70's three Dart compile repairs are merged. The current branch handles an explicit-null join-code expiry mismatch, legacy approval defaults, permission-denied diagnostics and premium responsive Circle entry screens. Tests, analyzer, Cloudflare Pages deployment and device behavior remain unverified. Code being in `main` does not mean tests or device behavior are verified.
 
-**Current next step:** verify the latest `main` build on Cloudflare Pages after PR #70, then run Flutter analyzer/tests and Firestore Emulator Rules tests through the manual-only workflow. Also verify PR #68's SOS tests, Call/Text/share handlers, two-account privacy behavior and Android/iOS layout. No GitHub Actions workflow should be triggered automatically.
+**Current next step:** merge the current join-code fix, deploy its Firestore Rules to the intended Firebase project, and retry with a second verified account. Then run the Flutter analyzer/widget tests and Firestore Emulator Rules tests through the manual-only workflow, and verify the Cloudflare Pages build. Also verify PR #68's SOS tests and two-account privacy behavior. No GitHub Actions workflow should be triggered automatically.
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
+
+## Current implementation branch — not yet merged
+
+- Firestore Rules now accept an absent or explicit-null `expiresAt` as no expiry, while malformed and past timestamps stay rejected. Legacy circles with no `requiresApproval` field default to open, matching `Circle.fromMap`.
+- Join failures caused by `permission-denied` are surfaced as a Firebase Rules/account-verification setup issue rather than a false invalid-code message.
+- First-use onboarding and Create/Join screens use responsive gradient hero + form panels on wide web layouts and a stacked mobile layout.
+- Regression coverage has been added for explicit-null expiry, missing legacy approval flags, the full app membership/contact-cleanup/activity batch, join-code typing/formatting and wide-screen Join Circle layout. Not run.
 
 ## Release gates (must stay visible throughout feature work)
 
