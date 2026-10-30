@@ -82,3 +82,14 @@ The main feature flows are represented in source code, but **Circlo is not yet r
 ## SOS message and opted-in contact handoff (PR #68)
 
 The Circle-gated SOS screen prepares a message for the user to review, share or copy. It can include a last-shared map link only when location sharing is active and the fix is fresh; Bubble locations are clearly marked approximate. Call and prefilled Text actions are limited to current Circle members who explicitly shared a valid phone number with the Circle. The current user, former/non-members and malformed phone numbers are excluded, and contact actions stay hidden until the signed-in UID is confirmed. Call opens the dialer; Text opens an unsent draft. The feature does not auto-send, verify delivery/read state, send remote push, or provide emergency dispatch. Unit/widget tests were added but have not run; native handlers, small-screen layout and two-account privacy behavior still require manual verification.
+
+
+## Latest Cloudflare Pages compile blockers (2026-10-30)
+
+The build log for the deployment at 2026-10-30 05:44 UTC reports:
+
+- `sharing_screen.dart`: the approximate-location confirmation message contains raw line breaks inside a single-quoted Dart string.
+- `sos_contact.dart`: the phone-number RegExp is not terminated; an orphaned duplicate implementation follows the helper and URI functions are declared twice.
+- `sharing_controller.dart`: `_clearExpiredApproximateBubbles` references `_disposed`, but the controller did not declare the field.
+
+A focused repair is proposed in [PR #70](https://github.com/muhammadnaumantahir/Circlo/pull/70). The package notice about newer incompatible versions is informational in this log; the compilation exits on the Dart errors above. The build and tests have not yet been rerun after the proposed changes.
