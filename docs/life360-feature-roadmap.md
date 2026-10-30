@@ -1,17 +1,18 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#70 and current join-code/web UI work; see [canonical feature status and cross-chat handover](feature-status.md)). PR #70's three Dart compile repairs are merged. The current branch handles an explicit-null join-code expiry mismatch, legacy approval defaults, permission-denied diagnostics and premium responsive Circle entry screens. Tests, analyzer, Cloudflare Pages deployment and device behavior remain unverified. Code being in `main` does not mean tests or device behavior are verified.
+Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#71; see [canonical feature status and cross-chat handover](feature-status.md)). PR #71 merged the join-code Rules compatibility, permission-denied diagnostics and responsive Circle entry screens. Tests, analyzer, Firestore Rules deployment, Cloudflare Pages deployment and device behavior remain unverified. Code being in `main` does not mean tests or device behavior are verified.
 
-**Current next step:** merge the current join-code fix, deploy its Firestore Rules to the intended Firebase project, and retry with a second verified account. Then run the Flutter analyzer/widget tests and Firestore Emulator Rules tests through the manual-only workflow, and verify the Cloudflare Pages build. Also verify PR #68's SOS tests and two-account privacy behavior. No GitHub Actions workflow should be triggered automatically.
+**Current next step:** deploy PR #71's Firestore Rules to the intended Firebase project and retry the same invitation with a second verified account. Then run the Flutter analyzer/widget tests and Firestore Emulator Rules tests through the manual-only workflow, and verify the Cloudflare Pages build. Also verify PR #68's SOS tests and two-account privacy behavior. No GitHub Actions workflow should be triggered automatically.
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 
-## Current implementation branch — not yet merged
+## Latest join-code and web UX update (merged via PR #71)
 
-- Firestore Rules now accept an absent or explicit-null `expiresAt` as no expiry, while malformed and past timestamps stay rejected. Legacy circles with missing/null `requiresApproval` default to open, matching `Circle.fromMap`; unexpected non-boolean values fail closed. New code creation also accepts a null expiry consistently.
-- Join failures caused by `permission-denied` are surfaced as a Firebase Rules/account-verification setup issue rather than a false invalid-code message.
-- First-use onboarding and Create/Join screens use responsive gradient hero + form panels on wide web layouts and a stacked mobile layout.
-- Regression coverage has been added for explicit-null expiry, missing legacy approval flags, the full app membership/contact-cleanup/activity batch, join-code typing/formatting and wide-screen Join Circle layout. Not run.
+- PR #71 is merged into `main`. Firestore Rules accept absent/null `expiresAt` as no expiry; expired and malformed values remain blocked. Code creation and join validation use the same expiry semantics.
+- Missing/null legacy `requiresApproval` defaults to open, matching the app; unexpected values fail closed.
+- Permission-denied join failures are no longer presented as invalid/expired codes. The message points to account email verification and deployed Rules; verified-email authorization is unchanged.
+- First-use onboarding and Create/Join screens use responsive gradient-hero/form panels on wide web layouts and stacked mobile layouts. Invite codes are uppercased and grouped while typing.
+- Regression coverage was added for expiry/approval edge cases, the full membership/contact-cleanup/activity join batch, invite formatting and wide-screen layout. Tests have not been run.
 
 ## Release gates (must stay visible throughout feature work)
 
