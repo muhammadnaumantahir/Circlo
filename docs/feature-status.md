@@ -1,7 +1,7 @@
 # Circlo Feature Status & Cross-Chat Handover
 
 **Last updated:** 2026-10-31  
-**Latest status audit:** 2026-10-31 — `main` reconciled through merged PRs #60–#76. PR #75 repaired the previous Cloudflare compile errors. PR #76 adds Circle-list Firebase error diagnostics and refresh-after-create; deployed Firestore Rules/indexes still need verification. Flutter tests/analyzer and live Firebase verification remain pending.
+**Latest status audit:** 2026-10-31 — `main` reconciled through merged PRs #60–#76. PR #75 repaired the previous Cloudflare compile errors. PR #76 adds Circle-list Firebase error diagnostics and refresh-after-create. The 2026-10-31 live error confirms the `members.uid` COLLECTION_GROUP/ASCENDING index is missing in Firebase project `circlo-1dbda`; the exact definition is already present in `firebase/firestore.indexes.json` but has not yet been created/verified in that project. Flutter tests/analyzer and live Firebase verification remain pending.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility), PR #72 (initial premium UI), PR #73 (premium UI refinement) and PR #74 (History / Activity premium polish), PR #75 (Cloudflare web compile repair) and PR #76 (Circle-list error diagnosis), merged 2026-10-30/31
@@ -61,16 +61,17 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Regression test:** a widget test now covers the shared header title/subtitle.
 - **Verification:** source changes are merged into `main`; Flutter analyzer, widget tests, `flutter build web --release` and a Cloudflare Pages deploy have not been run. Do not claim build success until the new release build passes.
 
-## Circle created but Circle list fails to load (diagnostics branch)
+## Circle created but Circle list fails to load (confirmed missing live index)
 
 - **Reported:** 2026-10-31 — the user successfully created a Circle, but the Circles screen still displays “Could not load your circles”.
 - **Current source path:** myCirclesProvider → CirclesRepository.watchMyCircles(uid) → Firestore collectionGroup('members').where('uid', isEqualTo: uid). A failure from this membership query puts CirclesScreen into its error state.
-- **Repository checks:** firebase/firestore.rules already contains a recursive collection-group members list rule restricted to resource.data.uid == request.auth.uid; firestore.indexes.json already defines the members.uid collection-group index; firebase/tests/rules.test.mjs includes a test for the same own-membership query. These are repository files only; deployed project configuration has not been inspected.
-- **Likely causes to distinguish:** deployed Rules are older / target the wrong Firebase project (permission-denied), the members.uid collection-group index is absent or still building (failed-precondition), or a transient Firebase/network/auth failure. Circle creation succeeding does not verify the separate membership-list query.
+- **Repository checks:** firebase/firestore.rules contains the own-UID collection-group access rule; firebase/firestore.indexes.json already defines the members.uid ascending collection-group index; firebase/tests/rules.test.mjs tests the same query.
+- **Confirmed live cause from the 2026-10-31 screenshot:** Firestore returned failed-precondition and explicitly requested a COLLECTION_GROUP_ASC index for collection `members`, field `uid`, in Firebase project `circlo-1dbda`. The index definition is already tracked in Git; the live project is missing the index or it is not yet ready.
 - **PR:** [#76 — Diagnose Circle list failures after successful creation](https://github.com/muhammadnaumantahir/Circlo/pull/76), merged 2026-10-31.
 - **Merge commit:** `83074b42be21968c37ca2647f3565537f6669da5`.
 - **Code change on fix/circles-load-error-diagnostics-oct31:** replace generic retry copy with an error-code-specific explanation; preserve Firestore's message (including index-link details) for diagnosis; invalidate myCirclesProvider and set the new Circle as selected after the creation batch succeeds.
-- **Verification:** a focused Dart unit test covers permission-denied, failed-precondition, connectivity and unexpected errors. Flutter tests/analyzer, Firestore Emulator Rules tests and a live browser retest have not been run. No Rules/indexes deployment or GitHub Actions workflow was triggered.
+- **Next action:** open the exact Create Index URL shown by Firestore, create the `members` / `uid` / Collection group / Ascending index in `circlo-1dbda`, wait until its status is Enabled, then reload Circlo and retry. Do not create a duplicate or loosen Rules.
+- **Verification:** a focused Dart unit test covers permission-denied, failed-precondition, connectivity and unexpected errors. Flutter tests/analyzer and Firestore Emulator Rules tests have not been run. The live index has not yet been confirmed Enabled and the browser retest remains pending. No GitHub Actions workflow was triggered.
 
 ## Status definitions
 
