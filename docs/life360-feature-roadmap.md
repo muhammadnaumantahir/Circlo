@@ -1,10 +1,17 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-31 (reconciled with merged PRs #60–#74; see [canonical feature status and cross-chat handover](feature-status.md)). PR #74 extends the shared premium styling through History and Activity. Tests, analyzer, responsive web review, Cloudflare Pages deployment and device behavior remain unverified.
+Last reviewed: 2026-10-31 (reconciled with merged PRs #60–#75; see [canonical feature status and cross-chat handover](feature-status.md)). PR #75 repairs the previous web compile errors. A reported Circle-list failure after successful creation is under investigation; Rules/index deployment, tests and live Firebase behavior remain unverified.
 
-**Current next step:** merge the Cloudflare web compile repair only after source review, then run `cd app && flutter analyze && flutter test` and `cd app && flutter build web --release` manually. Separately deploy PR #71's Firestore Rules and verify a second-account join. GitHub Actions remains manual-only.
+**Current next step:** distinguish the Circle-list query's Firebase error code, confirm the production Firebase project has the repository's current firestore.rules and firestore.indexes.json, then retest Circle creation/listing. Run `cd app && flutter analyze && flutter test` and `cd firebase && npm test` manually; deploy Rules/indexes only to the verified target project with owner approval. GitHub Actions remains manual-only.
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
+
+## Circle list recovery and Firestore diagnostics (reported 2026-10-31)
+
+- The app finds Circle membership through the own-UID members collection-group query. Repository Rules already define own-document-only collection-group access and the indexes file already defines the members.uid collection-group index.
+- The live Firebase project's deployed Rules and index status are not visible from repository source and still need verification.
+- The diagnostic branch maps permission-denied to a Rules/project mismatch hint, failed-precondition to the members.uid index hint, and network/auth failures to their own messages. Successful creation also invalidates the Circle stream and selects the newly-created Circle.
+- The patch does not relax Firestore Rules, add collections, or introduce paid services. Unit tests have been authored but not run.
 
 ## Latest join-code and web UX update (merged via PR #71)
 
