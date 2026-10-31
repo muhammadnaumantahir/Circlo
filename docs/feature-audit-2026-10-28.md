@@ -15,7 +15,7 @@ Use [feature-status.md](feature-status.md) as the canonical feature checklist an
 - watchMyCircles uses a Firestore collection-group query on members, filtered by the signed-in UID, then reads each parent Circle document. A parent-document read that is denied is intentionally skipped by the repository; the visible error therefore points first to the collection-group query itself.
 - The current repository Rules permit the own-membership query through the recursive members match only when resource.data.uid == request.auth.uid. The current indexes file declares an ascending collection-group index on members.uid, and the emulator test suite contains a matching authorization test.
 - The codebase configuration cannot confirm whether those Rules/indexes are deployed to the Firebase project used by the production web app. permission-denied, failed-precondition, unavailable and auth failures must not all be labelled as generic connection errors.
-- Open [PR #76](https://github.com/muhammadnaumantahir/Circlo/pull/76) adds a typed message mapper, retains Firestore's index/error detail, invalidates the circles stream after create and selects the new Circle. Focused unit tests are included; tests and a live Firebase check remain pending.
+- Merged [PR #76](https://github.com/muhammadnaumantahir/Circlo/pull/76) adds a typed message mapper, retains Firestore's index/error detail, invalidates the circles stream after create and selects the new Circle. Focused unit tests are included; tests and a live Firebase check remain pending.
 - No Firestore schema or Rules change is included in this diagnosis patch. Do not broaden collection-group access to make the screen load.
 
 ## Join-code and web UI update (merged via PR #71)
