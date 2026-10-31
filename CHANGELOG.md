@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Add actionable diagnostics for Circle-list Firestore failures (permission-denied, failed-precondition / missing collection-group index, auth and network errors); refresh the membership stream and select the new Circle after successful creation. Focused unit tests added on fix/circles-load-error-diagnostics-oct31; not run.
 - Merged via [PR #75](https://github.com/muhammadnaumantahir/Circlo/pull/75): restore the missing shared `PremiumSectionHeader` used by sign-up and Circle forms, with a `const` constructor, and remove the unmatched closing parenthesis in the Map people preview. Add a widget regression test. The reported Flutter web build has not yet been rerun.
 - [PR #74](https://github.com/muhammadnaumantahir/Circlo/pull/74): bring History and Activity closer to Circlo’s shared premium system: add accessible count-bearing filter chips, glass-surface date/member controls, refined travel timeline cards, and grouped history/notification preferences. Presentation-only; automated tests and responsive browser review remain pending.
 - Extend PR #72's premium UI alignment across the Map, Circles, Places, Profile and sign-in flows (merged via [PR #73](https://github.com/muhammadnaumantahir/Circlo/pull/73)): elevated dashboard surfaces, semantic sharing/role pills, grouped privacy settings, saved-place capacity, inline auth errors and refined interactive theme states. Expanded widget coverage; tests and responsive browser/device review remain pending.
