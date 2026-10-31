@@ -1,8 +1,8 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-30 (reconciled with merged PRs #60–#74; see [canonical feature status and cross-chat handover](feature-status.md)). PR #74 extends the shared premium styling through History and Activity. Tests, analyzer, responsive web review, Cloudflare Pages deployment and device behavior remain unverified.
+Last reviewed: 2026-10-31 (reconciled with merged PRs #60–#74; see [canonical feature status and cross-chat handover](feature-status.md)). PR #74 extends the shared premium styling through History and Activity. Tests, analyzer, responsive web review, Cloudflare Pages deployment and device behavior remain unverified.
 
-**Current next step:** deploy PR #71's Firestore Rules to the intended Firebase project and retry the same invitation with a second verified account. Then run the Flutter analyzer/widget tests and Firestore Emulator Rules tests through the manual-only workflow, and verify the Cloudflare Pages build. Also verify PR #68's SOS tests and two-account privacy behavior. No GitHub Actions workflow should be triggered automatically.
+**Current next step:** merge the Cloudflare web compile repair only after source review, then run `cd app && flutter analyze && flutter test` and `cd app && flutter build web --release` manually. Separately deploy PR #71's Firestore Rules and verify a second-account join. GitHub Actions remains manual-only.
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 
@@ -34,6 +34,12 @@ Merged via [PR #74 — Polish Circlo History and Activity with premium UI](https
 - A shared `PremiumFilterChip` provides consistent selected states, counts, iconography and a 44px minimum touch target.
 - Visual-only: Circle membership, location-sharing consent, history retention/deletion, notification preference writes, Firebase schema/rules and navigation destinations are unchanged.
 - A filter-chip widget regression test has been added. Flutter tests/analyzer and mobile/tablet/desktop light/dark browser review are still required. GitHub Actions remains manual-only.
+
+## Cloudflare web compile repair (in progress)
+
+- The 2026-10-30 Pages log identified a missing `PremiumSectionHeader` shared widget and one extra closing parenthesis in the Map people preview.
+- The repair branch restores the compact const header component, fixes the Map widget closure and adds a widget regression test.
+- Flutter analyze/tests and the web release build still need to be run. Dependency-update notices and the Wasm dry-run notice are not compile blockers.
 
 ## Release gates (must stay visible throughout feature work)
 
