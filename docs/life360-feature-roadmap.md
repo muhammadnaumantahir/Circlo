@@ -35,13 +35,13 @@ Merged via [PR #74 — Polish Circlo History and Activity with premium UI](https
 - Visual-only: Circle membership, location-sharing consent, history retention/deletion, notification preference writes, Firebase schema/rules and navigation destinations are unchanged.
 - A filter-chip widget regression test has been added. Flutter tests/analyzer and mobile/tablet/desktop light/dark browser review are still required. GitHub Actions remains manual-only.
 
-## Cloudflare web compile repair (open PR #75)
+## Cloudflare web compile repair (merged via PR #75)
 
-[PR #75 — Fix Cloudflare Flutter web compilation errors](https://github.com/muhammadnaumantahir/Circlo/pull/75) is open; not merged.
+[PR #75 — Fix Cloudflare Flutter web compilation errors](https://github.com/muhammadnaumantahir/Circlo/pull/75) merged on 2026-10-31 (merge commit `62732922787fec587328c13a15311358b47c524b`).
 
 - The 2026-10-30 Pages log identified a missing `PremiumSectionHeader` shared widget and one extra closing parenthesis in the Map people preview.
 - The repair branch restores the compact const header component, fixes the Map widget closure and adds a widget regression test.
-- Flutter analyze/tests and the web release build still need to be run. Dependency-update notices and the Wasm dry-run notice are not compile blockers.
+- Source corrections are in `main`. Flutter analyze/tests and a new web release build still need to be run. Dependency-update notices and the Wasm dry-run notice are not compile blockers.
 
 ## Release gates (must stay visible throughout feature work)
 
