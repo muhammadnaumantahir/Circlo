@@ -4,8 +4,8 @@
 **Latest status audit:** 2026-10-31 — `main` reconciled through merged PRs #60–#74. The 2026-10-30 Cloudflare log exposed a merged web compile regression; repair is in [PR #75](https://github.com/muhammadnaumantahir/Circlo/pull/75) from `fix/cloudflare-web-compile-errors-oct31`. Flutter tests/analyzer and a successful Pages release build remain pending.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
-**Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility), PR #72 (initial premium UI), PR #73 (premium UI refinement) and PR #74 (History / Activity premium polish), merged 2026-10-30
-**Latest feature merge commit:** `1ef9aaac1696b08460bcbc7b27e54acf76046727` — merge PR #74.  
+**Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility), PR #72 (initial premium UI), PR #73 (premium UI refinement) and PR #74 (History / Activity premium polish) and PR #75 (Cloudflare web compile repair), merged 2026-10-30/31
+**Latest feature merge commit:** `62732922787fec587328c13a15311358b47c524b` — merge PR #75.  
 **Tracker initially added:** `2ac3124e8a24c5c9b06820f117384b8af2456dae`
 
 This is the canonical progress handover for Circlo. Update this file whenever a feature is started, implemented, merged, deferred, or verified. Also update [the detailed Life360-inspired roadmap](life360-feature-roadmap.md), [the feature audit](feature-audit-2026-10-28.md), and [the test plan](test-plan.md) whenever the change affects them. A feature in `main` means code is present, **not** that its tests passed or that it is production-ready.
@@ -50,10 +50,11 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Behavior / privacy:** presentation-only. Existing consent checks, Circle membership, data queries, retention/deletion, notification preference writes, routes, Firebase schema and Rules are unchanged.
 - **Verification:** a filter-chip widget test was added. Flutter tests/analyzer, browser review at mobile/tablet/desktop widths, dark-mode review and Cloudflare Pages build have not been run. GitHub Actions remains manual-only.
 
-## Cloudflare web compile repair (open PR #75)
+## Cloudflare web compile repair (merged via PR #75)
 
-- **PR:** [#75 — Fix Cloudflare Flutter web compilation errors](https://github.com/muhammadnaumantahir/Circlo/pull/75), open and not merged.
-- **Branch:** `fix/cloudflare-web-compile-errors-oct31` (based on current `main`).
+- **PR:** [#75 — Fix Cloudflare Flutter web compilation errors](https://github.com/muhammadnaumantahir/Circlo/pull/75), merged 2026-10-31.
+- **Merge commit:** `62732922787fec587328c13a15311358b47c524b`.
+- **Branch:** `fix/cloudflare-web-compile-errors-oct31`.
 - **Build log:** 2026-10-30 Cloudflare Pages `flutter build web --release` failed in Dart compilation. The package-update and Wasm dry-run lines are warnings/information, not the root cause.
 - **Root cause 1:** `PremiumSectionHeader` was used in sign-up and Circle forms without a declaration in shared widgets. Restore it as a reusable const widget; this also resolves the Circle constructor/const-expression errors.
 - **Root cause 2:** `_PeoplePeekCard` in `map_screen.dart` had an extra closing parenthesis after its `Column`; remove that one unmatched closure.
@@ -122,6 +123,8 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 | #70 Cloudflare follow-up compile repairs | Merged 2026-10-30 | Fixes multiline string, malformed SOS helper and missing SharingController disposal flag; analyzer/tests and Cloudflare deployment verification pending. |
 | #71 Join-code compatibility and Circle web entry | Merged 2026-10-30 | Accepts absent/null expiry, aligns legacy approval defaults, distinguishes permission-denied failures and refreshes responsive Create/Join/onboarding screens; Rules deployment and tests pending. |
 | #74 Premium History and Activity UI | Merged 2026-10-30 | Shared filter chip, refined History controls/timeline/settings and Activity feed/preferences; presentation-only. | Flutter tests/analyzer, responsive light/dark review and Cloudflare Pages build remain pending. |
+
+| Cloudflare web compile repair | Merged 2026-10-31 via PR #75 | Restores the missing const PremiumSectionHeader and fixes the surplus Map-panel parenthesis from the Pages release compile log. | Flutter analyze/tests, fresh `flutter build web --release` and a successful Cloudflare Pages deployment remain pending. |
 
 ## Release checklist
 
