@@ -10,7 +10,7 @@ This is an implementation queue, not a claim that Life360 features are equivalen
 
 - The app finds Circle membership through the own-UID members collection-group query. Repository Rules already define own-document-only collection-group access and the indexes file already defines the members.uid collection-group index.
 - The live Firebase project's deployed Rules and index status are not visible from repository source and still need verification.
-- The diagnostic branch maps permission-denied to a Rules/project mismatch hint, failed-precondition to the members.uid index hint, and network/auth failures to their own messages. Successful creation also invalidates the Circle stream and selects the newly-created Circle.
+- Open [PR #76](https://github.com/muhammadnaumantahir/Circlo/pull/76) maps permission-denied to a Rules/project mismatch hint, failed-precondition to the members.uid index hint, and network/auth failures to their own messages. Successful creation also invalidates the Circle stream and selects the newly-created Circle.
 - The patch does not relax Firestore Rules, add collections, or introduce paid services. Unit tests have been authored but not run.
 
 ## Latest join-code and web UX update (merged via PR #71)
