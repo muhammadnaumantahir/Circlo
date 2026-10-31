@@ -272,6 +272,45 @@ class PremiumPageHeader extends StatelessWidget {
   }
 }
 
+/// Compact heading for sections inside cards and forms.
+class PremiumSectionHeader extends StatelessWidget {
+  const PremiumSectionHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+  });
+
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+            letterSpacing: -.2,
+          ),
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 5),
+          Text(
+            subtitle!,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class PremiumGlassCard extends StatelessWidget {
   const PremiumGlassCard({super.key, required this.child, this.padding = const EdgeInsets.all(20), this.onTap, this.radius = 24});
   final Widget child;

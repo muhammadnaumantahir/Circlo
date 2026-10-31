@@ -1679,7 +1679,6 @@ class _PeoplePeekCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

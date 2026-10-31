@@ -24,6 +24,25 @@ void main() {
     expect(find.text('The people and places that matter, together.'), findsOneWidget);
   });
 
+  testWidgets('premium section header displays title and subtitle', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: EdgeInsets.all(20),
+            child: PremiumSectionHeader(
+              title: 'Get started',
+              subtitle: 'Create a circle or join one with an invite code.',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Get started'), findsOneWidget);
+    expect(find.text('Create a circle or join one with an invite code.'), findsOneWidget);
+  });
+
   testWidgets('premium glass card invokes its action', (tester) async {
     var tapped = false;
     await tester.pumpWidget(

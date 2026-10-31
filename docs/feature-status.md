@@ -1,7 +1,7 @@
 # Circlo Feature Status & Cross-Chat Handover
 
-**Last updated:** 2026-10-30  
-**Latest status audit:** 2026-10-30 — `main` reconciled through merged PRs #60–#74. PR #74 extends the premium UI across History and Activity; Flutter tests/analyzer, responsive browser review and Cloudflare Pages verification remain pending.
+**Last updated:** 2026-10-31  
+**Latest status audit:** 2026-10-31 — `main` reconciled through merged PRs #60–#74. The 2026-10-30 Cloudflare log exposed a merged web compile regression; repair is in [PR #75](https://github.com/muhammadnaumantahir/Circlo/pull/75) from `fix/cloudflare-web-compile-errors-oct31`. Flutter tests/analyzer and a successful Pages release build remain pending.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility), PR #72 (initial premium UI), PR #73 (premium UI refinement) and PR #74 (History / Activity premium polish), merged 2026-10-30
@@ -49,6 +49,16 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Activity:** refreshed category filters and feed cards; notification preferences are grouped by activity type and Circle. The app-bar back action remains available.
 - **Behavior / privacy:** presentation-only. Existing consent checks, Circle membership, data queries, retention/deletion, notification preference writes, routes, Firebase schema and Rules are unchanged.
 - **Verification:** a filter-chip widget test was added. Flutter tests/analyzer, browser review at mobile/tablet/desktop widths, dark-mode review and Cloudflare Pages build have not been run. GitHub Actions remains manual-only.
+
+## Cloudflare web compile repair (open PR #75)
+
+- **PR:** [#75 — Fix Cloudflare Flutter web compilation errors](https://github.com/muhammadnaumantahir/Circlo/pull/75), open and not merged.
+- **Branch:** `fix/cloudflare-web-compile-errors-oct31` (based on current `main`).
+- **Build log:** 2026-10-30 Cloudflare Pages `flutter build web --release` failed in Dart compilation. The package-update and Wasm dry-run lines are warnings/information, not the root cause.
+- **Root cause 1:** `PremiumSectionHeader` was used in sign-up and Circle forms without a declaration in shared widgets. Restore it as a reusable const widget; this also resolves the Circle constructor/const-expression errors.
+- **Root cause 2:** `_PeoplePeekCard` in `map_screen.dart` had an extra closing parenthesis after its `Column`; remove that one unmatched closure.
+- **Regression test:** add a widget test for the shared header title/subtitle.
+- **Verification:** source changes are committed to the repair branch; Flutter analyzer, widget tests, `flutter build web --release` and a Cloudflare Pages deploy have not been run. Do not claim build success until the new release build passes.
 
 ## Status definitions
 

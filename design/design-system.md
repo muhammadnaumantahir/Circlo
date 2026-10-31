@@ -51,6 +51,7 @@ The canonical source is `app/lib/core/widgets.dart` (`CircloPalette`). Avoid loc
 | Component | Purpose |
 |---|---|
 | `PremiumPageHeader` | Page title, eyebrow, subtitle and optional trailing action |
+| `PremiumSectionHeader` | Compact title/subtitle heading for sections inside cards and forms |
 | `PremiumHeroCard` | Gradient hero panel |
 | `PremiumProfileHero` | Branded account header |
 | `PremiumGlassCard` | Soft white/tinted card with subtle border and shadow |
