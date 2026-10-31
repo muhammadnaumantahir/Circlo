@@ -5,7 +5,7 @@ Use [feature-status.md](feature-status.md) as the canonical feature checklist an
 ## Cloudflare Flutter web build regression (2026-10-30 log; fixed in merged [PR #75](https://github.com/muhammadnaumantahir/Circlo/pull/75))
 
 - The supplied release build log failed after dependency resolution. The “29 packages have newer versions incompatible with dependency constraints” and Wasm dry-run messages are informational; they are not the reported compiler errors.
-- `PremiumSectionHeader` was referenced by the sign-up and Circle screens but had no shared declaration in `app/lib/core/widgets.dart`. This caused the missing-method error and the three Circle `const` expression errors. The repair branch restores it as a reusable `const` `StatelessWidget`.
+- `PremiumSectionHeader` was referenced by the sign-up and Circle screens but had no shared declaration in `app/lib/core/widgets.dart`. This caused the missing-method error and the three Circle `const` expression errors. PR #75 restored it as a reusable `const` `StatelessWidget`.
 - `_PeoplePeekCard` in `app/lib/features/location/map_screen.dart` had one surplus closing parenthesis after the `Column`, which caused the map parser errors. PR #75 removes only that redundant closure.
 - A widget regression test now covers the compact header's title and subtitle. Flutter analyzer, widget tests and the Cloudflare release build have not been run after the repair; do not mark the web release verified until they pass.
 
