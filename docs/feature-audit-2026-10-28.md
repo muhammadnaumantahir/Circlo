@@ -9,6 +9,15 @@ Use [feature-status.md](feature-status.md) as the canonical feature checklist an
 - `_PeoplePeekCard` in `app/lib/features/location/map_screen.dart` had one surplus closing parenthesis after the `Column`, which caused the map parser errors. PR #75 removed only that redundant closure.
 - A widget regression test now covers the compact header's title and subtitle. Flutter analyzer, widget tests and the Cloudflare release build have not been run after the repair; do not mark the web release verified until they pass.
 
+## Circle membership query failure after successful creation (reported 2026-10-31)
+
+- The screenshot shows the generic error state from CirclesScreen. That state is reached when myCirclesProvider receives a stream error.
+- watchMyCircles uses a Firestore collection-group query on members, filtered by the signed-in UID, then reads each parent Circle document. A parent-document read that is denied is intentionally skipped by the repository; the visible error therefore points first to the collection-group query itself.
+- The current repository Rules permit the own-membership query through the recursive members match only when resource.data.uid == request.auth.uid. The current indexes file declares an ascending collection-group index on members.uid, and the emulator test suite contains a matching authorization test.
+- The codebase configuration cannot confirm whether those Rules/indexes are deployed to the Firebase project used by the production web app. permission-denied, failed-precondition, unavailable and auth failures must not all be labelled as generic connection errors.
+- The diagnostic branch adds a typed message mapper, retains Firestore's index/error detail, invalidates the circles stream after create and selects the new Circle. It adds focused unit tests; tests and a live Firebase check remain pending.
+- No Firestore schema or Rules change is included in this diagnosis patch. Do not broaden collection-group access to make the screen load.
+
 ## Join-code and web UI update (merged via PR #71)
 
 - An explicit `expiresAt: null` is treated as no expiry by the client UI but was rejected by `validJoinCode`; PR #71 now accepts missing/null expiry and only accepts a non-null expiry when it is a future Firestore timestamp. Past and malformed values remain blocked.
