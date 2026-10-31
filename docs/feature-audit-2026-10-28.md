@@ -1,6 +1,13 @@
-# Circlo Feature Audit — updated 2026-10-30
+# Circlo Feature Audit — updated 2026-10-31
 
 Use [feature-status.md](feature-status.md) as the canonical feature checklist and cross-chat handover. This audit reflects a static review of current Flutter source and project requirements. **Code present does not mean tested, production-ready, or reliable in the background.** PR #69 merged the Place Suggestions source repair, PR #68 merged the manual SOS-message/contact handoff, PR #70 merged the follow-up Dart compile repairs, and PR #71 merged the join-code/web UI update. PR #71 fixes a source-level mismatch: the app treats absent/non-timestamp expiry as no expiry, while Rules previously rejected explicit-null `expiresAt`; Rules now accept absent/null expiry and reject malformed/past timestamps. It also aligns missing/null legacy approval settings, surfaces permission-denied join errors separately and refreshes responsive Circle entry screens. The live Firebase document and deployed Rules were not inspected. Flutter/Dart tests, Firestore Emulator checks, Cloudflare deployment verification and real-device tests have not been run.
+
+## Cloudflare Flutter web build regression (2026-10-30 log; repair branch opened 2026-10-31)
+
+- The supplied release build log failed after dependency resolution. The “29 packages have newer versions incompatible with dependency constraints” and Wasm dry-run messages are informational; they are not the reported compiler errors.
+- `PremiumSectionHeader` was referenced by the sign-up and Circle screens but had no shared declaration in `app/lib/core/widgets.dart`. This caused the missing-method error and the three Circle `const` expression errors. The repair branch restores it as a reusable `const` `StatelessWidget`.
+- `_PeoplePeekCard` in `app/lib/features/location/map_screen.dart` had one surplus closing parenthesis after the `Column`, which caused the map parser errors. The repair removes only that redundant closure.
+- A widget regression test now covers the compact header's title and subtitle. Flutter analyzer, widget tests and the Cloudflare release build have not been run after the repair; do not mark the web release verified until they pass.
 
 ## Join-code and web UI update (merged via PR #71)
 
