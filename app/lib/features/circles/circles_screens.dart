@@ -12,6 +12,7 @@ import '../../core/join_code.dart';
 import '../../core/validators.dart';
 import '../../core/widgets.dart';
 import '../../providers.dart';
+import 'circle_load_error.dart';
 import 'circle_models.dart';
 
 Future<void> _openContactAction(BuildContext context, String scheme, String phone) async {
@@ -63,7 +64,7 @@ class CirclesScreen extends ConsumerWidget {
         error: (e, _) => MessageView(
           icon: Icons.cloud_off,
           title: 'Could not load your circles',
-          message: 'Check your connection and try again.',
+          message: circlesLoadErrorMessage(e),
           actions: [FilledButton(onPressed: () => ref.invalidate(myCirclesProvider), child: const Text('Retry'))],
         ),
         data: (list) {
@@ -521,7 +522,13 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
             displayName: profile.displayName,
             name: _name.text,
           );
-      if (mounted) context.pushReplacement('/circles/$id');
+      if (mounted) {
+        // The create batch has committed the new owner membership. Refresh the
+        // collection-group stream so a prior error or empty result is not reused.
+        ref.invalidate(myCirclesProvider);
+        ref.read(selectedCircleIdProvider.notifier).state = id;
+        context.pushReplacement('/circles/$id');
+      }
     } on FirebaseException catch (e) {
       if (mounted) {
         setState(() => _error = e.code == 'permission-denied'

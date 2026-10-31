@@ -1,7 +1,7 @@
 # Circlo Feature Status & Cross-Chat Handover
 
 **Last updated:** 2026-10-31  
-**Latest status audit:** 2026-10-31 — `main` reconciled through merged PRs #60–#74. The 2026-10-30 Cloudflare log exposed a merged web compile regression; repair is in [PR #75](https://github.com/muhammadnaumantahir/Circlo/pull/75) from `fix/cloudflare-web-compile-errors-oct31`. Flutter tests/analyzer and a successful Pages release build remain pending.
+**Latest status audit:** 2026-10-31 — `main` reconciled through merged PRs #60–#75. PR #75 repaired the previous Cloudflare compile errors. The new Circle-list incident is being diagnosed on `fix/circles-load-error-diagnostics-oct31`: deployed Firestore Rules/indexes have not been verified; error-specific messaging and post-create provider refresh are included in [PR #76](https://github.com/muhammadnaumantahir/Circlo/pull/76) (open). Flutter tests/analyzer and live Firebase verification remain pending.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility), PR #72 (initial premium UI), PR #73 (premium UI refinement) and PR #74 (History / Activity premium polish) and PR #75 (Cloudflare web compile repair), merged 2026-10-30/31
@@ -60,6 +60,16 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Root cause 2:** `_PeoplePeekCard` in `map_screen.dart` had an extra closing parenthesis after its `Column`; PR #75 removed that unmatched closure.
 - **Regression test:** a widget test now covers the shared header title/subtitle.
 - **Verification:** source changes are merged into `main`; Flutter analyzer, widget tests, `flutter build web --release` and a Cloudflare Pages deploy have not been run. Do not claim build success until the new release build passes.
+
+## Circle created but Circle list fails to load (diagnostics branch)
+
+- **Reported:** 2026-10-31 — the user successfully created a Circle, but the Circles screen still displays “Could not load your circles”.
+- **Current source path:** myCirclesProvider → CirclesRepository.watchMyCircles(uid) → Firestore collectionGroup('members').where('uid', isEqualTo: uid). A failure from this membership query puts CirclesScreen into its error state.
+- **Repository checks:** firebase/firestore.rules already contains a recursive collection-group members list rule restricted to resource.data.uid == request.auth.uid; firestore.indexes.json already defines the members.uid collection-group index; firebase/tests/rules.test.mjs includes a test for the same own-membership query. These are repository files only; deployed project configuration has not been inspected.
+- **Likely causes to distinguish:** deployed Rules are older / target the wrong Firebase project (permission-denied), the members.uid collection-group index is absent or still building (failed-precondition), or a transient Firebase/network/auth failure. Circle creation succeeding does not verify the separate membership-list query.
+- **PR:** [#76 — Diagnose Circle list failures after successful creation](https://github.com/muhammadnaumantahir/Circlo/pull/76), open.
+- **Code change on fix/circles-load-error-diagnostics-oct31:** replace generic retry copy with an error-code-specific explanation; preserve Firestore's message (including index-link details) for diagnosis; invalidate myCirclesProvider and set the new Circle as selected after the creation batch succeeds.
+- **Verification:** a focused Dart unit test covers permission-denied, failed-precondition, connectivity and unexpected errors. Flutter tests/analyzer, Firestore Emulator Rules tests and a live browser retest have not been run. No Rules/indexes deployment or GitHub Actions workflow was triggered.
 
 ## Status definitions
 
