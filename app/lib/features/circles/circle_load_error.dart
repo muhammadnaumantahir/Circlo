@@ -11,7 +11,7 @@ String circlesLoadErrorMessage(Object error) {
   }
 
   final details = error.message?.trim();
-  final detailSuffix = details == null || details.isEmpty ? '' : '\\n$details';
+  final detailSuffix = details == null || details.isEmpty ? '' : '\n$details';
 
   switch (error.code) {
     case 'permission-denied':
