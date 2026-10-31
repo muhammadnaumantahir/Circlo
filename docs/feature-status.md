@@ -56,10 +56,10 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Merge commit:** `62732922787fec587328c13a15311358b47c524b`.
 - **Branch:** `fix/cloudflare-web-compile-errors-oct31`.
 - **Build log:** 2026-10-30 Cloudflare Pages `flutter build web --release` failed in Dart compilation. The package-update and Wasm dry-run lines are warnings/information, not the root cause.
-- **Root cause 1:** `PremiumSectionHeader` was used in sign-up and Circle forms without a declaration in shared widgets. Restore it as a reusable const widget; this also resolves the Circle constructor/const-expression errors.
-- **Root cause 2:** `_PeoplePeekCard` in `map_screen.dart` had an extra closing parenthesis after its `Column`; remove that one unmatched closure.
-- **Regression test:** add a widget test for the shared header title/subtitle.
-- **Verification:** source changes are committed to the repair branch; Flutter analyzer, widget tests, `flutter build web --release` and a Cloudflare Pages deploy have not been run. Do not claim build success until the new release build passes.
+- **Root cause 1:** `PremiumSectionHeader` was used in sign-up and Circle forms without a declaration in shared widgets. PR #75 restored it as a reusable const widget, resolving the sign-up missing-method error and the Circle const-expression errors.
+- **Root cause 2:** `_PeoplePeekCard` in `map_screen.dart` had an extra closing parenthesis after its `Column`; PR #75 removed that unmatched closure.
+- **Regression test:** a widget test now covers the shared header title/subtitle.
+- **Verification:** source changes are merged into `main`; Flutter analyzer, widget tests, `flutter build web --release` and a Cloudflare Pages deploy have not been run. Do not claim build success until the new release build passes.
 
 ## Status definitions
 
