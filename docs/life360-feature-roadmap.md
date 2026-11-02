@@ -1,17 +1,17 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-10-31 (reconciled with merged PRs #60–#75; see [canonical feature status and cross-chat handover](feature-status.md)). PR #75 repairs the previous web compile errors. A reported Circle-list failure after successful creation is under investigation; Rules/index deployment, tests and live Firebase behavior remain unverified.
+Last reviewed: 2026-11-02 (reconciled with merged PRs #60–#76; see [canonical feature status and cross-chat handover](feature-status.md)). PR #76 improves Circle-list diagnostics. The missing `members.uid` collection-group ascending index was enabled in Firebase project `circlo-1dbda`; the user confirmed Circlo loads circles successfully. Automated tests remain pending.
 
-**Current next step (confirmed 2026-10-31):** in Firebase project `circlo-1dbda`, create the `members` / `uid` / Collection group / Ascending index using the exact URL shown in Circlo's error. Wait until Enabled, then reload Circlo and retry. The definition already exists in `firebase/firestore.indexes.json`; no Dart or Rules change is required. Run analyzer/tests separately when practical; GitHub Actions remains manual-only.
+**Current next step (2026-11-02):** Circle listing is working after enabling Collection Group → Ascending for the existing `members.uid` single-field exemption in `circlo-1dbda`. Run Flutter analyzer/widget tests and Firestore Emulator Rules tests when practical; GitHub Actions remains manual-only.
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 
 ## Circle list recovery and Firestore diagnostics (reported 2026-10-31)
 
 - The app finds Circle membership through the own-UID members collection-group query. Repository Rules already define own-document-only collection-group access and the indexes file already defines the members.uid collection-group index.
-- The live screenshot confirms project `circlo-1dbda` is missing the `members.uid` COLLECTION_GROUP / ASCENDING index, although the exact definition is already in `firebase/firestore.indexes.json`.
+- The live screenshot confirmed project `circlo-1dbda` was missing the `members.uid` COLLECTION_GROUP / ASCENDING index, although the exact definition was already in `firebase/firestore.indexes.json`. The user enabled it on 2026-11-02 and confirmed the Circles screen works.
 - Merged [PR #76](https://github.com/muhammadnaumantahir/Circlo/pull/76) maps permission-denied to a Rules/project mismatch hint, failed-precondition to the members.uid index hint, and network/auth failures to their own messages. Successful creation also invalidates the Circle stream and selects the newly-created Circle.
-- Create the index using the error's Firebase Console URL, wait until Enabled, then retest. No Rules changes, new collections or paid services are involved. Unit tests have been authored but not run.
+- No Rules change, new collection or paid service was needed. Unit tests have been authored but not run.
 
 ## Latest join-code and web UX update (merged via PR #71)
 
