@@ -12,10 +12,10 @@ Use [feature-status.md](feature-status.md) as the canonical feature checklist an
 ## Startup location permission UX (requested 2026-11-02)
 
 - Current baseline asks for OS location access only after the user has explicitly confirmed that they want to share location with a particular Circle.
-- The feature branch adds a first-run introduction in the signed-in app shell once the account has a Circle and permission is not yet granted. It is shown once per Firebase UID/device and offers Continue / Not now.
+- Merged PR #77 adds a first-run introduction in the signed-in app shell once the account has a Circle and permission is not yet granted. It is shown once per Firebase UID/device and offers Continue / Not now.
 - Continue opens the OS/browser prompt only after the user's tap. Not now leaves the app usable; the existing per-Circle flow can request permission later.
 - Granting permission does not turn on sharing, write membership preferences, or publish location. The per-Circle consent action stays mandatory.
-- Uses shared_preferences for local prompt state. Widget test added; Flutter/device/browser tests remain not run.
+- PR #77 merged 2026-11-02. Uses shared_preferences for local prompt state. Widget test added; Flutter analyzer/tests and native/device/browser tests remain not run.
 
 ## Circle membership query failure after successful creation (reported 2026-10-31)
 
