@@ -79,6 +79,7 @@ void main() {
     expect(find.text('History'), findsOneWidget);
     expect(find.text('Circles'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
+  });
 
   testWidgets('startup explains location permission before requesting it', (tester) async {
     SharedPreferences.setMockInitialValues({});
@@ -116,6 +117,5 @@ void main() {
 
     expect(permissionRequested, isTrue);
     expect(find.text('Enable location for Circlo'), findsNothing);
-  });
   });
 }
