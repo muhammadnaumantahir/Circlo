@@ -1,17 +1,17 @@
 # Circlo feature roadmap — Life360-inspired, $0-first
 
-Last reviewed: 2026-11-02 (reconciled with merged PRs #60–#76; see [canonical feature status and cross-chat handover](feature-status.md)). PR #76 improves Circle-list diagnostics. The missing `members.uid` collection-group ascending index was enabled in Firebase project `circlo-1dbda`; the user confirmed Circlo loads circles successfully. Automated tests remain pending. The one-time startup location-permission introduction is under implementation on feat/startup-location-permission-nudge-nov2.
+Last reviewed: 2026-11-02 (reconciled with merged PRs #60–#77; see [canonical feature status and cross-chat handover](feature-status.md)). PR #76 improves Circle-list diagnostics. The missing `members.uid` collection-group ascending index was enabled in Firebase project `circlo-1dbda`; the user confirmed Circlo loads circles successfully. Automated tests remain pending. PR #77 has merged the one-time startup location-permission introduction; native/browser behavior still needs real-platform verification.
 
 **Current next step (2026-11-02):** Circle listing is working after enabling Collection Group → Ascending for the existing `members.uid` single-field exemption in `circlo-1dbda`. Run Flutter analyzer/widget tests and Firestore Emulator Rules tests when practical; GitHub Actions remains manual-only.
 
 This is an implementation queue, not a claim that Life360 features are equivalent. Circlo remains a consent-based location-sharing app. Every feature must respect the current Firebase-only, no-billing decision and be marked as verified only after the relevant tests run.
 
-## Startup location permission introduction (requested 2026-11-02)
+## Startup location permission introduction (merged via PR #77 on 2026-11-02)
 
 - A first-run explanation is shown after sign-in/profile setup when the account has at least one Circle and location is not already granted.
 - Continue invokes the OS/browser request only after the user's tap; Not now continues into the app. The choice is stored locally per Firebase UID so the intro is not repeated on every launch.
 - This is only device permission. Per-Circle sharing remains off until the user separately confirms Share my location for each Circle.
-- No Firestore schema or Rules changes. A local shared_preferences flag is used; focused widget coverage is added but not run.
+- No Firestore schema or Rules changes. A local shared_preferences flag is used; focused widget coverage is added but not run. Android/iOS and browser permission prompts still need manual verification.
 
 ## Circle list recovery and Firestore diagnostics (reported 2026-10-31)
 
