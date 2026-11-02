@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
-- Add a one-time startup location-permission introduction after sign-in once the user belongs to a Circle. Continue opens the OS/browser prompt after an explicit tap; Not now proceeds. Granting device permission does not enable sharing, which still requires per-Circle consent. Widget regression test added; not run (branch feat/startup-location-permission-nudge-nov2).
+- Add a one-time startup location-permission introduction after sign-in once the user belongs to a Circle. Continue opens the OS/browser prompt after an explicit tap; Not now proceeds. Granting device permission does not enable sharing, which still requires per-Circle consent. Widget regression test added; not run (merged via PR #77).
 - Resolved the live Circle-list failure by enabling Collection Group → Ascending for the existing `members.uid` single-field index exemption in Firebase project `circlo-1dbda`. The user confirmed Circlo loads circles afterward; no app-code or Rules change was required.
 - Add actionable diagnostics for Circle-list Firestore failures (permission-denied, failed-precondition / missing collection-group index, auth and network errors); refresh the membership stream and select the new Circle after successful creation. Focused unit tests added and changes merged via [PR #76](https://github.com/muhammadnaumantahir/Circlo/pull/76); tests not run.
 - Merged via [PR #75](https://github.com/muhammadnaumantahir/Circlo/pull/75): restore the missing shared `PremiumSectionHeader` used by sign-up and Circle forms, with a `const` constructor, and remove the unmatched closing parenthesis in the Map people preview. Add a widget regression test. The reported Flutter web build has not yet been rerun.
