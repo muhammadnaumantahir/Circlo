@@ -9,6 +9,14 @@ Use [feature-status.md](feature-status.md) as the canonical feature checklist an
 - `_PeoplePeekCard` in `app/lib/features/location/map_screen.dart` had one surplus closing parenthesis after the `Column`, which caused the map parser errors. PR #75 removed only that redundant closure.
 - A widget regression test now covers the compact header's title and subtitle. Flutter analyzer, widget tests and the Cloudflare release build have not been run after the repair; do not mark the web release verified until they pass.
 
+## Startup location permission UX (requested 2026-11-02)
+
+- Current baseline asks for OS location access only after the user has explicitly confirmed that they want to share location with a particular Circle.
+- The feature branch adds a first-run introduction in the signed-in app shell once the account has a Circle and permission is not yet granted. It is shown once per Firebase UID/device and offers Continue / Not now.
+- Continue opens the OS/browser prompt only after the user's tap. Not now leaves the app usable; the existing per-Circle flow can request permission later.
+- Granting permission does not turn on sharing, write membership preferences, or publish location. The per-Circle consent action stays mandatory.
+- Uses shared_preferences for local prompt state. Widget test added; Flutter/device/browser tests remain not run.
+
 ## Circle membership query failure after successful creation (reported 2026-10-31)
 
 - The screenshot shows the generic error state from CirclesScreen. That state is reached when myCirclesProvider receives a stream error.

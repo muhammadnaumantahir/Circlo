@@ -1,12 +1,17 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/widgets.dart';
 import 'features/auth/auth_screens.dart';
 import 'features/auth/verify_email_screen.dart';
 import 'features/circles/circles_screens.dart';
 import 'features/history/history_screens.dart';
+import 'features/location/location_access.dart';
 import 'features/location/map_screen.dart';
 import 'features/location/sharing_screen.dart';
 import 'features/places/notifications_screen.dart';
@@ -230,12 +235,132 @@ class HomeShell extends ConsumerStatefulWidget {
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> {
+  static const _startupLocationPromptKey = 'circlo.startup_location_permission_seen.v1';
+  bool _startupPermissionPromptInFlight = false;
+  bool _startupPermissionPromptScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleStartupLocationPermissionIntro();
+  }
+
+  void _scheduleStartupLocationPermissionIntro() {
+    if (_startupPermissionPromptScheduled) return;
+    _startupPermissionPromptScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startupPermissionPromptScheduled = false;
+      if (mounted) unawaited(_maybeShowStartupLocationPermissionIntro());
+    });
+  }
+
+  Future<void> _maybeShowStartupLocationPermissionIntro() async {
+    if (!mounted || _startupPermissionPromptInFlight) return;
+
+    final uid = ref.read(currentUidProvider);
+    final circles = ref.read(myCirclesProvider);
+    if (uid == null || !circles.hasValue || (circles.valueOrNull?.isEmpty ?? true)) {
+      return; // Ask only once a signed-in user actually belongs to a Circle.
+    }
+
+    _startupPermissionPromptInFlight = true;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final preferenceKey = '$_startupLocationPromptKey.$uid';
+      if (!mounted || preferences.getBool(preferenceKey) == true) return;
+
+      final access = await ref.read(locationAccessProvider.future);
+      if (!mounted) return;
+      if (access == LocationAccess.granted) {
+        await preferences.setBool(preferenceKey, true);
+        return;
+      }
+
+      final needsDeviceSettings =
+          access == LocationAccess.deniedForever || access == LocationAccess.serviceDisabled;
+      final settingsAvailable = !kIsWeb;
+      final title = access == LocationAccess.deniedForever
+          ? 'Location permission is blocked'
+          : access == LocationAccess.serviceDisabled
+              ? 'Turn on location services'
+              : 'Enable location for Circlo';
+      final message = access == LocationAccess.deniedForever
+          ? 'Location access is blocked for Circlo. You can allow it in your device settings. '
+              'Your location will still not be shared until you turn sharing on for a specific circle.'
+          : access == LocationAccess.serviceDisabled
+              ? 'Turn on your device location services to use the live map. '
+                  'Circlo will not share your location until you separately enable sharing for a circle.'
+              : 'Location helps Circlo show you on your circle map. Granting this permission does not share your location. '
+                  'You still choose each circle and must turn sharing on yourself.';
+      final actionLabel = needsDeviceSettings && settingsAvailable
+          ? 'Open settings'
+          : 'Continue';
+
+      final choice = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(Icons.location_on_outlined, size: 30),
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(actionLabel),
+            ),
+          ],
+        ),
+      );
+      if (choice == null || !mounted) return;
+
+      // A clear choice is remembered per signed-in account on this device. The existing
+      // per-Circle sharing action can still request permission later if the user skips.
+      await preferences.setBool(preferenceKey, true);
+      if (!choice) return;
+
+      LocationAccess result;
+      if (access == LocationAccess.deniedForever && settingsAvailable) {
+        await ref.read(openAppLocationSettingsProvider)();
+        return;
+      } else if (access == LocationAccess.serviceDisabled && settingsAvailable) {
+        await ref.read(openDeviceLocationSettingsProvider)();
+        return;
+      } else {
+        result = await ref.read(requestLocationAccessProvider)();
+      }
+
+      ref.invalidate(locationAccessProvider);
+      if (!mounted || result == LocationAccess.granted) return;
+      showSnack(
+        context,
+        result == LocationAccess.serviceDisabled
+            ? 'Turn on device location services to use the live map.'
+            : result == LocationAccess.deniedForever
+                ? 'Allow location for Circlo in your device or browser settings.'
+                : 'Location permission was not granted. You can enable it later when turning on circle sharing.',
+      );
+    } catch (_) {
+      // Startup should remain usable if device permission or local preferences cannot be read.
+    } finally {
+      _startupPermissionPromptInFlight = false;
+    }
+  }
+
   final DateTime _startedAt = DateTime.now();
   final Set<String> _announced = {};
   final Set<String> _completing = {};
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<Circle>>>(myCirclesProvider, (_, next) {
+      if (next.valueOrNull?.isNotEmpty == true) {
+        _scheduleStartupLocationPermissionIntro();
+      }
+    });
+
     ref.listen<AsyncValue<List<FeedItem>>>(notificationFeedProvider, (_, next) {
       final items = next.valueOrNull;
       if (items == null) return;

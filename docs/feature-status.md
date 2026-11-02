@@ -1,7 +1,7 @@
 # Circlo Feature Status & Cross-Chat Handover
 
-**Last updated:** 2026-10-31  
-**Latest status audit:** 2026-10-31 — `main` reconciled through merged PRs #60–#76. PR #75 repaired the previous Cloudflare compile errors. PR #76 adds Circle-list Firebase error diagnostics and refresh-after-create. The `members.uid` COLLECTION_GROUP/ASCENDING index was enabled in Firebase project `circlo-1dbda`; the user confirmed Circlo successfully loads circles afterward. Flutter tests/analyzer and broader live Firebase verification remain pending.
+**Last updated:** 2026-11-02  
+**Latest status audit:** 2026-10-31 — `main` reconciled through merged PRs #60–#76. PR #75 repaired the previous Cloudflare compile errors. PR #76 adds Circle-list Firebase error diagnostics and refresh-after-create. The `members.uid` COLLECTION_GROUP/ASCENDING index was enabled in Firebase project `circlo-1dbda`; the user confirmed Circlo successfully loads circles afterward. Flutter tests/analyzer and broader live Firebase verification remain pending. A one-time startup location-permission introduction is being implemented on feat/startup-location-permission-nov2; it remains separate from per-Circle sharing consent.
 **Repository:** [muhammadnaumantahir/Circlo](https://github.com/muhammadnaumantahir/Circlo)  
 **Tracked branch:** `main`  
 **Latest feature merges at audit:** PR #68 (SOS handoff), PR #69 (Place Suggestions repair), PR #70 (Cloudflare compile repairs), PR #71 (join-code compatibility), PR #72 (initial premium UI), PR #73 (premium UI refinement) and PR #74 (History / Activity premium polish), PR #75 (Cloudflare web compile repair) and PR #76 (Circle-list error diagnosis), merged 2026-10-30/31
@@ -72,6 +72,16 @@ This is the canonical progress handover for Circlo. Update this file whenever a 
 - **Code change on fix/circles-load-error-diagnostics-oct31:** replace generic retry copy with an error-code-specific explanation; preserve Firestore's message (including index-link details) for diagnosis; invalidate myCirclesProvider and set the new Circle as selected after the creation batch succeeds.
 - **Resolution confirmed by user (2026-11-02):** in Firestore Single Field Indexes, the `members` / `uid` exemption was updated so Collection Group → Ascending is enabled. After this change, the user confirmed Circlo now loads circles successfully.
 - **Remaining verification:** focused Dart unit tests, Flutter analyzer, Firestore Emulator Rules tests and the broader two-account/browser matrix have not been run. No GitHub Actions workflow was triggered.
+
+## Startup location permission introduction (feature branch)
+
+- **Requested:** 2026-11-02 — ask the user for location access at startup rather than waiting until they open Location sharing and enable a specific Circle.
+- **Current implementation:** HomeShell schedules a first-run permission introduction once the signed-in account has at least one Circle. Accounts with permission already granted skip it; users without a Circle are not prompted yet.
+- **Consent UX:** explains why location is useful and states that OS permission alone does not share location. The user must tap Continue before the OS/browser permission request. Not now dismisses the introduction. A clear choice is remembered locally per Firebase UID on that device; the existing per-Circle Share my location confirmation remains mandatory.
+- **Denied states:** permanently denied access directs native users to app settings; disabled device location directs native users to location settings. Browser restrictions are explained without pretending that permission was granted.
+- **Data / privacy:** no Firestore fields or Rules changed. Granting OS location permission never enables a Circle's sharing switch or uploads a location by itself.
+- **Branch:** feat/startup-location-permission-nudge-nov2. Adds shared_preferences for the local one-time prompt flag, shared permission providers, and a widget regression test.
+- **Verification:** Flutter analyzer, tests, native permission behavior and web permission behavior have not been run in this environment. GitHub Actions remains manual-only.
 
 ## Status definitions
 
