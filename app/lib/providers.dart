@@ -8,6 +8,7 @@ import 'features/circles/circles_repository.dart';
 import 'features/circles/activity.dart';
 import 'features/history/history_models.dart';
 import 'features/history/history_repository.dart';
+import 'features/location/location_access.dart';
 import 'features/location/location_models.dart';
 import 'features/location/location_repository.dart';
 import 'features/places/geocoder.dart';
@@ -58,6 +59,20 @@ final signupBirthYearProvider = StateProvider<int?>((ref) => null);
 
 final locationRepositoryProvider = Provider<LocationRepository>(
     (ref) => LocationRepository(FirebaseFirestore.instance));
+
+/// Current OS/browser location permission state, shared by startup and Sharing.
+final locationAccessProvider = FutureProvider.autoDispose<LocationAccess>(
+    (ref) => currentLocationAccess());
+
+/// Injected request callback so permission requests remain behind an explicit user action.
+final requestLocationAccessProvider =
+    Provider<Future<LocationAccess> Function()>((ref) => requestLocationAccess);
+
+final openAppLocationSettingsProvider =
+    Provider<Future<void> Function()>((ref) => openAppLocationSettings);
+
+final openDeviceLocationSettingsProvider =
+    Provider<Future<void> Function()>((ref) => openDeviceLocationSettings);
 
 /// The user's own sharing switches per circle.
 final myMembershipsProvider = StreamProvider<List<MyMembership>>((ref) {
