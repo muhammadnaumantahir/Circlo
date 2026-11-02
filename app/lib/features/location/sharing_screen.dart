@@ -9,9 +9,6 @@ import 'location_access.dart';
 import 'location_models.dart';
 import 'sharing_controller.dart';
 
-final locationAccessProvider =
-    FutureProvider.autoDispose<LocationAccess>((ref) => currentLocationAccess());
-
 class SharingScreen extends ConsumerWidget {
   const SharingScreen({super.key});
 
@@ -515,7 +512,7 @@ Important: this changes only the map pin. Saved Place arrival/departure alerts, 
       confirmLabel: 'Share my location',
     );
     if (!ok) return;
-    final access = await requestLocationAccess();
+    final access = await ref.read(requestLocationAccessProvider)();
     ref.invalidate(locationAccessProvider);
     if (access != LocationAccess.granted) {
       if (context.mounted) {
